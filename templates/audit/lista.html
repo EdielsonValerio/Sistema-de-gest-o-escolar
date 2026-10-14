@@ -1,0 +1,19 @@
+{% extends "generic/lista.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block content %}
+{% with titulo="Auditoria" subtitulo="Trilha de operações administrativas e financeiras. Os registros são somente de inclusão e não guardam CPF, senhas ou endereços." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-e">Entidade</label><select id="f-e" class="form-select" name="entidade"><option value="">Todas</option>{% for e in entidades %}<option value="{{ e }}" {% if filtros.entidade == e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-a">Ação contém</label><input id="f-a" class="form-control" name="acao" value="{{ filtros.acao }}" placeholder="Ex.: RECEBIMENTO"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-u">Usuário</label><select id="f-u" class="form-select" name="usuario"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.pk }}" {% if filtros.usuario == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Quando</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Descrição</th></tr>{% endblock %}
+{% block tbody %}
+{% for r in object_list %}
+<tr><td class="text-nowrap">{{ r.criado_em|date:"d/m/Y H:i:s" }}</td><td>{{ r.usuario_nome|default:"—" }}</td><td><code>{{ r.acao }}</code></td><td>{{ r.entidade }} #{{ r.entidade_id }}</td><td>{{ r.descricao }}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=5 icone="clock-history" msg="Nenhum registro de auditoria." %}{% endfor %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Gerar cobranças{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Gerar cobranças</h1>
+<p class="page-sub">{{ matricula.aluno.nome }} · {{ matricula.turma.nome }} · matrícula {{ matricula.numero|default:"s/n" }}</p>
+{% if ja_tem %}
+  <div class="alert alert-info">Esta matrícula já possui cobranças geradas.</div>
+  <a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' matricula.aluno_id %}?aba=financeiro">Voltar</a>
+{% else %}
+{% include "enrollments/_plano.html" %}
+<form method="post" novalidate data-once>
+  {% csrf_token %}
+  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value }}">{% endif %}
+  <div class="card"><div class="card-body">
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    {% if form.plano.errors %}<div class="text-danger small mb-2">{{ form.plano.errors.0 }}</div>{% endif %}
+    <div class="row g-3">{% with field=form.responsavel %}{% include "components/field.html" %}{% endwith %}</div>
+  </div>
+  <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' matricula.aluno_id %}?aba=financeiro">Cancelar</a>
+    <button class="btn btn-success" type="submit" {% if not plano_sel %}disabled{% endif %}><i class="bi bi-check2-circle"></i> Gerar cobranças</button>
+  </div></div>
+</form>
+{% endif %}
+{% endblock %}

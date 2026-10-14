@@ -1,0 +1,27 @@
+{% extends "generic/form.html" %}
+{% block scripts %}
+<script>
+(function () {
+  var tipo = document.querySelector("[name=tipo]");
+  if (!tipo) return;
+  function bloco(nome) { var el = document.querySelector("[name=" + nome + "]"); return el ? el.closest("[class*=col-]") : null; }
+  var oficiais = ["serie_ofertada"], nao = ["ano_referencia", "data_inicio", "data_fim", "duracao_quantidade", "duracao_unidade"];
+  function titulos() {
+    document.querySelectorAll(".form-section-title").forEach(function (t) {
+      if (t.textContent.indexOf("Turma oficial") === 0) t.dataset.g = "of";
+      if (t.textContent.indexOf("Turma não oficial") === 0) t.dataset.g = "no";
+    });
+  }
+  function aplicar() {
+    var of = tipo.value === "OFICIAL";
+    oficiais.forEach(function (n) { var b = bloco(n); if (b) b.style.display = of ? "" : "none"; });
+    nao.forEach(function (n) { var b = bloco(n); if (b) b.style.display = of ? "none" : ""; });
+    document.querySelectorAll(".form-section-title").forEach(function (t) {
+      if (t.dataset.g === "of") { t.style.display = of ? "" : "none"; t.nextElementSibling.style.display = of ? "" : "none"; }
+      if (t.dataset.g === "no") { t.style.display = of ? "none" : ""; t.nextElementSibling.style.display = of ? "none" : ""; }
+    });
+  }
+  titulos(); aplicar(); tipo.addEventListener("change", aplicar);
+})();
+</script>
+{% endblock %}

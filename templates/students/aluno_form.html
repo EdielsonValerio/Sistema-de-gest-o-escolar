@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">{{ titulo }}</h1>
+<p class="page-sub">{% if aluno %}Código único {{ aluno.codigo }}.{% else %}O código único é gerado automaticamente ao salvar. Depois você poderá vincular o aluno a uma turma na ficha.{% endif %}</p>
+<form method="post" enctype="multipart/form-data" novalidate data-once>
+  {% csrf_token %}
+  <div class="card"><div class="card-body">
+    {% include "components/form_fields.html" %}
+  </div>
+  <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <a class="btn btn-outline-secondary" href="{% if aluno %}{% url 'students:aluno_ficha' aluno.pk %}{% else %}{% url 'students:aluno_lista' %}{% endif %}">Cancelar</a>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Salvar</button>
+  </div></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var tipo = document.querySelector("[name=resp_tipo]"); if (!tipo) return;
+  function bloco(n) { var e = document.querySelector("[name=" + n + "]"); return e ? e.closest("[class*=col-]") : null; }
+  var outros = ["resp_existente", "resp_tipo_pessoa", "resp_nome", "resp_documento", "resp_email", "resp_telefone"];
+  function aplicar() {
+    var v = tipo.value;
+    outros.forEach(function (n) {
+      var b = bloco(n); if (!b) return;
+      var mostrar = (v === "OUTRO") || (n === "resp_email" && (v === "PROPRIO" || v === "PAI" || v === "MAE")) || (n === "resp_telefone" && false);
+      b.style.display = mostrar ? "" : "none";
+    });
+  }
+  tipo.addEventListener("change", aplicar); aplicar();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "generic/lista.html" %}
+{% block title %}Séries ofertadas{% endblock %}
+{% block content %}
+{% with titulo="Séries ofertadas" subtitulo="Séries da tabela de referência ofertadas em cada ano letivo. O histórico é mantido após o encerramento do ano." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}
+{% if perms.academic.view_seriereferencia %}<a class="btn btn-outline-secondary" href="{% url 'academic:serie_ref_lista' %}"><i class="bi bi-table"></i> Tabela de referência</a>{% endif %}
+{% if perms.academic.add_serieofertada %}<a class="btn btn-primary" href="{% url 'academic:serie_nova' %}"><i class="bi bi-plus-lg"></i> Ofertar série</a>{% endif %}
+{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small mb-1" for="f-ano">Ano letivo</label>
+    <select id="f-ano" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Série</th><th>Etapa</th><th>Ano letivo</th><th>Situação</th><th>Turmas</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for s in object_list %}
+<tr><td><strong>{{ s.serie_referencia.nome }}</strong></td><td>{{ s.serie_referencia.get_etapa_display }}</td><td>{{ s.ano_letivo.nome }}</td>
+  <td><span class="badge text-bg-{% if s.situacao == 'ATIVA' %}success{% else %}secondary{% endif %}">{{ s.get_situacao_display }}</span></td>
+  <td>{{ s.qtd_turmas }}</td>
+  <td class="text-end">{% if perms.academic.change_serieofertada %}<a class="btn btn-sm btn-outline-primary" href="{% url 'academic:serie_editar' s.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=6 icone="diagram-3" msg="Nenhuma série ofertada. Cadastre um ano letivo e ofereça as séries." tem_filtro=filtros.ano %}{% endfor %}
+{% endblock %}

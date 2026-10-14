@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ responsavel.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">{{ responsavel.nome }}</h1><p class="page-sub">{{ responsavel.documento_mascarado|default:"sem documento" }} · {{ responsavel.email_cobranca|default:"sem e-mail" }} · {{ responsavel.telefone|default:"sem telefone" }}</p></div>
+  <div class="d-flex gap-2">{% if perms.students.change_responsavel %}<a class="btn btn-outline-primary" href="{% url 'students:responsavel_editar' responsavel.pk %}">Editar</a>{% endif %}{% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_responsavel' responsavel.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}<a class="btn btn-outline-secondary" href="{% url 'students:responsavel_lista' %}">Voltar</a></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header">Alunos vinculados</div><ul class="list-group list-group-flush">
+    {% for v in vinculos %}<li class="list-group-item d-flex justify-content-between"><span>{% if perms.students.view_aluno %}<a href="{% url 'students:aluno_ficha' v.aluno_id %}">{{ v.aluno.nome }}</a>{% else %}{{ v.aluno.nome }}{% endif %}<br><small class="text-muted">{{ v.get_parentesco_display }} · {{ v.inicio|date:"d/m/Y" }} → {% if v.fim %}{{ v.fim|date:"d/m/Y" }}{% else %}atual{% endif %}</small></span></li>
+    {% empty %}<li class="list-group-item text-muted">Nenhum aluno vinculado.</li>{% endfor %}</ul></div></div>
+  {% if mostrar_financeiro %}
+  <div class="col-lg-7"><div class="row g-3 h-100">
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Total devido</div><div class="fs-5 money">{{ total_devido|brl }}</div></div></div>
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Recebido</div><div class="fs-5 money text-success">{{ total_pago|brl }}</div></div></div>
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Saldo</div><div class="fs-5 money">{{ saldo|brl }}</div></div></div>
+  </div></div>
+  {% endif %}
+</div>
+{% if mostrar_financeiro %}
+<div class="card mb-3"><div class="card-header">Histórico financeiro do responsável</div><div class="table-responsive"><table class="table table-sm table-hover mb-0">
+  <thead><tr><th>Aluno</th><th>Parcela</th><th>Vencimento</th><th class="text-end">Devido</th><th class="text-end">Pago</th><th>Situação</th></tr></thead><tbody>
+  {% for p in parcelas %}<tr><td>{{ p.aluno.nome }}</td><td><a href="{% url 'finance:parcela_detalhe' p.pk %}">{{ p.descricao }}</a></td><td>{{ p.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ p.valor_devido|brl }}</td><td class="text-end money">{{ p.valor_pago|brl }}</td><td>{% badge_parcela p %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Nenhuma parcela em nome deste responsável.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-header">Recebimentos</div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nº</th><th>Data</th><th>Aluno</th><th>Forma</th><th class="text-end">Valor</th><th></th></tr></thead><tbody>
+  {% for r in recebimentos %}<tr><td>{{ r.numero }}</td><td>{{ r.criado_em|date:"d/m/Y H:i" }}</td><td>{{ r.aluno.nome }}</td><td>{{ r.get_forma_display }}</td><td class="text-end money">{{ r.valor_total|brl }}</td><td>{% if r.status == 'ESTORNADO' %}<span class="badge text-bg-secondary">Estornado</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Nenhum recebimento.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+{% endblock %}

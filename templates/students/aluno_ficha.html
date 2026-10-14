@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ aluno.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-3 align-items-center">
+    {% if aluno.foto %}<img src="{{ aluno.foto.url }}" alt="Foto de {{ aluno.nome }}" class="rounded" style="width:64px;height:64px;object-fit:cover">{% else %}<div class="kpi"><div class="icon" style="width:64px;height:64px"><i class="bi bi-person"></i></div></div>{% endif %}
+    <div><h1 class="h4 page-title mb-0">{{ aluno.nome }}</h1>
+      <div class="text-muted">Código <code>{{ aluno.codigo }}</code> · {{ aluno.idade }} anos · <span class="badge text-bg-{% if aluno.ativo %}success{% else %}secondary{% endif %}">Cadastro {% if aluno.ativo %}ativo{% else %}inativo{% endif %}</span></div></div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if perms.students.change_aluno %}<a class="btn btn-outline-primary" href="{% url 'students:aluno_editar' aluno.pk %}"><i class="bi bi-pencil"></i> Editar cadastro</a>{% endif %}
+    {% if perms.enrollments.add_matricula %}<a class="btn btn-primary" href="{% url 'enrollments:vincular' aluno.pk %}"><i class="bi bi-link-45deg"></i> Vincular a turma</a>{% endif %}
+    {% if mostrar_financeiro %}<a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}?aluno={{ aluno.pk }}&situacao=todas"><i class="bi bi-receipt"></i> Parcelas</a>{% endif %}
+    {% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_aluno' aluno.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
+    {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' aluno.pk %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item"><button class="nav-link {% if aba == 'dados' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-dados" type="button" role="tab">Dados cadastrais</button></li>
+  <li class="nav-item"><button class="nav-link {% if aba == 'matriculas' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-matriculas" type="button" role="tab">Matrículas e turmas</button></li>
+  {% if mostrar_financeiro %}<li class="nav-item"><button class="nav-link {% if aba == 'financeiro' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-financeiro" type="button" role="tab">Financeiro</button></li>{% endif %}
+  <li class="nav-item"><button class="nav-link {% if aba == 'historico' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-historico" type="button" role="tab">Histórico</button></li>
+</ul>
+
+<div class="tab-content">
+<!-- ============ DADOS ============ -->
+<div class="tab-pane fade {% if aba == 'dados' %}show active{% endif %}" id="tab-dados" role="tabpanel">
+  <div class="row g-3">
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Identificação</div><div class="card-body"><dl class="row mb-0">
+      <dt class="col-sm-5">Nome social</dt><dd class="col-sm-7">{{ aluno.nome_social|default:"—" }}</dd>
+      <dt class="col-sm-5">Nascimento</dt><dd class="col-sm-7">{{ aluno.data_nascimento|date:"d/m/Y" }}</dd>
+      <dt class="col-sm-5">Sexo</dt><dd class="col-sm-7">{{ aluno.get_sexo_display }}</dd>
+      <dt class="col-sm-5">CPF</dt><dd class="col-sm-7">{% if mostrar_cpf %}{{ aluno.cpf|default:"—" }}{% else %}{{ aluno.cpf_mascarado|default:"—" }}{% endif %}</dd>
+      <dt class="col-sm-5">Documento</dt><dd class="col-sm-7">{{ aluno.get_tipo_documento_display|default:"—" }}{% if aluno.numero_documento %} nº {{ aluno.numero_documento }}{% endif %}</dd>
+      <dt class="col-sm-5">Nacionalidade</dt><dd class="col-sm-7">{{ aluno.nacionalidade }}</dd>
+      <dt class="col-sm-5">Naturalidade</dt><dd class="col-sm-7">{{ aluno.naturalidade|default:"—" }}</dd>
+    </dl></div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Contato e endereço</div><div class="card-body"><dl class="row mb-0">
+      <dt class="col-sm-4">E-mail</dt><dd class="col-sm-8">{{ aluno.email|default:"—" }}</dd>
+      <dt class="col-sm-4">Telefone</dt><dd class="col-sm-8">{{ aluno.telefone|default:"—" }}</dd>
+      <dt class="col-sm-4">Celular</dt><dd class="col-sm-8">{{ aluno.celular|default:"—" }}</dd>
+      <dt class="col-sm-4">Endereço</dt><dd class="col-sm-8">{% if aluno.logradouro %}{{ aluno.logradouro }}, {{ aluno.numero|default:"s/n" }}{% if aluno.complemento %} — {{ aluno.complemento }}{% endif %}<br>{{ aluno.bairro }} · {{ aluno.municipio }}/{{ aluno.uf }} · CEP {{ aluno.cep }}{% else %}—{% endif %}</dd>
+    </dl></div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Filiação</div><div class="card-body"><dl class="row mb-0">
+      <dt class="col-sm-4">Mãe</dt><dd class="col-sm-8">{{ aluno.nome_mae|default:"—" }}{% if aluno.telefone_mae %}<div class="small text-muted">{{ aluno.telefone_mae }}</div>{% endif %}</dd>
+      <dt class="col-sm-4">Pai</dt><dd class="col-sm-8">{{ aluno.nome_pai|default:"—" }}{% if aluno.telefone_pai %}<div class="small text-muted">{{ aluno.telefone_pai }}</div>{% endif %}</dd>
+      <dt class="col-sm-4">Resp. legal</dt><dd class="col-sm-8">{% if aluno.responsavel_legal == 'OUTRO' %}{{ aluno.nome_responsavel_legal|default:"—" }}{% if aluno.telefone_responsavel_legal %}<div class="small text-muted">{{ aluno.telefone_responsavel_legal }}</div>{% endif %}{% else %}Os pais{% endif %}</dd>
+      {% if aluno.observacoes_filiacao %}<dt class="col-sm-4">Observações</dt><dd class="col-sm-8">{{ aluno.observacoes_filiacao|linebreaksbr }}</dd>{% endif %}
+    </dl></div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Responsável financeiro</div><div class="card-body">
+      {% if responsavel_atual %}
+        <div class="fw-semibold">{% if perms.students.view_responsavel %}<a href="{% url 'students:responsavel_detalhe' responsavel_atual.pk %}">{{ responsavel_atual.nome }}</a>{% else %}{{ responsavel_atual.nome }}{% endif %}</div>
+        <div class="small text-muted">{{ responsavel_atual.documento_mascarado|default:"sem documento" }}{% if responsavel_atual.email_cobranca %} · {{ responsavel_atual.email_cobranca }}{% endif %}{% if responsavel_atual.telefone %} · {{ responsavel_atual.telefone }}{% endif %}</div>
+      {% else %}<div class="text-muted">Não definido. Informe no cadastro do aluno.</div>{% endif %}
+      {% if historico_responsaveis|length > 1 %}<hr class="my-2"><div class="small text-muted mb-1">Histórico</div>
+        {% for v in historico_responsaveis %}<div class="small">{{ v.responsavel.nome }} · {{ v.get_parentesco_display }} · {{ v.inicio|date:"d/m/Y" }} → {% if v.fim %}{{ v.fim|date:"d/m/Y" }}{% else %}atual{% endif %}</div>{% endfor %}{% endif %}
+    </div></div></div>
+    <div class="col-12"><div class="card"><div class="card-header">Dados administrativos</div><div class="card-body"><dl class="row mb-0">
+      <dt class="col-sm-3">Cadastrado em</dt><dd class="col-sm-9">{{ aluno.criado_em|date:"d/m/Y H:i" }} por {{ aluno.criado_por.get_username|default:"—" }}</dd>
+      <dt class="col-sm-3">Observações internas</dt><dd class="col-sm-9">{{ aluno.observacoes_internas|default:"—"|linebreaksbr }}</dd>
+    </dl></div></div></div>
+  </div>
+</div>
+
+<!-- ============ MATRÍCULAS ============ -->
+<div class="tab-pane fade {% if aba == 'matriculas' %}show active{% endif %}" id="tab-matriculas" role="tabpanel">
+  <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">Matrículas oficiais{% if perms.enrollments.add_matricula %}<a class="btn btn-sm btn-primary" href="{% url 'enrollments:vincular' aluno.pk %}?tipo=OFICIAL">Matricular</a>{% endif %}</div>
+    {% include "students/_matriculas_tabela.html" with lista=matriculas_oficiais vazio="Nenhuma matrícula oficial." %}</div>
+  <div class="card"><div class="card-header d-flex justify-content-between align-items-center">Turmas não oficiais{% if perms.enrollments.add_matricula %}<a class="btn btn-sm btn-outline-primary" href="{% url 'enrollments:vincular' aluno.pk %}?tipo=NAO_OFICIAL">Inscrever</a>{% endif %}</div>
+    {% include "students/_matriculas_tabela.html" with lista=matriculas_nao_oficiais vazio="O aluno não participa de turmas não oficiais." %}</div>
+</div>
+
+<!-- ============ FINANCEIRO ============ -->
+{% if mostrar_financeiro %}
+<div class="tab-pane fade {% if aba == 'financeiro' %}show active{% endif %}" id="tab-financeiro" role="tabpanel">
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="card card-body"><div class="small text-muted">Total contratado</div><div class="fs-5 money">{{ total_contratado|brl }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card card-body"><div class="small text-muted">Total recebido</div><div class="fs-5 money text-success">{{ total_recebido|brl }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card card-body"><div class="small text-muted">Saldo devedor</div><div class="fs-5 money">{{ saldo_devedor|brl }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card card-body"><div class="small text-muted">Vencidas</div><div class="fs-5 money text-danger">{{ parcelas_vencidas|length }}</div></div></div>
+  </div>
+  {% if matriculas_sem_contrato and perms.finance.gerar_cobrancas %}
+    {% for m in matriculas_sem_contrato %}<div class="alert alert-warning d-flex justify-content-between align-items-center">Vínculo {{ m.turma.nome }} sem cobranças geradas.<a class="btn btn-sm btn-warning" href="{% url 'enrollments:cobrancas' m.pk %}">Gerar cobranças</a></div>{% endfor %}
+  {% endif %}
+  <div class="card mb-3"><div class="card-header">Responsável financeiro e planos contratados</div><div class="card-body">
+    <div class="mb-2"><span class="text-muted">Responsável atual:</span> {{ responsavel_atual.nome|default:"não definido" }}</div>
+    {% for c in contratos %}<div class="small">• <strong>{{ c.plano_nome }}</strong> — {{ c.quantidade_parcelas }} parcelas · {{ c.valor_total|brl }} · responsável na contratação: {{ c.responsavel.nome }}</div>{% empty %}<div class="text-muted small">Nenhum plano contratado.</div>{% endfor %}
+  </div></div>
+  <div class="card mb-3"><div class="card-header">Parcelas</div><div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    <thead><tr><th>Parcela</th><th>Vencimento</th><th class="text-end">Devido</th><th class="text-end">Pago</th><th class="text-end">Saldo</th><th>Situação</th><th></th></tr></thead><tbody>
+    {% for p in parcelas %}<tr><td>{{ p.descricao }}</td><td>{{ p.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ p.valor_devido|brl }}</td><td class="text-end money">{{ p.valor_pago|brl }}</td><td class="text-end money">{{ p.saldo|brl }}</td><td>{% badge_parcela p %}</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:parcela_detalhe' p.pk %}">Abrir</a></td></tr>
+    {% empty %}<tr><td colspan="7"><div class="empty-state">Este aluno ainda não tem parcelas.</div></td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="row g-3">
+    <div class="col-lg-6"><div class="card"><div class="card-header">Recebimentos</div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nº</th><th>Data</th><th>Forma</th><th class="text-end">Valor</th><th></th></tr></thead><tbody>
+      {% for r in recebimentos %}<tr><td>{% if perms.finance.view_recebimento %}<a href="{% url 'finance:recebimento_detalhe' r.pk %}">{{ r.numero }}</a>{% else %}{{ r.numero }}{% endif %}</td><td>{{ r.criado_em|date:"d/m/Y H:i" }}</td><td>{{ r.get_forma_display }}</td><td class="text-end money">{{ r.valor_total|brl }}</td><td>{% if r.status == 'ESTORNADO' %}<span class="badge text-bg-secondary">Estornado</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Nenhum recebimento.</td></tr>{% endfor %}</tbody></table></div></div></div>
+    <div class="col-lg-6"><div class="card"><div class="card-header">Descontos e ajustes</div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Quando</th><th>Parcela</th><th>Alteração</th><th>Quem</th></tr></thead><tbody>
+      {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y" }}</td><td>{{ a.parcela.numero }}</td><td>{{ a.get_tipo_display }}: {{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">{{ a.justificativa }}</div></td><td>{{ a.usuario.get_username|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Nenhum ajuste.</td></tr>{% endfor %}</tbody></table></div></div>
+      {% if estornos %}<div class="card mt-3"><div class="card-header">Estornos</div><ul class="list-group list-group-flush">{% for e in estornos %}<li class="list-group-item small">{{ e.criado_em|date:"d/m/Y H:i" }} · recebimento {{ e.recebimento.numero }} ({{ e.recebimento.valor_total|brl }}) · {{ e.usuario_nome }} — {{ e.justificativa }}</li>{% endfor %}</ul></div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ============ HISTÓRICO ============ -->
+<div class="tab-pane fade {% if aba == 'historico' %}show active{% endif %}" id="tab-historico" role="tabpanel">
+  <div class="card"><div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    <thead><tr><th>Quando</th><th>Usuário</th><th>Operação</th><th>Descrição</th></tr></thead><tbody>
+    {% for r in historico %}<tr><td class="text-nowrap">{{ r.criado_em|date:"d/m/Y H:i" }}</td><td>{{ r.usuario_nome|default:"—" }}</td><td><code>{{ r.acao }}</code></td><td>{{ r.descricao }}</td></tr>
+    {% empty %}<tr><td colspan="4"><div class="empty-state">Sem registros.</div></td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+</div>
+{% endblock %}

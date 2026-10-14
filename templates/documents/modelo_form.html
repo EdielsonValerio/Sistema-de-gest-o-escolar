@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">{{ titulo }}</h1>
+<p class="page-sub">{{ subtitulo }}</p>
+<form method="post" novalidate data-once>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="card mb-3"><div class="card-body"><div class="row g-3">
+    {% include "components/field.html" with field=form.nome %}
+    {% include "components/field.html" with field=form.tipo %}
+    {% include "components/field.html" with field=form.destinatario %}
+    {% include "components/field.html" with field=form.usar_cabecalho %}
+    {% include "components/field.html" with field=form.ativo %}
+  </div></div></div>
+
+  <div class="row g-3">
+    <div class="col-lg-9">
+      <label class="form-label required-mark" for="doc-editor">Leiaute do documento</label>
+      <div class="doc-toolbar" role="toolbar" aria-label="Formatação">
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="bold" title="Negrito"><i class="bi bi-type-bold"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="italic" title="Itálico"><i class="bi bi-type-italic"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="underline" title="Sublinhado"><i class="bi bi-type-underline"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="formatBlock" data-valor="h2" title="Título"><i class="bi bi-type-h2"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="formatBlock" data-valor="p" title="Parágrafo"><i class="bi bi-paragraph"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="insertUnorderedList" title="Lista"><i class="bi bi-list-ul"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="insertOrderedList" title="Lista numerada"><i class="bi bi-list-ol"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="justifyLeft" title="Alinhar à esquerda"><i class="bi bi-text-left"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="justifyCenter" title="Centralizar"><i class="bi bi-text-center"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="justifyRight" title="Alinhar à direita"><i class="bi bi-text-right"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="justifyFull" title="Justificar"><i class="bi bi-justify"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="insertHorizontalRule" title="Linha"><i class="bi bi-dash-lg"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="undo" title="Desfazer"><i class="bi bi-arrow-counterclockwise"></i></button>
+        <button type="button" class="btn btn-sm btn-light border" data-cmd="redo" title="Refazer"><i class="bi bi-arrow-clockwise"></i></button>
+      </div>
+      <div id="doc-editor" class="doc-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Leiaute do documento"></div>
+      {{ form.conteudo }}
+      {% for e in form.conteudo.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+      <div class="form-text">Clique em uma variável ao lado para inseri-la no ponto do cursor. Ao emitir, ela é trocada pelos dados reais.</div>
+    </div>
+    <div class="col-lg-3">
+      <div class="card"><div class="card-header">Variáveis</div>
+        <div class="card-body p-2">
+          <input id="var-busca" type="search" class="form-control form-control-sm mb-2" placeholder="Buscar variável…" aria-label="Buscar variável">
+          <div class="var-lista">
+            {% for grupo, itens in catalogo %}
+              <div data-var-grupo><div class="small fw-semibold text-muted mt-2">{{ grupo }}</div>
+              <ul class="list-unstyled mb-0">{% for chave, desc, exemplo in itens %}
+                <li data-var-item><button type="button" class="btn-var" data-var="{{ chave }}" title="{{ desc }}"><code>[{{ chave }}]</code><div class="text-muted" style="font-size:.75rem">{{ desc }}</div></button></li>
+              {% endfor %}</ul></div>
+            {% endfor %}
+          </div>
+        </div></div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end mt-3">
+    <button type="button" class="btn btn-outline-secondary" id="btn-previa" data-url="{{ previa_url }}"><i class="bi bi-eye"></i> Pré-visualizar</button>
+    <a class="btn btn-outline-secondary" href="{{ cancelar_url }}">Cancelar</a>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salvar</button>
+  </div>
+</form>
+
+<div id="previa-caixa" class="mt-4 d-none">
+  <h2 class="h6 text-muted">Pré-visualização (valores de exemplo)</h2>
+  <div id="previa-aviso" class="alert alert-warning d-none"></div>
+  <div class="doc-folha" id="previa-doc"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% load static %}{% static 'js/editor_documento.js' %}?v=1"></script>{% endblock %}

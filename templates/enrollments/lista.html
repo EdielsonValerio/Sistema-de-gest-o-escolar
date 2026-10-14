@@ -1,0 +1,27 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Matrículas{% endblock %}
+{% block content %}
+{% with titulo="Matrículas e vínculos" subtitulo="Matrículas oficiais e inscrições em turmas não oficiais. Para matricular, abra a ficha do aluno e escolha Vincular a turma." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.students.view_aluno %}<a class="btn btn-primary" href="{% url 'students:aluno_lista' %}"><i class="bi bi-search"></i> Localizar aluno</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Aluno, código ou número"></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-t">Tipo</label><select id="f-t" class="form-select" name="tipo"><option value="">Todos</option><option value="OFICIAL" {% if filtros.tipo == 'OFICIAL' %}selected{% endif %}>Oficial</option><option value="NAO_OFICIAL" {% if filtros.tipo == 'NAO_OFICIAL' %}selected{% endif %}>Não oficial</option></select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="status"><option value="">Todas</option>{% for v, l in status_opcoes %}<option value="{{ v }}" {% if filtros.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-tu">Turma</label><select id="f-tu" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button> {% if tem_filtro %}<a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Número</th><th>Aluno</th><th>Turma</th><th>Tipo</th><th>Ingresso</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for m in object_list %}
+<tr><td>{{ m.numero|default:"—" }}</td>
+  <td><a href="{% url 'students:aluno_ficha' m.aluno_id %}?aba=matriculas">{{ m.aluno.nome }}</a><div class="small text-muted">{{ m.aluno.codigo }}</div></td>
+  <td>{{ m.turma.nome }}{% if m.ano_letivo %}<div class="small text-muted">{{ m.ano_letivo.ano }}</div>{% endif %}</td>
+  <td>{{ m.get_tipo_display }}</td><td>{{ m.data_ingresso|date:"d/m/Y" }}</td><td>{% badge_matricula m %}</td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'students:aluno_ficha' m.aluno_id %}?aba=matriculas">Ficha</a></td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=7 icone="journal-check" msg="Nenhuma matrícula registrada ainda." %}{% endfor %}
+{% endblock %}

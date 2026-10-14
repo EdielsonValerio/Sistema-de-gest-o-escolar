@@ -1,0 +1,4 @@
+<tr><td colspan="{{ colspan|default:6 }}"><div class="empty-state">
+  <i class="bi bi-{{ icone|default:'inbox' }}"></i>
+  {% if tem_filtro %}Nenhum resultado para os filtros informados. <a href="?">Limpar filtros</a>{% else %}{{ msg|default:"Nenhum registro cadastrado." }}{% if acao_url %}<div class="mt-2"><a class="btn btn-sm btn-primary" href="{{ acao_url }}">{{ acao_rotulo }}</a></div>{% endif %}{% endif %}
+</div></td></tr>

@@ -1,0 +1,18 @@
+{% load ui %}
+<div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+  <thead><tr><th>Número</th><th>Turma</th><th>Série · ano</th><th>Ingresso</th><th>Saída</th><th>Situação</th><th>Origem</th><th></th></tr></thead><tbody>
+  {% for m in lista %}
+  <tr><td>{{ m.numero|default:"—" }}</td><td>{{ m.turma.nome }}</td>
+    <td>{% if m.tipo == 'OFICIAL' %}{{ m.turma.serie_ofertada.serie_referencia.nome }} · {{ m.ano_letivo.ano }}{% else %}{{ m.turma.data_inicio|date:"d/m/Y" }} a {{ m.turma.data_fim|date:"d/m/Y" }}{% endif %}</td>
+    <td>{{ m.data_ingresso|date:"d/m/Y" }}</td><td>{{ m.data_saida|date:"d/m/Y"|default:"—" }}</td><td>{% badge_matricula m %}</td>
+    <td class="small">{% if m.matricula_anterior %}Transferido de {{ m.matricula_anterior.turma.nome }}{% else %}—{% endif %}</td>
+    <td class="text-end text-nowrap">
+      {% if m.status == 'PENDENTE' and perms.enrollments.change_matricula %}<a class="btn btn-sm btn-outline-success" href="{% url 'enrollments:acao' m.pk 'ativar' %}">Ativar</a>{% endif %}
+      {% if m.status == 'ATIVA' %}
+        {% if m.tipo == 'OFICIAL' and perms.enrollments.transferir_matricula %}<a class="btn btn-sm btn-outline-primary" href="{% url 'enrollments:acao' m.pk 'transferir' %}">Transferir</a>{% endif %}
+        {% if perms.enrollments.change_matricula %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'enrollments:acao' m.pk 'concluir' %}">Concluir</a>{% endif %}
+      {% endif %}
+      {% if m.vigente and perms.enrollments.cancelar_matricula %}<a class="btn btn-sm btn-outline-danger" href="{% url 'enrollments:acao' m.pk 'cancelar' %}">Cancelar</a>{% endif %}
+    </td></tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-3">{{ vazio }}</td></tr>{% endfor %}
+</tbody></table></div>

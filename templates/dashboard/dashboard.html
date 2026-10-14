@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Dashboard</h1>
+<p class="page-sub">Visão geral{% if ano_ativo %} · ano letivo {{ ano_ativo.ano }}{% endif %} · {{ hoje|date:"d/m/Y" }}</p>
+
+{% if perms.students.view_aluno %}
+<form class="card card-body mb-3" action="{% url 'students:aluno_lista' %}" method="get">
+  <label class="form-label fw-semibold" for="q-dash">Consulta de alunos</label>
+  <div class="input-group">
+    <input id="q-dash" type="search" name="q" class="form-control" placeholder="Nome, código, matrícula, CPF, nome da mãe ou do responsável financeiro">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>
+  </div>
+</form>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  {% if alunos_ativos is not None %}
+  <div class="col-sm-6 col-xl-3"><div class="card card-body kpi"><div class="icon"><i class="bi bi-people"></i></div><div><div class="value">{{ alunos_ativos }}</div><div class="label">Alunos ativos</div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card card-body kpi"><div class="icon"><i class="bi bi-person-exclamation"></i></div><div><div class="value">{{ alunos_sem_matricula }}</div><div class="label">Alunos sem matrícula</div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card card-body kpi"><div class="icon"><i class="bi bi-journal-check"></i></div><div><div class="value">{{ matriculas_ativas }}</div><div class="label">Matrículas ativas{% if ano_ativo %} em {{ ano_ativo.ano }}{% endif %}</div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card card-body kpi"><div class="icon"><i class="bi bi-easel"></i></div><div><div class="value">{{ turmas_ativas }}</div><div class="label">Turmas ativas</div></div></div></div>
+  {% endif %}
+  {% if mostrar_financeiro %}
+  <div class="col-sm-6 col-xl-4"><div class="card card-body kpi"><div class="icon"><i class="bi bi-wallet2"></i></div><div><div class="value money">{{ a_receber|brl }}</div><div class="label">Valores a receber</div></div></div></div>
+  <div class="col-sm-6 col-xl-4"><div class="card card-body kpi"><div class="icon red"><i class="bi bi-exclamation-triangle"></i></div><div><div class="value money text-danger">{{ vencido|brl }}</div><div class="label">Valores vencidos ({{ qtd_vencidas }} parcela{{ qtd_vencidas|pluralize }})</div></div></div></div>
+  <div class="col-sm-12 col-xl-4"><div class="card card-body kpi"><div class="icon green"><i class="bi bi-cash-coin"></i></div><div><div class="value money text-success">{{ recebido_hoje|brl }}</div><div class="label">Recebimentos do dia</div></div></div></div>
+  {% endif %}
+</div>
+
+{% if alunos_ativos is not None and not tem_alunos %}
+<div class="card"><div class="card-body empty-state">
+  <i class="bi bi-rocket-takeoff"></i>
+  <h2 class="h5">Vamos começar</h2>
+  <p>O sistema ainda não tem dados. Siga a ordem abaixo para configurar a escola.</p>
+  <div class="d-flex flex-wrap gap-2 justify-content-center">
+    {% if perms.academic.add_anoletivo %}<a class="btn btn-outline-primary" href="{% url 'academic:ano_novo' %}">1. Ano letivo</a>{% endif %}
+    {% if perms.academic.add_serieofertada %}<a class="btn btn-outline-primary" href="{% url 'academic:serie_nova' %}">2. Séries</a>{% endif %}
+    {% if perms.academic.add_turma %}<a class="btn btn-outline-primary" href="{% url 'academic:turma_nova' %}">3. Turmas</a>{% endif %}
+    {% if perms.students.add_aluno %}<a class="btn btn-primary" href="{% url 'students:aluno_novo' %}">4. Cadastrar aluno</a>{% endif %}
+  </div>
+</div></div>
+{% else %}
+<div class="d-flex flex-wrap gap-2">
+  {% if perms.students.add_aluno %}<a class="btn btn-primary" href="{% url 'students:aluno_novo' %}"><i class="bi bi-person-plus"></i> Cadastrar aluno</a>{% endif %}
+  {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> Realizar recebimento</a>{% endif %}
+  {% if perms.finance.view_parcela %}<a class="btn btn-outline-danger" href="{% url 'finance:parcela_lista' %}?situacao=vencidas"><i class="bi bi-exclamation-triangle"></i> Ver parcelas vencidas</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

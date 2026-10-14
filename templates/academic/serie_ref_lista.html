@@ -1,0 +1,15 @@
+{% extends "generic/lista.html" %}
+{% block title %}Tabela de referência de séries{% endblock %}
+{% block content %}
+{% with titulo="Tabela de referência de séries" subtitulo="Etapas e séries da educação básica com códigos INTERNOS e estáveis. Não são códigos oficiais do MEC; o código oficial é opcional e exige a origem." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}<a class="btn btn-outline-secondary" href="{% url 'academic:serie_lista' %}">Séries ofertadas</a>{% if perms.academic.add_seriereferencia %}<a class="btn btn-primary" href="{% url 'academic:serie_ref_nova' %}"><i class="bi bi-plus-lg"></i> Nova série</a>{% endif %}{% endblock %}
+{% block thead %}<tr><th>Código interno</th><th>Nome</th><th>Etapa</th><th>Ordem</th><th>Código oficial</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for s in object_list %}
+<tr><td><code>{{ s.codigo }}</code></td><td>{{ s.nome }}</td><td>{{ s.get_etapa_display }}</td><td>{{ s.ordem }}</td>
+  <td>{% if s.codigo_oficial %}{{ s.codigo_oficial }} <span class="small text-muted">({{ s.fonte_codigo_oficial }})</span>{% else %}—{% endif %}</td>
+  <td><span class="badge text-bg-{% if s.ativa %}success{% else %}secondary{% endif %}">{% if s.ativa %}Ativa{% else %}Inativa{% endif %}</span></td>
+  <td class="text-end">{% if perms.academic.change_seriereferencia %}<a class="btn btn-sm btn-outline-primary" href="{% url 'academic:serie_ref_editar' s.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=7 msg="Tabela vazia." %}{% endfor %}
+{% endblock %}

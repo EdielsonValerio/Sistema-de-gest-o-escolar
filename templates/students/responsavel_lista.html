@@ -1,0 +1,17 @@
+{% extends "generic/lista.html" %}
+{% block title %}Responsáveis financeiros{% endblock %}
+{% block content %}
+{% with titulo="Responsáveis financeiros" subtitulo="Cadastro próprio: a mesma pessoa pode responder pelo pagamento de mais de um aluno." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.students.add_responsavel %}<a class="btn btn-primary" href="{% url 'students:responsavel_novo' %}"><i class="bi bi-plus-lg"></i> Novo responsável</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="input-group"><input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Nome, documento ou e-mail" aria-label="Buscar responsável"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Buscar</button></div></form>
+{% endblock %}
+{% block thead %}<tr><th>Nome / razão social</th><th>Documento</th><th>E-mail</th><th>Telefone</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for r in responsaveis %}
+<tr><td><a href="{% url 'students:responsavel_detalhe' r.pk %}"><strong>{{ r.nome }}</strong></a>{% if r.eh_proprio_aluno %} <span class="badge text-bg-info">Próprio aluno</span>{% endif %}</td><td>{{ r.documento_mascarado|default:"—" }}</td><td>{{ r.email_cobranca|default:"—" }}</td><td>{{ r.telefone|default:"—" }}</td>
+  <td><span class="badge text-bg-{% if r.ativo %}success{% else %}secondary{% endif %}">{% if r.ativo %}Ativo{% else %}Inativo{% endif %}</span></td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'students:responsavel_detalhe' r.pk %}">Abrir</a>{% if perms.students.change_responsavel %} <a class="btn btn-sm btn-outline-primary" href="{% url 'students:responsavel_editar' r.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}{% url 'students:responsavel_novo' as novo_resp %}{% include "components/vazio.html" with colspan=6 icone="person-vcard" msg="Nenhum responsável cadastrado." tem_filtro=q acao_url=novo_resp acao_rotulo="Cadastrar responsável" %}{% endfor %}
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Editar numeração{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">{{ cfg.get_tipo_display }}</h1>
+<p class="page-sub">Edite o formato e confira a prévia antes de salvar.</p>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <form method="post" novalidate data-once id="form-numeracao">
+      {% csrf_token %}
+      <div class="card"><div class="card-body">{% include "components/form_fields.html" %}</div>
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+          <a class="btn btn-outline-secondary" href="{% url 'core:numeracao_lista' %}">Cancelar</a>
+          <button class="btn btn-primary" type="submit">Salvar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header">Prévia</div><div class="card-body" id="previa">
+      <span class="text-muted">Carregando…</span>
+    </div></div>
+    <div class="card"><div class="card-header">Variáveis disponíveis</div><div class="card-body small">
+      {% for v, d in variaveis %}<div><button type="button" class="btn btn-link btn-sm p-0 inserir" data-var="[{{ v }}]"><code>[{{ v }}]</code></button> — {{ d }}</div>{% endfor %}
+      <p class="text-muted mt-2 mb-0">Clique para inserir no formato. Textos fixos podem ter letras, números e - _ . /</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var f = document.getElementById("form-numeracao");
+  var formato = f.querySelector("[name=formato]"), sep = f.querySelector("[name=separador]"), tam = f.querySelector("[name=tamanho_sequencial]");
+  var box = document.getElementById("previa"), url = "{% url 'core:numeracao_previa' cfg.pk %}", t;
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function atualizar() {
+    var qs = new URLSearchParams({formato: formato.value, separador: sep.value, tamanho: tam.value});
+    fetch(url + "?" + qs, {headers: {"X-Requested-With": "XMLHttpRequest"}}).then(function (r) { return r.json(); }).then(function (j) {
+      box.innerHTML = j.ok ? j.exemplos.map(function (e) { return "<div><code>" + esc(e) + "</code></div>"; }).join("") : '<span class="text-danger">' + esc(j.erro) + "</span>";
+    });
+  }
+  [formato, sep, tam].forEach(function (el) { el.addEventListener("input", function () { clearTimeout(t); t = setTimeout(atualizar, 250); }); });
+  document.querySelectorAll(".inserir").forEach(function (b) { b.addEventListener("click", function () { formato.value += b.dataset.var; atualizar(); }); });
+  atualizar();
+})();
+</script>
+{% endblock %}

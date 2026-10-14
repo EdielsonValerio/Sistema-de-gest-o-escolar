@@ -1,0 +1,5 @@
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'relatorio_recebimentos' %}active{% endif %}" href="{% url 'finance:relatorio_recebimentos' %}">Recebimentos</a></li>
+  <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'relatorio_estornos' %}active{% endif %}" href="{% url 'finance:relatorio_estornos' %}">Estornos</a></li>
+  {% if perms.finance.view_parcela %}<li class="nav-item"><a class="nav-link" href="{% url 'finance:parcela_lista' %}?situacao=vencidas">Inadimplência</a></li>{% endif %}
+</ul>

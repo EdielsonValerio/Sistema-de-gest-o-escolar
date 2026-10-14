@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Numeração{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Numeração</h1>
+<p class="page-sub">Formatos do código único do aluno, das matrículas/inscrições e dos recebimentos. Alterações valem apenas para números futuros.</p>
+<div class="row g-3">
+{% for cfg, exemplos in itens %}
+  <div class="col-lg-6"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ cfg.get_tipo_display }}</span>
+      {% if cfg.tipo == "MATRICULA_OFICIAL" or cfg.tipo == "INSCRICAO_NAO_OFICIAL" %}
+        <span class="badge text-bg-{% if cfg.ativa %}success{% else %}secondary{% endif %}">{% if cfg.ativa %}Ativa{% else %}Desativada{% endif %}</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <dl class="row mb-2 small">
+        <dt class="col-4">Formato</dt><dd class="col-8"><code>{{ cfg.formato }}</code></dd>
+        <dt class="col-4">Separador</dt><dd class="col-8">{{ cfg.separador|default:"—" }}</dd>
+        <dt class="col-4">Sequencial</dt><dd class="col-8">{{ cfg.tamanho_sequencial }} dígitos</dd>
+        <dt class="col-4">Escopo</dt><dd class="col-8">{{ cfg.get_escopo_display }}</dd>
+        <dt class="col-4">Exemplos</dt><dd class="col-8">{% for e in exemplos %}<code>{{ e }}</code>{% if not forloop.last %} · {% endif %}{% endfor %}</dd>
+      </dl>
+      {% if perms.core.change_configuracaonumeracao %}<a class="btn btn-sm btn-outline-primary" href="{% url 'core:numeracao_editar' cfg.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+    </div>
+  </div></div>
+{% endfor %}
+</div>
+{% endblock %}

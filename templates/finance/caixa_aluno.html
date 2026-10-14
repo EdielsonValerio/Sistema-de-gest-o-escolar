@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load ui static l10n %}
+{% block title %}Recebimento — {{ aluno.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">Recebimento</h1><p class="page-sub">Etapas 2 a 4 — selecione as parcelas, a forma de pagamento e confirme.</p></div>
+  <a class="btn btn-outline-secondary align-self-start" href="{% url 'finance:caixa' %}">Trocar aluno</a>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
+    <div class="d-flex justify-content-between"><div><div class="fs-5 fw-semibold">{{ aluno.nome }}</div><div class="text-muted small">Código {{ aluno.codigo }}{% if not aluno.ativo %} · cadastro inativo{% endif %}</div></div>
+      {% if perms.students.view_aluno %}<a class="small" href="{% url 'students:aluno_ficha' aluno.pk %}?aba=financeiro">Ficha</a>{% endif %}</div>
+    <hr class="my-2"><div class="small"><span class="text-muted">Responsável financeiro:</span> {{ responsavel.nome|default:"não definido" }}</div>
+    <div class="small"><span class="text-muted">Turmas:</span> {% for m in matriculas %}{{ m.turma.nome }}{% if not forloop.last %}, {% endif %}{% empty %}sem vínculo vigente{% endfor %}</div>
+  </div></div></div>
+  <div class="col-lg-7"><div class="row g-3 h-100">
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Saldo devedor</div><div class="fs-5 money">{{ saldo_devedor|brl }}</div></div></div>
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Vencido ({{ qtd_vencidas }})</div><div class="fs-5 money text-danger">{{ saldo_vencido|brl }}</div></div></div>
+    <div class="col-4"><div class="card card-body h-100"><div class="small text-muted">Parciais</div><div class="fs-5">{{ qtd_parciais }}</div></div></div>
+  </div></div>
+</div>
+
+{% if not parcelas %}
+<div class="card"><div class="card-body empty-state"><i class="bi bi-check2-circle"></i>Este aluno não possui parcelas em aberto.</div></div>
+{% else %}
+<form method="post" id="form-caixa" novalidate data-once>
+  {% csrf_token %}{{ form.token }}
+  <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">Parcelas em aberto
+    <div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="sel-todas"><label class="form-check-label small" for="sel-todas">Selecionar todas</label></div></div>
+  <div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+    <thead><tr><th></th><th>Parcela</th><th>Vencimento</th><th class="text-end">Original</th><th class="text-end">Desc.</th><th class="text-end">Acrésc.</th><th class="text-end">Devido</th><th class="text-end">Pago</th><th class="text-end">Saldo</th><th style="width:150px">Receber agora (R$)</th></tr></thead>
+    <tbody>
+    {% for p in parcelas %}
+    <tr class="{% if p.vencida %}table-danger{% endif %}">
+      <td><input class="form-check-input sel-parcela" type="checkbox" name="parcelas" value="{{ p.pk }}" id="p{{ p.pk }}" data-saldo="{{ p.saldo_hoje|unlocalize }}" aria-label="Selecionar parcela {{ p.numero }}"></td>
+      <td><label for="p{{ p.pk }}" class="mb-0">{{ p.descricao }}</label>{% if p.status == 'PARCIAL' %} <span class="badge text-bg-warning">Parcial</span>{% endif %}{% if p.vencida %} <span class="badge text-bg-danger">Vencida</span>{% endif %}</td>
+      <td class="text-nowrap">{{ p.vencimento|date:"d/m/Y" }}</td>
+      <td class="text-end money">{{ p.valor_original|brl }}</td><td class="text-end money">{{ p.desconto|brl }}</td><td class="text-end money">{{ p.acrescimo_hoje|brl }}</td>
+      <td class="text-end money">{{ p.devido_hoje|brl }}</td><td class="text-end money">{{ p.valor_pago|brl }}</td><td class="text-end money fw-semibold">{{ p.saldo_hoje|brl }}</td>
+      <td><input class="form-control form-control-sm valor-parcela" type="number" step="0.01" min="0.01" max="{{ p.saldo_hoje|unlocalize }}" name="valor_{{ p.pk }}" value="{{ p.saldo_hoje|unlocalize }}" disabled aria-label="Valor a receber da parcela {{ p.numero }}"></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+
+  <div class="row g-3">
+    <div class="col-lg-7"><div class="card h-100"><div class="card-header">Forma de pagamento</div><div class="card-body">
+      <div class="btn-group w-100 mb-3" role="group" aria-label="Forma de pagamento">
+        {% for v, l in formas %}<input type="radio" class="btn-check" name="forma" id="forma-{{ v }}" value="{{ v }}" {% if forloop.first %}checked{% endif %}><label class="btn btn-outline-primary" for="forma-{{ v }}">{{ l }}</label>{% endfor %}
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6" id="bloco-recebido"><label class="form-label" for="valor-recebido">Valor recebido (R$)</label><input class="form-control" type="number" step="0.01" min="0" name="valor_recebido" id="valor-recebido"></div>
+        <div class="col-md-6" id="bloco-ref" style="display:none"><label class="form-label" for="ref">Referência (NSU / ID do PIX / final do cartão)</label><input class="form-control" name="referencia" id="ref" maxlength="60" autocomplete="off"><div class="form-text">Nunca informe o número completo do cartão. Sem integração bancária: apenas registro.</div></div>
+      </div>
+    </div></div></div>
+    <div class="col-lg-5"><div class="card h-100"><div class="card-header">Resumo</div><div class="card-body">
+      <div class="d-flex justify-content-between"><span>Total a receber</span><strong class="money fs-5" id="total">R$ 0,00</strong></div>
+      <div class="d-flex justify-content-between mt-2" id="linha-troco" style="display:none"><span>Troco</span><strong class="money fs-5 text-success" id="troco">R$ 0,00</strong></div>
+      <div id="aviso" class="text-danger small mt-2"></div>
+      <button class="btn btn-success w-100 mt-3" type="submit" id="confirmar" disabled><i class="bi bi-check2-circle"></i> Confirmar recebimento</button>
+    </div></div></div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/caixa.js' %}"></script>{% endblock %}

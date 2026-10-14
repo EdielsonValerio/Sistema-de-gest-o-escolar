@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ plano.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">{{ plano.nome }}</h1><p class="page-sub">{{ plano.turma.nome }} · {{ plano.get_situacao_display }} · {{ qtd_contratos }} contratação{{ qtd_contratos|pluralize:"ões" }}</p></div>
+  <div class="d-flex gap-2">{% if perms.finance.change_planofinanceiro %}<a class="btn btn-outline-primary" href="{% url 'finance:plano_editar' plano.pk %}">Editar</a>{% endif %}<a class="btn btn-outline-secondary" href="{% url 'finance:plano_lista' %}">Voltar</a></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card"><div class="card-header">Condições</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-6">Valor total</dt><dd class="col-6 money">{{ plano.valor_total|brl }}</dd>
+    <dt class="col-6">Parcelas</dt><dd class="col-6">{{ plano.quantidade_parcelas }}</dd>
+    <dt class="col-6">Desconto padrão</dt><dd class="col-6">{{ plano.desconto_padrao_percentual }}%</dd>
+    <dt class="col-6">Dia de vencimento</dt><dd class="col-6">{{ plano.dia_vencimento }}</dd>
+    <dt class="col-6">Multa / juros</dt><dd class="col-6">{% if plano.aplicar_encargos %}{{ plano.multa_percentual }}% + {{ plano.juros_mensal_percentual }}% a.m.{% else %}Não cobra{% endif %}</dd>
+  </dl></div></div></div>
+  <div class="col-lg-8"><div class="card"><div class="card-header">Cronograma (prévia)</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Parcela</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Desconto</th><th class="text-end">A pagar</th></tr></thead>
+    <tbody>{% for c in cronograma %}<tr><td>{{ c.numero }}/{{ plano.quantidade_parcelas }}</td><td>{{ c.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ c.valor_original|brl }}</td><td class="text-end money">{{ c.desconto|brl }}</td><td class="text-end money">{{ c.valor_devido|brl }}</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+</div>
+{% endblock %}

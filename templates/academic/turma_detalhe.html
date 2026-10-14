@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ turma.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div><h1 class="h4 page-title">{{ turma.nome }}</h1>
+    <p class="page-sub"><span class="badge text-bg-{% if turma.eh_oficial %}primary{% else %}info{% endif %}">{{ turma.get_tipo_display }}</span> · código {{ turma.codigo }} · nº {{ turma.numero }} · {{ turma.get_situacao_display }}</p></div>
+  <div class="d-flex gap-2">{% if perms.academic.change_turma %}<a class="btn btn-outline-primary" href="{% url 'academic:turma_editar' turma.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}<a class="btn btn-outline-secondary" href="{% url 'academic:turma_lista' %}">Voltar</a></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Dados da turma</div><div class="card-body">
+    <dl class="row mb-0">
+      {% if turma.eh_oficial %}<dt class="col-sm-4">Série</dt><dd class="col-sm-8">{{ turma.serie_ofertada.serie_referencia.nome }}</dd>
+      <dt class="col-sm-4">Ano letivo</dt><dd class="col-sm-8">{{ turma.ano_letivo.nome }}</dd>
+      {% else %}<dt class="col-sm-4">Ano de referência</dt><dd class="col-sm-8">{{ turma.ano_referencia }}</dd>{% endif %}
+      <dt class="col-sm-4">Período</dt><dd class="col-sm-8">{{ turma.data_inicio|date:"d/m/Y" }} a {{ turma.data_fim|date:"d/m/Y" }}</dd>
+      <dt class="col-sm-4">Categoria</dt><dd class="col-sm-8">{{ turma.categoria|default:"—" }}</dd>
+      <dt class="col-sm-4">Ocupação</dt><dd class="col-sm-8">{{ ocupacao }}{% if turma.capacidade %} de {{ turma.capacidade }} vagas{% endif %}</dd>
+      <dt class="col-sm-4">Numeração</dt><dd class="col-sm-8">{% if turma.exige_numero_matricula %}Gera número de matrícula/inscrição{% else %}Sem número de matrícula{% endif %}</dd>
+    </dl></div></div></div>
+  {% if planos is not None %}
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Planos financeiros {% if perms.finance.add_planofinanceiro %}<a class="btn btn-sm btn-outline-primary" href="{% url 'finance:plano_novo' %}?turma={{ turma.pk }}">Novo plano</a>{% endif %}</div>
+    <ul class="list-group list-group-flush">
+      {% for p in planos %}<li class="list-group-item d-flex justify-content-between"><span>{{ p.nome }} <span class="text-muted small">· {{ p.quantidade_parcelas }}x {{ p.valor_parcela|brl }}</span></span><span class="badge text-bg-{% if p.situacao == 'ATIVO' %}success{% else %}secondary{% endif %}">{{ p.get_situacao_display }}</span></li>
+      {% empty %}<li class="list-group-item text-muted">Nenhum plano financeiro configurado.</li>{% endfor %}
+    </ul></div></div>
+  {% endif %}
+</div>
+<div class="card"><div class="card-header">Alunos vinculados</div><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>Número</th><th>Aluno</th><th>Ingresso</th><th>Situação</th></tr></thead><tbody>
+  {% for m in matriculas %}<tr><td>{{ m.numero|default:"—" }}</td><td>{% if perms.students.view_aluno %}<a href="{% url 'students:aluno_ficha' m.aluno_id %}">{{ m.aluno.nome }}</a>{% else %}{{ m.aluno.nome }}{% endif %}</td><td>{{ m.data_ingresso|date:"d/m/Y" }}</td><td>{% badge_matricula m %}</td></tr>
+  {% empty %}<tr><td colspan="4"><div class="empty-state">Nenhum aluno vinculado a esta turma.</div></td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

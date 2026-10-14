@@ -1,0 +1,54 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Alunos{% endblock %}
+{% block content %}
+{% with titulo="Alunos" subtitulo="Consulta central. Alunos sem matrícula também aparecem. O CPF não é exibido nesta lista." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.students.add_aluno %}<a class="btn btn-primary" href="{% url 'students:aluno_novo' %}"><i class="bi bi-person-plus"></i> Novo aluno</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get">
+  <div class="row g-2 align-items-end">
+    <div class="col-lg-5"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Código, nome, CPF, matrícula, nome da mãe ou do responsável financeiro" autofocus></div>
+    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-s">Cadastro</label><select id="f-s" class="form-select" name="situacao"><option value="">Todos</option><option value="ativo" {% if filtros.situacao == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filtros.situacao == 'inativo' %}selected{% endif %}>Inativo</option></select></div>
+    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-se">Série</label><select id="f-se" class="form-select" name="serie"><option value="">Todas</option>{% for s in series %}<option value="{{ s.pk }}" {% if filtros.serie == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-m">Situação da matrícula</label><select id="f-m" class="form-select" name="situacao_matricula"><option value="">Todas</option>{% for v, l in status_matricula %}<option value="{{ v }}" {% if filtros.situacao_matricula == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-12 col-lg-3 d-flex align-items-center gap-3">
+      <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="sem_matricula" value="1" id="f-sm" {% if filtros.sem_matricula %}checked{% endif %}><label class="form-check-label small" for="f-sm">Somente sem matrícula</label></div>
+    </div>
+    <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar filtros</a>{% endif %}</div>
+  </div>
+</form>
+{% endblock %}
+{% block thead %}
+<tr>
+  <th><a class="text-reset text-decoration-none" href="?{% qs o=o|yesno:'codigo,codigo' %}">Código</a></th>
+  <th><a class="text-reset text-decoration-none" href="?{% if o == 'nome' %}{% qs o='-nome' %}{% else %}{% qs o='nome' %}{% endif %}">Nome do aluno {% if o == 'nome' %}↑{% elif o == '-nome' %}↓{% endif %}</a></th>
+  <th><a class="text-reset text-decoration-none" href="?{% if o == 'nascimento' %}{% qs o='-nascimento' %}{% else %}{% qs o='nascimento' %}{% endif %}">Nascimento</a></th>
+  <th>Matrícula atual</th><th>Série</th><th>Turma</th><th>Ano</th><th>Situação</th><th></th>
+</tr>
+{% endblock %}
+{% block tbody %}
+{% for a in alunos %}
+<tr>
+  <td><code>{{ a.codigo }}</code></td>
+  <td><a href="{% url 'students:aluno_ficha' a.pk %}"><strong>{{ a.nome }}</strong></a>{% if a.nome_social %}<div class="small text-muted">{{ a.nome_social }}</div>{% endif %}{% if not a.ativo %} <span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
+  <td class="text-nowrap">{{ a.data_nascimento|date:"d/m/Y" }}<div class="small text-muted">{{ a.idade }} anos</div></td>
+  {% if a.mat_atual %}
+    <td>{{ a.mat_atual.numero|default:"—" }}</td>
+    <td>{{ a.mat_atual.turma.serie_ofertada.serie_referencia.nome|default:"—" }}</td>
+    <td>{{ a.mat_atual.turma.nome }}{% if a.qtd_nao_oficiais %} <span class="badge text-bg-info" title="Turmas não oficiais">+{{ a.qtd_nao_oficiais }}</span>{% endif %}</td>
+    <td>{{ a.mat_atual.ano_letivo.ano }}</td><td>{% badge_matricula a.mat_atual %}</td>
+  {% else %}
+    <td colspan="4" class="text-muted">{% if a.qtd_nao_oficiais %}Somente turma{{ a.qtd_nao_oficiais|pluralize }} não oficia{{ a.qtd_nao_oficiais|pluralize:"l,is" }}{% else %}Sem matrícula{% endif %}</td><td><span class="badge text-bg-warning">Sem matrícula</span></td>
+  {% endif %}
+  <td class="text-end text-nowrap">
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'students:aluno_ficha' a.pk %}" title="Ver ficha"><i class="bi bi-eye"></i></a>
+    {% if perms.students.change_aluno %}<a class="btn btn-sm btn-outline-primary" href="{% url 'students:aluno_editar' a.pk %}" title="Editar cadastro"><i class="bi bi-pencil"></i></a>{% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'students:aluno_ficha' a.pk %}?aba=matriculas" title="Matrículas"><i class="bi bi-journal-check"></i></a>
+    {% if perms.finance.view_parcela %}<a class="btn btn-sm btn-outline-success" href="{% url 'students:aluno_ficha' a.pk %}?aba=financeiro" title="Financeiro"><i class="bi bi-cash-coin"></i></a>{% endif %}
+  </td>
+</tr>
+{% empty %}{% url 'students:aluno_novo' as novo_aluno %}{% include "components/vazio.html" with colspan=9 icone="people" msg="Nenhum aluno cadastrado ainda." acao_url=novo_aluno acao_rotulo="Cadastrar o primeiro aluno" %}{% endfor %}
+{% endblock %}

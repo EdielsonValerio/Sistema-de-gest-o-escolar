@@ -1,0 +1,18 @@
+{% extends "generic/lista.html" %}
+{% block title %}Anos letivos{% endblock %}
+{% block acoes %}{% if perms.academic.add_anoletivo %}<a class="btn btn-primary" href="{% url 'academic:ano_novo' %}"><i class="bi bi-plus-lg"></i> Novo ano letivo</a>{% endif %}{% endblock %}
+{% block content %}
+{% with titulo="Anos letivos" subtitulo="Anos letivos nunca são excluídos: encerrar preserva alunos, matrículas, cobranças e pagamentos." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block thead %}<tr><th>Ano letivo</th><th>Período</th><th>Situação</th><th>Séries</th><th>Turmas</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for a in object_list %}
+<tr>
+  <td><strong>{{ a.nome }}</strong><div class="small text-muted">Ano {{ a.ano }}</div></td>
+  <td>{{ a.data_inicio|date:"d/m/Y" }} a {{ a.data_fim|date:"d/m/Y" }}</td>
+  <td><span class="badge text-bg-{% if a.situacao == 'ATIVO' %}success{% elif a.situacao == 'PLANEJAMENTO' %}warning{% else %}secondary{% endif %}">{{ a.get_situacao_display }}</span></td>
+  <td>{{ a.qtd_series }}</td><td>{{ a.qtd_turmas }}</td>
+  <td class="text-end">{% if perms.academic.change_anoletivo %}<a class="btn btn-sm btn-outline-primary" href="{% url 'academic:ano_editar' a.pk %}">Editar</a>{% endif %}</td>
+</tr>
+{% empty %}{% url 'academic:ano_novo' as novo_ano %}{% include "components/vazio.html" with colspan=6 icone="calendar3" msg="Nenhum ano letivo cadastrado." acao_url=novo_ano acao_rotulo="Cadastrar o primeiro ano letivo" %}{% endfor %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Contas a receber{% endblock %}
+{% block content %}
+{% with titulo="Contas a receber" subtitulo="Parcelas dos alunos. Vencida = em aberto ou parcialmente paga com vencimento anterior a hoje." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> Caixa</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-q">Aluno ou responsável</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Nome ou código"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao">{% for v, l in situacoes %}<option value="{{ v }}" {% if sit == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-de">Vencimento de</label><input id="f-de" class="form-control" type="date" name="de" value="{{ filtros.de }}"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-ate">até</label><input id="f-ate" class="form-control" type="date" name="ate" value="{{ filtros.ate }}"></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+  {% if filtros.aluno %}<input type="hidden" name="aluno" value="{{ filtros.aluno }}">{% endif %}{% if filtros.responsavel %}<input type="hidden" name="responsavel" value="{{ filtros.responsavel }}">{% endif %}
+</div></form>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card card-body"><div class="small text-muted">Total devido (filtro)</div><div class="fs-5 money">{{ total_devido|brl }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body"><div class="small text-muted">Recebido</div><div class="fs-5 money text-success">{{ total_pago|brl }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body"><div class="small text-muted">Saldo a receber</div><div class="fs-5 money">{{ total_saldo|brl }}</div></div></div>
+</div>
+{% endblock %}
+{% block thead %}<tr><th>Vencimento</th><th>Aluno</th><th>Responsável</th><th>Descrição</th><th class="text-end">Devido</th><th class="text-end">Pago</th><th class="text-end">Saldo</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for p in object_list %}
+<tr><td>{{ p.vencimento|date:"d/m/Y" }}</td>
+  <td>{% if perms.students.view_aluno %}<a href="{% url 'students:aluno_ficha' p.aluno_id %}?aba=financeiro">{{ p.aluno.nome }}</a>{% else %}{{ p.aluno.nome }}{% endif %}<div class="small text-muted">{{ p.aluno.codigo }}</div></td>
+  <td>{{ p.responsavel.nome }}</td><td>{{ p.descricao }}</td>
+  <td class="text-end money">{{ p.valor_devido|brl }}</td><td class="text-end money">{{ p.valor_pago|brl }}</td><td class="text-end money">{{ p.saldo|brl }}</td>
+  <td>{% badge_parcela p %}</td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:parcela_detalhe' p.pk %}">Abrir</a></td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=9 icone="receipt" msg="Nenhuma parcela nesta situação." %}{% endfor %}
+{% endblock %}

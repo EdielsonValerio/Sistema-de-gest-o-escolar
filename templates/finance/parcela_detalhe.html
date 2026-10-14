@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load ui l10n %}
+{% block title %}Parcela{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">{{ parcela.descricao }}</h1><p class="page-sub">{{ parcela.aluno.nome }} · responsável {{ parcela.responsavel.nome }} · {% badge_parcela parcela %}</p></div>
+  <div class="d-flex gap-2">
+    {% if perms.finance.registrar_recebimento and editavel %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' parcela.aluno_id %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}">Voltar</a></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header">Valores</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-6">Valor original</dt><dd class="col-6 money">{{ parcela.valor_original|brl }}</dd>
+    <dt class="col-6">Desconto</dt><dd class="col-6 money">− {{ parcela.desconto|brl }}</dd>
+    <dt class="col-6">Acréscimos</dt><dd class="col-6 money">+ {{ parcela.acrescimo|brl }}</dd>
+    <dt class="col-6">Valor devido</dt><dd class="col-6 money fw-semibold">{{ parcela.valor_devido|brl }}</dd>
+    <dt class="col-6">Já pago</dt><dd class="col-6 money text-success">{{ parcela.valor_pago|brl }}</dd>
+    <dt class="col-6">Saldo</dt><dd class="col-6 money fw-semibold {% if parcela.vencida %}text-danger{% endif %}">{{ parcela.saldo|brl }}</dd>
+    <dt class="col-6">Emissão</dt><dd class="col-6">{{ parcela.emissao|date:"d/m/Y" }}</dd>
+    <dt class="col-6">Vencimento</dt><dd class="col-6">{{ parcela.vencimento|date:"d/m/Y" }}</dd>
+    <dt class="col-6">Quitação</dt><dd class="col-6">{{ parcela.quitacao|date:"d/m/Y"|default:"—" }}</dd>
+  </dl>
+  {% if encargos_hoje %}<div class="alert alert-warning mt-3 mb-0 small">Multa e juros por atraso calculados hoje: <strong>{{ encargos_hoje|brl }}</strong>. São gravados na parcela no momento do recebimento.</div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header">Ajustes</div><div class="card-body">
+    {% if not editavel %}<p class="text-muted mb-0">Parcela {{ parcela.get_status_display|lower }}: não pode ser alterada.</p>
+    {% else %}
+    <div class="row g-3">
+      {% if pode.desconto %}<div class="col-md-6"><form method="post" action="{% url 'finance:parcela_ajustar' parcela.pk %}" data-once class="border rounded p-2 h-100">{% csrf_token %}<input type="hidden" name="acao" value="desconto">
+        <label class="form-label small fw-semibold" for="d-v">Desconto total (R$)</label><input id="d-v" class="form-control form-control-sm mb-2" type="number" step="0.01" min="0" name="valor" value="{{ parcela.desconto|unlocalize }}" required>
+        <input class="form-control form-control-sm mb-2" name="justificativa" placeholder="Justificativa (obrigatória)" maxlength="255" required aria-label="Justificativa do desconto"><button class="btn btn-sm btn-outline-primary">Aplicar desconto</button></form></div>{% endif %}
+      {% if pode.vencimento %}<div class="col-md-6"><form method="post" action="{% url 'finance:parcela_ajustar' parcela.pk %}" data-once class="border rounded p-2 h-100">{% csrf_token %}<input type="hidden" name="acao" value="vencimento">
+        <label class="form-label small fw-semibold" for="v-d">Novo vencimento</label><input id="v-d" class="form-control form-control-sm mb-2" type="date" name="data" value="{{ parcela.vencimento|date:'Y-m-d' }}" required>
+        <input class="form-control form-control-sm mb-2" name="justificativa" placeholder="Justificativa (obrigatória)" maxlength="255" required aria-label="Justificativa do vencimento"><button class="btn btn-sm btn-outline-primary">Alterar vencimento</button></form></div>{% endif %}
+      {% if pode.valor %}<div class="col-md-6"><form method="post" action="{% url 'finance:parcela_ajustar' parcela.pk %}" data-once class="border rounded p-2 h-100">{% csrf_token %}<input type="hidden" name="acao" value="valor">
+        <label class="form-label small fw-semibold" for="c-v">Corrigir valor original (R$)</label><input id="c-v" class="form-control form-control-sm mb-2" type="number" step="0.01" min="0.01" name="valor" value="{{ parcela.valor_original|unlocalize }}" required>
+        <input class="form-control form-control-sm mb-2" name="justificativa" placeholder="Justificativa (obrigatória)" maxlength="255" required aria-label="Justificativa da correção"><button class="btn btn-sm btn-outline-primary">Corrigir valor</button></form></div>{% endif %}
+      {% if pode.cancelar %}<div class="col-md-6"><form method="post" action="{% url 'finance:parcela_ajustar' parcela.pk %}" data-once class="border border-danger-subtle rounded p-2 h-100">{% csrf_token %}<input type="hidden" name="acao" value="cancelar">
+        <label class="form-label small fw-semibold text-danger">Cancelar parcela</label><div class="small text-muted mb-2">A parcela é mantida no histórico como cancelada.</div>
+        <input class="form-control form-control-sm mb-2" name="justificativa" placeholder="Justificativa (obrigatória)" maxlength="255" required aria-label="Justificativa do cancelamento"><button class="btn btn-sm btn-outline-danger" data-confirm="Cancelar esta parcela?">Cancelar parcela</button></form></div>{% endif %}
+    </div>
+    {% if not pode.desconto and not pode.vencimento and not pode.valor and not pode.cancelar %}<p class="text-muted mb-0">Você não tem permissão para alterar parcelas.</p>{% endif %}
+    {% endif %}
+  </div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card"><div class="card-header">Recebimentos desta parcela</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Recebimento</th><th>Data</th><th class="text-end">Valor</th><th>Situação</th></tr></thead><tbody>
+    {% for a in alocacoes %}<tr><td>{% if perms.finance.view_recebimento %}<a href="{% url 'finance:recebimento_detalhe' a.recebimento_id %}">{{ a.recebimento.numero }}</a>{% else %}{{ a.recebimento.numero }}{% endif %}</td><td>{{ a.recebimento.criado_em|date:"d/m/Y H:i" }}</td><td class="text-end money">{{ a.valor|brl }}</td><td>{% if a.estornada %}<span class="badge text-bg-secondary">Estornado</span>{% else %}<span class="badge text-bg-success">Válido</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">Nenhum recebimento.</td></tr>{% endfor %}</tbody></table></div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header">Histórico de alterações</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Quando</th><th>Alteração</th><th>De → para</th><th>Quem / por quê</th></tr></thead><tbody>
+    {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y H:i" }}</td><td>{{ a.get_tipo_display }}</td><td>{{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">devido {{ a.valor_devido_anterior|brl }} → {{ a.valor_devido_posterior|brl }}</div></td><td>{{ a.usuario.get_username|default:"—" }}<div class="small text-muted">{{ a.justificativa }}</div></td></tr>
+    {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">Nenhuma alteração.</td></tr>{% endfor %}</tbody></table></div></div></div>
+</div>
+{% endblock %}

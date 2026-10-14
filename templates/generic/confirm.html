@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7">
+  <h1 class="h4 page-title">{{ titulo }}</h1>
+  {% if subtitulo %}<p class="page-sub">{{ subtitulo }}</p>{% endif %}
+  <form method="post" novalidate data-once>
+    {% csrf_token %}
+    <div class="card"><div class="card-body">
+      {% block resumo %}{% endblock %}
+      {% include "components/form_fields.html" %}
+    </div>
+    <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+      <a class="btn btn-outline-secondary" href="{{ cancelar_url }}">Voltar</a>
+      <button type="submit" class="btn {{ botao_classe|default:'btn-primary' }}">{{ botao|default:"Confirmar" }}</button>
+    </div></div>
+  </form>
+</div></div>
+{% endblock %}

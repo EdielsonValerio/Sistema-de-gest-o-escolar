@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div><h1 class="h4 page-title">{{ titulo }}</h1>{% if subtitulo %}<p class="page-sub">{{ subtitulo }}</p>{% endif %}</div>
+  <div class="d-flex gap-2 flex-wrap">{% block acoes %}{% if novo_url %}<a class="btn btn-primary" href="{{ novo_url }}"><i class="bi bi-plus-lg"></i> {{ novo_rotulo|default:"Novo" }}</a>{% endif %}{% endblock %}</div>
+</div>
+{% block filtros %}{% endblock %}
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead>{% block thead %}{% endblock %}</thead>
+  <tbody>{% block tbody %}{% endblock %}</tbody>
+  {% block tfoot %}{% endblock %}
+</table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

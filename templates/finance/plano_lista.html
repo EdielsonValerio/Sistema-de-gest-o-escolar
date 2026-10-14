@@ -1,0 +1,24 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Planos financeiros{% endblock %}
+{% block content %}
+{% with titulo="Planos financeiros" subtitulo="Valores cobrados por turma. Uma turma pode ter vários planos; a alteração de um plano não muda parcelas já geradas." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.finance.add_planofinanceiro %}<a class="btn btn-primary" href="{% url 'finance:plano_novo' %}"><i class="bi bi-plus-lg"></i> Novo plano</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Nome do plano ou da turma"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao"><option value="">Todas</option><option value="ATIVO" {% if filtros.situacao == 'ATIVO' %}selected{% endif %}>Ativo</option><option value="INATIVO" {% if filtros.situacao == 'INATIVO' %}selected{% endif %}>Inativo</option></select></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Plano</th><th>Turma</th><th class="text-end">Total</th><th>Parcelas</th><th>1º vencimento</th><th>Contratos</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for p in object_list %}
+<tr><td><a href="{% url 'finance:plano_detalhe' p.pk %}"><strong>{{ p.nome }}</strong></a></td><td>{{ p.turma.nome }}<div class="small text-muted">{{ p.turma.ano_exibicao }}</div></td>
+  <td class="text-end money">{{ p.valor_total|brl }}</td><td>{{ p.quantidade_parcelas }}x {{ p.valor_parcela|brl }}</td><td>{{ p.data_primeira_parcela|date:"d/m/Y" }}</td><td>{{ p.qtd_contratos }}</td>
+  <td><span class="badge text-bg-{% if p.situacao == 'ATIVO' %}success{% else %}secondary{% endif %}">{{ p.get_situacao_display }}</span></td>
+  <td class="text-end">{% if perms.finance.change_planofinanceiro %}<a class="btn btn-sm btn-outline-primary" href="{% url 'finance:plano_editar' p.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}{% url 'finance:plano_novo' as novo_plano %}{% include "components/vazio.html" with colspan=8 icone="card-checklist" msg="Nenhum plano financeiro cadastrado." acao_url=novo_plano acao_rotulo="Cadastrar plano" %}{% endfor %}
+{% endblock %}

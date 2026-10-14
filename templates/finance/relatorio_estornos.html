@@ -1,0 +1,22 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Estornos{% endblock %}
+{% block content %}
+{% with titulo="Relatórios financeiros" subtitulo="Estornos administrativos: o recebimento original e a justificativa ficam preservados." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block filtros %}
+{% include "finance/_relatorio_tabs.html" %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-de">De</label><input id="f-de" class="form-control" type="date" name="de" value="{{ filtros.de }}"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-ate">Até</label><input id="f-ate" class="form-control" type="date" name="ate" value="{{ filtros.ate }}"></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
+  <div class="col text-end"><span class="text-muted small">Total estornado</span> <strong class="money">{{ total|brl }}</strong></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Estornado em</th><th>Recebimento</th><th>Aluno</th><th class="text-end">Valor</th><th>Usuário</th><th>Justificativa</th></tr>{% endblock %}
+{% block tbody %}
+{% for e in object_list %}
+<tr><td class="text-nowrap">{{ e.criado_em|date:"d/m/Y H:i" }}</td><td>{% if perms.finance.view_recebimento %}<a href="{% url 'finance:recebimento_detalhe' e.recebimento_id %}">{{ e.recebimento.numero }}</a>{% else %}{{ e.recebimento.numero }}{% endif %}</td><td>{{ e.recebimento.aluno.nome }}</td>
+  <td class="text-end money">{{ e.recebimento.valor_total|brl }}</td><td>{{ e.usuario_nome }}</td><td>{{ e.justificativa }}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=6 icone="arrow-counterclockwise" msg="Nenhum estorno realizado." %}{% endfor %}
+{% endblock %}

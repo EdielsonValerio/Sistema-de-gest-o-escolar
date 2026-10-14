@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Vincular a turma{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Vincular a turma</h1>
+<p class="page-sub">{{ aluno.nome }} · código {{ aluno.codigo }}</p>
+
+{% if not turma %}
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {% if tipo == 'OFICIAL' %}active{% endif %}" href="?tipo=OFICIAL">Turma oficial (matrícula)</a></li>
+  <li class="nav-item"><a class="nav-link {% if tipo == 'NAO_OFICIAL' %}active{% endif %}" href="?tipo=NAO_OFICIAL">Turma não oficial (curso/inscrição)</a></li>
+</ul>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>Turma</th><th>{% if tipo == 'OFICIAL' %}Série · ano letivo{% else %}Período{% endif %}</th><th>Vagas</th><th></th></tr></thead>
+  <tbody>
+  {% for t in turmas %}
+  <tr><td><strong>{{ t.nome }}</strong><div class="small text-muted">{{ t.codigo }}</div></td>
+    <td>{% if t.eh_oficial %}{{ t.serie_ofertada.serie_referencia.nome }} · {{ t.ano_letivo.ano }}{% else %}{{ t.data_inicio|date:"d/m/Y" }} a {{ t.data_fim|date:"d/m/Y" }}{% endif %}</td>
+    <td>{{ t.ocupacao }}{% if t.capacidade %} / {{ t.capacidade }}{% endif %}</td>
+    <td class="text-end">{% if t.ja_vinculado %}<span class="badge text-bg-secondary">Já vinculado</span>{% elif t.lotada %}<span class="badge text-bg-danger">Lotada</span>{% else %}<a class="btn btn-sm btn-primary" href="?tipo={{ tipo }}&turma={{ t.pk }}">Selecionar</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="4"><div class="empty-state"><i class="bi bi-easel"></i>Nenhuma turma disponível deste tipo.{% if perms.academic.add_turma %}<div class="mt-2"><a class="btn btn-sm btn-primary" href="{% url 'academic:turma_nova' %}">Cadastrar turma</a></div>{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div></div>
+<a class="btn btn-outline-secondary mt-3" href="{% url 'students:aluno_ficha' aluno.pk %}">Voltar à ficha</a>
+
+{% else %}
+<div class="card mb-3"><div class="card-body d-flex justify-content-between flex-wrap gap-2">
+  <div><strong>{{ turma.nome }}</strong> <span class="badge text-bg-{% if turma.eh_oficial %}primary{% else %}info{% endif %}">{{ turma.get_tipo_display }}</span>
+    <div class="small text-muted">{% if turma.eh_oficial %}{{ turma.serie_ofertada.serie_referencia.nome }} · {{ turma.ano_letivo.nome }}{% else %}{{ turma.data_inicio|date:"d/m/Y" }} a {{ turma.data_fim|date:"d/m/Y" }}{% endif %}</div></div>
+  <a class="btn btn-sm btn-outline-secondary align-self-start" href="?tipo={{ tipo }}">Trocar turma</a>
+</div></div>
+
+{% include "enrollments/_plano.html" %}
+
+<form method="post" novalidate data-once>
+  {% csrf_token %}
+  <input type="hidden" name="turma" value="{{ turma.pk }}">
+  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value }}">{% endif %}
+  <div class="card"><div class="card-header">Confirmação</div><div class="card-body">
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+      {% with field=form.data_ingresso %}{% include "components/field.html" %}{% endwith %}
+      {% if plano_sel %}{% with field=form.responsavel %}{% include "components/field.html" %}{% endwith %}{% endif %}
+    </div>
+    {% if planos and not plano_sel %}
+      <div class="alert alert-warning mt-3 mb-0">Nenhum plano selecionado: o vínculo será concluído <strong>sem gerar cobranças</strong>.{% if not pode_sem_cobranca %} Você não tem permissão para isso: escolha um plano.{% endif %}</div>
+    {% elif plano_sel and not pode_gerar %}
+      <div class="alert alert-danger mt-3 mb-0">Você não tem permissão para gerar cobranças.</div>
+    {% elif plano_sel %}
+      <div class="alert alert-info mt-3 mb-0">Serão geradas <strong>{{ plano_sel.quantidade_parcelas }} parcela{{ plano_sel.quantidade_parcelas|pluralize }}</strong> ({{ total_previa.valor_devido|brl }}) em nome do responsável selecionado.</div>
+    {% endif %}
+  </div>
+  <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' aluno.pk %}">Cancelar</a>
+    <button class="btn btn-success" type="submit" {% if planos and not plano_sel and not pode_sem_cobranca %}disabled{% endif %} {% if plano_sel and not pode_gerar %}disabled{% endif %}><i class="bi bi-check2-circle"></i> Confirmar vínculo{% if plano_sel %} e gerar cobranças{% endif %}</button>
+  </div></div>
+</form>
+{% endif %}
+{% endblock %}

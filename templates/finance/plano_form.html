@@ -1,0 +1,5 @@
+{% extends "generic/form.html" %}
+{% block content %}
+{% if contratos %}<div class="alert alert-warning"><i class="bi bi-info-circle"></i> Este plano já foi contratado {{ contratos }} vez{{ contratos|pluralize:"es" }}. As alterações valem apenas para <strong>novas</strong> contratações; parcelas existentes não mudam.</div>{% endif %}
+{{ block.super }}
+{% endblock %}

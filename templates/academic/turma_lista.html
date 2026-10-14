@@ -1,0 +1,29 @@
+{% extends "generic/lista.html" %}
+{% block title %}Turmas{% endblock %}
+{% block content %}
+{% with titulo="Turmas" subtitulo="Turmas oficiais (série em um ano letivo) e não oficiais (reforço, férias, cursos com período próprio)." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.academic.add_turma %}<a class="btn btn-primary" href="{% url 'academic:turma_nova' %}"><i class="bi bi-plus-lg"></i> Nova turma</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Nome ou código da turma"></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-tipo">Tipo</label><select id="f-tipo" class="form-select" name="tipo"><option value="">Todos</option>{% for v, l in tipos %}<option value="{{ v }}" {% if filtros.tipo == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-ano">Ano letivo</label><select id="f-ano" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-sit">Situação</label><select id="f-sit" class="form-select" name="situacao"><option value="">Todas</option>{% for v, l in situacoes %}<option value="{{ v }}" {% if filtros.situacao == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Código</th><th>Turma</th><th>Tipo</th><th>Série / período</th><th>Alunos</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for t in object_list %}
+<tr>
+  <td><code>{{ t.codigo }}</code><div class="small text-muted">nº {{ t.numero }}</div></td>
+  <td><a href="{% url 'academic:turma_detalhe' t.pk %}"><strong>{{ t.nome }}</strong></a>{% if t.categoria %}<div class="small text-muted">{{ t.categoria }}</div>{% endif %}</td>
+  <td><span class="badge text-bg-{% if t.eh_oficial %}primary{% else %}info{% endif %}">{{ t.get_tipo_display }}</span></td>
+  <td>{% if t.eh_oficial %}{{ t.serie_ofertada.serie_referencia.nome }} · {{ t.ano_letivo.ano }}{% else %}{{ t.data_inicio|date:"d/m/Y" }} a {{ t.data_fim|date:"d/m/Y" }}{% endif %}</td>
+  <td>{{ t.ocupacao }}{% if t.capacidade %} / {{ t.capacidade }}{% endif %}</td>
+  <td><span class="badge text-bg-{% if t.situacao == 'ATIVA' %}success{% elif t.situacao == 'PLANEJADA' %}warning{% else %}secondary{% endif %}">{{ t.get_situacao_display }}</span></td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'academic:turma_detalhe' t.pk %}">Abrir</a>{% if perms.academic.change_turma %} <a class="btn btn-sm btn-outline-primary" href="{% url 'academic:turma_editar' t.pk %}">Editar</a>{% endif %}</td>
+</tr>
+{% empty %}{% url 'academic:turma_nova' as nova_turma %}{% include "components/vazio.html" with colspan=7 icone="easel" msg="Nenhuma turma cadastrada." acao_url=nova_turma acao_rotulo="Cadastrar turma" %}{% endfor %}
+{% endblock %}

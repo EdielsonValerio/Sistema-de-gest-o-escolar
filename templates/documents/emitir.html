@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Documentos — {{ alvo_nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">Emitir documentos</h1><p class="page-sub">{% if destinatario == 'ALUNO' %}Aluno{% else %}Responsável{% endif %}: <strong>{{ alvo_nome }}</strong></p></div>
+  <div><a class="btn btn-outline-secondary" href="{{ voltar_url }}">Voltar</a></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header">Documentos disponíveis</div>
+      {% if modelos %}
+      <form method="post" data-once>
+        {% csrf_token %}
+        {% if destinatario == 'RESPONSAVEL' %}
+        <div class="card-body border-bottom">
+          <label class="form-label" for="aluno">Aluno de referência <span class="text-muted small">(opcional — preenche as variáveis do aluno)</span></label>
+          <select class="form-select" id="aluno" name="aluno"><option value="">Nenhum</option>{% for a in alunos_vinculados %}<option value="{{ a.pk }}">{{ a.nome }}</option>{% endfor %}</select>
+        </div>
+        {% endif %}
+        <ul class="list-group list-group-flush">
+          {% for m in modelos %}
+          <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+            <span><strong>{{ m.nome }}</strong><br><small class="text-muted">{{ m.get_tipo_display }}</small></span>
+            <button class="btn btn-sm btn-primary" type="submit" name="modelo" value="{{ m.pk }}"><i class="bi bi-file-earmark-text"></i> Gerar</button>
+          </li>
+          {% endfor %}
+        </ul>
+      </form>
+      {% else %}
+      <div class="card-body text-muted">Nenhum modelo ativo para {% if destinatario == 'ALUNO' %}aluno{% else %}responsável{% endif %}.{% if perms.documents.add_modelodocumento %} <a href="{% url 'documents:modelo_novo' %}">Criar um modelo</a>.{% endif %}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header">Emitidos recentemente</div>
+      <ul class="list-group list-group-flush">
+        {% for d in emitidos %}
+        <li class="list-group-item d-flex justify-content-between align-items-center"><span><a href="{% url 'documents:documento' d.pk %}">{{ d.titulo }}</a><br><small class="text-muted">nº {{ d.numero }} · {{ d.emitido_em|date:"d/m/Y H:i" }}</small></span></li>
+        {% empty %}<li class="list-group-item text-muted">Nenhum documento emitido.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

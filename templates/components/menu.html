@@ -1,0 +1,30 @@
+{% with rm=request.resolver_match %}
+<a class="nav-link {% if rm.app_name == 'core' and rm.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+{% if perms.students.view_aluno or perms.academic.view_turma or perms.enrollments.view_matricula %}
+<div class="nav-section">Secretaria</div>
+{% if perms.students.view_aluno %}<a class="nav-link {% if rm.app_name == 'students' and 'aluno' in rm.url_name %}active{% endif %}" href="{% url 'students:aluno_lista' %}"><i class="bi bi-people"></i> Alunos</a>{% endif %}
+{% if perms.students.view_responsavel %}<a class="nav-link {% if rm.app_name == 'students' and 'responsavel' in rm.url_name %}active{% endif %}" href="{% url 'students:responsavel_lista' %}"><i class="bi bi-person-vcard"></i> Responsáveis</a>{% endif %}
+{% if perms.academic.view_serieofertada %}<a class="nav-link {% if rm.app_name == 'academic' and 'serie' in rm.url_name %}active{% endif %}" href="{% url 'academic:serie_lista' %}"><i class="bi bi-diagram-3"></i> Séries</a>{% endif %}
+{% if perms.academic.view_anoletivo %}<a class="nav-link {% if rm.app_name == 'academic' and 'ano' in rm.url_name %}active{% endif %}" href="{% url 'academic:ano_lista' %}"><i class="bi bi-calendar3"></i> Anos letivos</a>{% endif %}
+{% if perms.academic.view_turma %}<a class="nav-link {% if rm.app_name == 'academic' and 'turma' in rm.url_name %}active{% endif %}" href="{% url 'academic:turma_lista' %}"><i class="bi bi-easel"></i> Turmas</a>{% endif %}
+{% if perms.enrollments.view_matricula %}<a class="nav-link {% if rm.app_name == 'enrollments' %}active{% endif %}" href="{% url 'enrollments:lista' %}"><i class="bi bi-journal-check"></i> Matrículas</a>{% endif %}
+{% endif %}
+
+{% if perms.finance.view_planofinanceiro or perms.finance.view_parcela or perms.finance.registrar_recebimento or perms.finance.ver_relatorios %}
+<div class="nav-section">Financeiro</div>
+{% if perms.finance.view_planofinanceiro %}<a class="nav-link {% if rm.app_name == 'finance' and 'plano' in rm.url_name %}active{% endif %}" href="{% url 'finance:plano_lista' %}"><i class="bi bi-card-checklist"></i> Planos financeiros</a>{% endif %}
+{% if perms.finance.view_parcela %}<a class="nav-link {% if rm.app_name == 'finance' and 'parcela' in rm.url_name %}active{% endif %}" href="{% url 'finance:parcela_lista' %}"><i class="bi bi-receipt"></i> Contas a receber</a>{% endif %}
+{% if perms.finance.registrar_recebimento %}<a class="nav-link {% if rm.app_name == 'finance' and 'caixa' in rm.url_name or rm.url_name == 'recebimento_detalhe' %}active{% endif %}" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> Caixa e recebimentos</a>{% endif %}
+{% if perms.finance.ver_relatorios %}<a class="nav-link {% if rm.app_name == 'finance' and 'relatorio' in rm.url_name %}active{% endif %}" href="{% url 'finance:relatorio_recebimentos' %}"><i class="bi bi-bar-chart"></i> Relatórios</a>{% endif %}
+{% endif %}
+
+{% if perms.documents.view_modelodocumento or perms.core.change_configuracaonumeracao or perms.accounts.gerenciar_usuarios or perms.core.change_configuracaogeral or perms.audit.ver_auditoria %}
+<div class="nav-section">Configurações</div>
+{% if perms.core.view_configuracaonumeracao %}<a class="nav-link {% if rm.app_name == 'core' and 'numeracao' in rm.url_name %}active{% endif %}" href="{% url 'core:numeracao_lista' %}"><i class="bi bi-123"></i> Numeração</a>{% endif %}
+{% if perms.documents.view_modelodocumento %}<a class="nav-link {% if rm.app_name == 'documents' %}active{% endif %}" href="{% url 'documents:modelo_lista' %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
+{% if perms.accounts.gerenciar_usuarios %}<a class="nav-link {% if rm.app_name == 'accounts' %}active{% endif %}" href="{% url 'accounts:usuario_lista' %}"><i class="bi bi-shield-lock"></i> Usuários e permissões</a>{% endif %}
+{% if perms.core.change_configuracaogeral %}<a class="nav-link {% if rm.app_name == 'core' and rm.url_name == 'configuracoes' %}active{% endif %}" href="{% url 'core:configuracoes' %}"><i class="bi bi-gear"></i> Configurações gerais</a>{% endif %}
+{% if perms.audit.ver_auditoria %}<a class="nav-link {% if rm.app_name == 'audit' %}active{% endif %}" href="{% url 'audit:lista' %}"><i class="bi bi-clock-history"></i> Auditoria</a>{% endif %}
+{% endif %}
+{% endwith %}

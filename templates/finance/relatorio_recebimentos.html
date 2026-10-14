@@ -1,0 +1,31 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Relatório de recebimentos{% endblock %}
+{% block content %}
+{% with titulo="Relatórios financeiros" subtitulo="Recebimentos por período, forma de pagamento e operador. Os totais consideram apenas recebimentos confirmados." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block filtros %}
+{% include "finance/_relatorio_tabs.html" %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-de">De</label><input id="f-de" class="form-control" type="date" name="de" value="{{ filtros.de }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-ate">Até</label><input id="f-ate" class="form-control" type="date" name="ate" value="{{ filtros.ate }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-f">Forma</label><select id="f-f" class="form-select" name="forma"><option value="">Todas</option>{% for v, l in formas %}<option value="{{ v }}" {% if filtros.forma == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-o">Operador</label><select id="f-o" class="form-select" name="operador"><option value="">Todos</option>{% for u in operadores %}<option value="{{ u.pk }}" {% if filtros.operador == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-st">Situação</label><select id="f-st" class="form-select" name="status"><option value="">Todas</option>{% for v, l in status_opcoes %}<option value="{{ v }}" {% if filtros.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-q">Aluno / nº</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}"></div>
+  <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+</div></form>
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card card-body h-100"><div class="small text-muted">Total recebido (confirmados)</div><div class="fs-4 money text-success">{{ total_geral|brl }}</div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Por forma de pagamento</div><ul class="list-group list-group-flush">{% for r in por_forma %}<li class="list-group-item d-flex justify-content-between"><span>{{ r.rotulo }} <span class="text-muted small">({{ r.qtd }})</span></span><span class="money">{{ r.total|brl }}</span></li>{% empty %}<li class="list-group-item text-muted">Sem dados.</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Por operador</div><ul class="list-group list-group-flush">{% for r in por_operador %}<li class="list-group-item d-flex justify-content-between"><span>{{ r.operador_nome|default:"—" }} <span class="text-muted small">({{ r.qtd }})</span></span><span class="money">{{ r.total|brl }}</span></li>{% empty %}<li class="list-group-item text-muted">Sem dados.</li>{% endfor %}</ul></div></div>
+</div>
+{% endblock %}
+{% block thead %}<tr><th>Nº</th><th>Data</th><th>Aluno</th><th>Forma</th><th>Operador</th><th class="text-end">Valor</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for r in object_list %}
+<tr><td>{{ r.numero }}</td><td class="text-nowrap">{{ r.criado_em|date:"d/m/Y H:i" }}</td><td>{{ r.aluno.nome }}</td><td>{{ r.get_forma_display }}</td><td>{{ r.operador_nome|default:"—" }}</td>
+  <td class="text-end money">{{ r.valor_total|brl }}</td><td><span class="badge text-bg-{% if r.status == 'CONFIRMADO' %}success{% else %}secondary{% endif %}">{{ r.get_status_display }}</span></td>
+  <td class="text-end">{% if perms.finance.view_recebimento %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:recebimento_detalhe' r.pk %}">Comprovante</a>{% endif %}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=8 icone="cash-coin" msg="Nenhum recebimento registrado." %}{% endfor %}
+{% endblock %}

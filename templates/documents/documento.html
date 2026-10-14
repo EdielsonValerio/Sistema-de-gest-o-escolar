@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.titulo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3 no-print">
+  <div><h1 class="h4 page-title">{{ doc.titulo }}</h1><p class="page-sub">Documento nº {{ doc.numero }} · emitido em {{ doc.emitido_em|date:"d/m/Y H:i" }}{% if doc.emitido_por %} por {{ doc.emitido_por.get_username }}{% endif %}</p></div>
+  <div class="d-flex gap-2 align-items-start"><button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir / salvar em PDF</button><a class="btn btn-outline-secondary" href="{{ voltar_url }}">Voltar</a></div>
+</div>
+<div class="doc-folha">{{ doc.html|safe }}</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Recebimento {{ rec.numero }}{% endblock %}
+{% block content %}
+<div class="comprovante">
+  <div class="d-flex justify-content-between align-items-start mb-3 no-print">
+    <h1 class="h4 page-title">Comprovante de recebimento</h1>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+      {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> Novo recebimento</a>{% endif %}
+    </div>
+  </div>
+  {% if rec.status == 'ESTORNADO' %}<div class="alert alert-danger"><strong>RECEBIMENTO ESTORNADO</strong>{% if estorno %} em {{ estorno.criado_em|date:"d/m/Y H:i" }} por {{ estorno.usuario_nome }} — {{ estorno.justificativa }}{% endif %}. O registro original foi preservado.</div>{% endif %}
+  <div class="card"><div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap">
+      <div><div class="fw-semibold fs-5">{{ instituicao_atual.nome }}</div>{% if instituicao_atual.cnpj %}<div class="small text-muted">CNPJ {{ instituicao_atual.cnpj }}</div>{% endif %}</div>
+      <div class="text-end"><div class="small text-muted">Recebimento nº</div><div class="fs-5 fw-semibold">{{ rec.numero }}</div><div class="small">{{ rec.criado_em|date:"d/m/Y H:i" }}</div></div>
+    </div><hr>
+    <dl class="row mb-3">
+      <dt class="col-sm-3">Aluno</dt><dd class="col-sm-9">{{ rec.aluno.nome }} <span class="text-muted">({{ rec.aluno.codigo }})</span></dd>
+      <dt class="col-sm-3">Responsável</dt><dd class="col-sm-9">{{ rec.responsavel.nome|default:"—" }}</dd>
+      <dt class="col-sm-3">Forma</dt><dd class="col-sm-9">{{ rec.get_forma_display }}{% if rec.referencia %} · ref. {{ rec.referencia }}{% endif %}</dd>
+      <dt class="col-sm-3">Operador</dt><dd class="col-sm-9">{{ rec.operador_nome|default:"—" }}</dd>
+    </dl>
+    <table class="table table-sm"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="text-end">Valor recebido</th></tr></thead><tbody>
+      {% for a in alocacoes %}<tr><td>{{ a.parcela.descricao }}</td><td>{{ a.parcela.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ a.valor|brl }}</td></tr>{% endfor %}
+    </tbody><tfoot>
+      <tr class="fw-semibold"><td colspan="2">Total aplicado</td><td class="text-end money">{{ rec.valor_total|brl }}</td></tr>
+      {% if rec.forma == 'DINHEIRO' %}<tr><td colspan="2">Valor recebido em dinheiro</td><td class="text-end money">{{ rec.valor_recebido|brl }}</td></tr>
+      <tr><td colspan="2">Troco</td><td class="text-end money">{{ rec.troco|brl }}</td></tr>{% endif %}
+    </tfoot></table>
+    <p class="small text-muted mb-0">Documento de controle interno. O troco não é registrado como receita.</p>
+  </div></div>
+
+  {% if pode_estornar %}
+  <div class="card mt-3 no-print border-danger-subtle"><div class="card-header text-danger">Estorno administrativo</div><div class="card-body">
+    <form method="post" action="{% url 'finance:recebimento_estornar' rec.pk %}" data-once>{% csrf_token %}
+      <p class="small text-muted">O recebimento não é apagado: as parcelas voltam a ter saldo e o estorno fica auditado. Nenhuma devolução real é feita a bancos ou operadoras.</p>
+      <div class="input-group"><input class="form-control" name="justificativa" placeholder="Justificativa (obrigatória)" maxlength="255" required aria-label="Justificativa do estorno"><button class="btn btn-danger" data-confirm="Estornar este recebimento?">Estornar</button></div>
+    </form></div></div>
+  {% endif %}
+  <div class="mt-3 no-print"><a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' rec.aluno_id %}?aba=financeiro">Voltar à ficha do aluno</a></div>
+</div>
+{% endblock %}

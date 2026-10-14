@@ -1,0 +1,32 @@
+{% extends "generic/lista.html" %}
+{% block title %}Documentos{% endblock %}
+{% block acoes %}
+{% if perms.documents.change_cabecalhodocumento %}<a class="btn btn-outline-secondary" href="{% url 'documents:cabecalho' %}"><i class="bi bi-image"></i> Cabeçalho e logotipo</a>{% endif %}
+{% if novo_url %}<a class="btn btn-primary" href="{{ novo_url }}"><i class="bi bi-plus-lg"></i> Novo modelo</a>{% endif %}
+{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get">
+  <div class="row g-2 align-items-end">
+    <div class="col-lg-3"><label class="form-label small mb-1" for="f-q">Nome</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}"></div>
+    <div class="col-lg-4"><label class="form-label small mb-1" for="f-t">Tipo</label><select id="f-t" class="form-select" name="tipo"><option value="">Todos</option>{% for v, l in tipos %}<option value="{{ v }}" {% if filtros.tipo == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-d">Para</label><select id="f-d" class="form-select" name="destinatario"><option value="">Todos</option>{% for v, l in destinatarios %}<option value="{{ v }}" {% if filtros.destinatario == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-1"><label class="form-label small mb-1" for="f-a">Situação</label><select id="f-a" class="form-select" name="ativo"><option value="">Todas</option><option value="1" {% if filtros.ativo == '1' %}selected{% endif %}>Ativos</option><option value="0" {% if filtros.ativo == '0' %}selected{% endif %}>Inativos</option></select></div>
+    <div class="col-12 col-lg-2"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+  </div>
+</form>
+{% endblock %}
+{% block thead %}<tr><th>Nome do modelo</th><th>Tipo</th><th>Para</th><th>Cabeçalho</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for m in modelos %}
+<tr>
+  <td><strong>{{ m.nome }}</strong></td>
+  <td>{{ m.get_tipo_display }}</td>
+  <td><span class="badge text-bg-light border">{{ m.get_destinatario_display }}</span></td>
+  <td>{{ m.usar_cabecalho|yesno:"Sim,Não" }}</td>
+  <td>{% if m.ativo %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
+  <td class="text-end">{% if perms.documents.change_modelodocumento %}<a class="btn btn-sm btn-outline-primary" href="{% url 'documents:modelo_editar' m.pk %}">Editar</a>{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="text-center text-muted py-4">{% if tem_filtro %}Nenhum modelo encontrado com esses filtros.{% else %}Nenhum modelo cadastrado ainda. Clique em <strong>Novo modelo</strong> para criar o primeiro.{% endif %}</td></tr>
+{% endfor %}
+{% endblock %}
