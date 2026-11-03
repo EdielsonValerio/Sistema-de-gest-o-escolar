@@ -1,0 +1,51 @@
+{% extends "generic/lista.html" %}
+{% load ui payables_ui %}
+{% block title %}Contas a pagar{% endblock %}
+{% block content %}
+{% with titulo="Contas a pagar" subtitulo="Saídas financeiras da escola. Ao liquidar uma conta, o valor é debitado do saldo total recebido." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.payables.add_contapagar %}<a class="btn btn-primary" href="{% url 'payables:conta_nova' %}"><i class="bi bi-plus-lg"></i> Nova conta a pagar</a>{% endif %}{% endblock %}
+{% block filtros %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card card-body h-100 kpi"><div class="small text-muted">Saldo disponível</div>
+    <div class="fs-5 money fw-semibold {% if resumo.saldo < 0 %}text-danger{% else %}text-success{% endif %}">{{ resumo.saldo|brl }}</div>
+    <div class="small text-muted">Recebido {{ resumo.recebido|brl }} − pago {{ resumo.pago|brl }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-body h-100"><div class="small text-muted">A pagar (em aberto)</div>
+    <div class="fs-5 money fw-semibold">{{ resumo.em_aberto|brl }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-body h-100"><div class="small text-muted">Vencidas</div>
+    <div class="fs-5 money fw-semibold {% if resumo.vencido %}text-danger{% endif %}">{{ resumo.vencido|brl }}</div>
+    <div class="small text-muted">{{ resumo.qtd_vencidas }} conta{{ resumo.qtd_vencidas|pluralize }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-body h-100"><div class="small text-muted">A vencer em {{ resumo.dias_aviso }} dia{{ resumo.dias_aviso|pluralize }}</div>
+    <div class="fs-5 money fw-semibold {% if resumo.a_vencer %}text-warning-emphasis{% endif %}">{{ resumo.a_vencer|brl }}</div>
+    <div class="small text-muted">Pago neste mês: {{ resumo.pago_no_mes|brl }}</div></div></div>
+</div>
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Descrição, prestador, nº ou documento"></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao">{% for v, l in situacoes %}<option value="{{ v }}" {% if sit == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-3"><label class="form-label small mb-1" for="f-c">Categoria</label><select id="f-c" class="form-select" name="categoria"><option value="">Todas</option>{% for v, l in categorias %}<option value="{{ v }}" {% if filtros.categoria == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-1" for="f-d">Pagamento de</label><input id="f-d" class="form-control" type="date" name="de" value="{{ filtros.de }}"></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-1" for="f-a">até</label><input id="f-a" class="form-control" type="date" name="ate" value="{{ filtros.ate }}"></div>
+  <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar filtros</a>{% endif %}</div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Nº</th><th>Descrição</th><th>Prestador</th><th>Categoria</th><th>Data de pagamento</th><th class="text-end">Valor</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for c in contas %}
+<tr>
+  <td class="text-nowrap"><code>{{ c.numero }}</code></td>
+  <td><a href="{% url 'payables:conta_detalhe' c.pk %}"><strong>{{ c.descricao }}</strong></a>{% if c.numero_documento %}<div class="small text-muted">Doc. {{ c.numero_documento }}</div>{% endif %}</td>
+  <td>{{ c.prestador }}</td>
+  <td>{{ c.get_categoria_display }}</td>
+  <td class="text-nowrap">{{ c.vencimento|date:"d/m/Y" }}{% if c.status == 'ABERTA' %}<div class="small {{ c|classe_prazo }}">{{ c.prazo_texto }}</div>{% endif %}</td>
+  <td class="text-end money">{{ c.valor|brl }}</td>
+  <td>{% badge_conta c %}</td>
+  <td class="text-end text-nowrap">
+    {% if perms.payables.liquidar_conta and c.status == 'ABERTA' %}<a class="btn btn-sm btn-success" href="{% url 'payables:conta_liquidar' c.pk %}"><i class="bi bi-check2-circle"></i> Liquidar</a>{% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'payables:conta_detalhe' c.pk %}">Abrir</a>
+  </td>
+</tr>
+{% empty %}
+{% include "components/vazio.html" with colspan=8 icone="wallet2" msg="Nenhuma conta a pagar nesta situação." %}
+{% endfor %}
+{% endblock %}
+{% block tfoot %}{% if contas %}<tfoot><tr class="table-light"><td colspan="5" class="text-end fw-semibold">Total do filtro</td><td class="text-end money fw-semibold">{{ total_filtro|brl }}</td><td colspan="2"></td></tr></tfoot>{% endif %}{% endblock %}

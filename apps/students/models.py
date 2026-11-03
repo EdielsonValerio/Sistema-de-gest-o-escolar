@@ -3,6 +3,15 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+import os
+import uuid
+
+
+def foto_aluno_path(instance, filename):
+    """Fotos ficam separadas por escola e com nome aleatório."""
+    ext = os.path.splitext(filename)[1].lower()[:6]
+    return f"alunos/{instance.instituicao_id}/{uuid.uuid4().hex}{ext}"
+
 
 class UF(models.TextChoices):
     AC = "AC", "AC"; AL = "AL", "AL"; AP = "AP", "AP"; AM = "AM", "AM"; BA = "BA", "BA"
@@ -89,7 +98,7 @@ class Aluno(models.Model):
     numero_documento = models.CharField("número do documento", max_length=30, blank=True)
     nacionalidade = models.CharField("nacionalidade", max_length=60, default="Brasileira")
     naturalidade = models.CharField("naturalidade", max_length=80, blank=True)
-    foto = models.ImageField("fotografia", upload_to="alunos/", blank=True)
+    foto = models.ImageField("fotografia", upload_to=foto_aluno_path, blank=True)
 
     # Contato / endereço
     email = models.EmailField("e-mail", blank=True)
@@ -172,6 +181,10 @@ class AlunoResponsavelFinanceiro(models.Model):
         MAE = "MAE", "Mãe"
         OUTRO = "OUTRO", "Outro responsável"
 
+    INSTITUICAO_DE = "aluno"  # a escola é herdada do aluno ao gravar (e validada contra o responsável)
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
     aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name="responsaveis_financeiros")
     responsavel = models.ForeignKey(Responsavel, on_delete=models.PROTECT, related_name="vinculos_alunos")
     parentesco = models.CharField("tipo de responsável", max_length=10, choices=Parentesco.choices)

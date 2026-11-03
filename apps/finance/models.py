@@ -192,6 +192,10 @@ class AjusteParcela(models.Model):
         ENCARGOS = "ENCARGOS", "Multa/juros por atraso"
         CANCELAMENTO = "CANCELAMENTO", "Cancelamento"
 
+    INSTITUICAO_DE = "parcela"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
     parcela = models.ForeignKey(Parcela, on_delete=models.PROTECT, related_name="ajustes")
     tipo = models.CharField(max_length=14, choices=Tipo.choices)
     anterior = models.CharField("valor anterior", max_length=60)
@@ -221,6 +225,12 @@ class Recebimento(models.Model):
         PIX = "PIX", "PIX"
         CREDITO = "CREDITO", "Cartão de crédito"
         DEBITO = "DEBITO", "Cartão de débito"
+        BOLETO = "BOLETO", "Boleto bancário"  # só entra por baixa automática do banco (app billing)
+
+    @classmethod
+    def formas_de_caixa(cls):
+        """Formas que o operador escolhe no caixa (boleto só é baixado automaticamente pelo banco)."""
+        return [(v, r) for v, r in cls.Forma.choices if v != cls.Forma.BOLETO]
 
     class Status(models.TextChoices):
         CONFIRMADO = "CONFIRMADO", "Confirmado"
@@ -266,6 +276,10 @@ class Recebimento(models.Model):
 
 
 class AlocacaoRecebimento(models.Model):
+    INSTITUICAO_DE = "recebimento"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
     recebimento = models.ForeignKey(Recebimento, on_delete=models.PROTECT, related_name="alocacoes")
     parcela = models.ForeignKey(Parcela, on_delete=models.PROTECT, related_name="alocacoes")
     valor = _dinheiro()
@@ -281,6 +295,10 @@ class AlocacaoRecebimento(models.Model):
 
 
 class Estorno(models.Model):
+    INSTITUICAO_DE = "recebimento"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
     recebimento = models.OneToOneField(Recebimento, on_delete=models.PROTECT, related_name="estorno")
     justificativa = models.CharField(max_length=255)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")

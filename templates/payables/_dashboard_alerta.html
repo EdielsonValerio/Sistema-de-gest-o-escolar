@@ -1,0 +1,18 @@
+{% load ui payables_ui %}
+{% if notif_contas.total %}
+<div class="card mb-3 border-{% if notif_contas.vencidas %}danger{% else %}warning{% endif %}">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-bell-fill {% if notif_contas.vencidas %}text-danger{% else %}text-warning-emphasis{% endif %}"></i> Contas a pagar que precisam de atenção
+      <span class="badge {% if notif_contas.vencidas %}text-bg-danger{% else %}text-bg-warning{% endif %} ms-1">{{ notif_contas.total }}</span></span>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'payables:conta_lista' %}">Ver todas</a>
+  </div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <tbody>{% for c in notif_contas.itens %}
+      <tr><td><a href="{% url 'payables:conta_detalhe' c.pk %}">{{ c.descricao }}</a><div class="small text-muted">{{ c.prestador }}</div></td>
+        <td class="text-nowrap">{{ c.vencimento|date:"d/m/Y" }}<div class="small {{ c|classe_prazo }}">{{ c.prazo_texto }}</div></td>
+        <td class="text-end money">{{ c.valor|brl }}</td>
+        <td class="text-end">{% if perms.payables.liquidar_conta %}<a class="btn btn-sm btn-success" href="{% url 'payables:conta_liquidar' c.pk %}">Liquidar</a>{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% if notif_contas.mais %}<div class="card-footer bg-white small text-muted">e mais {{ notif_contas.mais }} conta{{ notif_contas.mais|pluralize }}…</div>{% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,38 @@
+{% extends "generic/lista.html" %}
+{% load ui billing_ui %}
+{% block title %}Cobranças bancárias{% endblock %}
+{% block content %}
+{% with titulo="Cobranças (boletos com Pix)" subtitulo="Boletos registrados no banco para as parcelas dos alunos." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.billing.configurar_cobranca %}<a class="btn btn-outline-secondary" href="{% url 'billing:configuracao' %}"><i class="bi bi-gear"></i> Configuração</a>{% endif %}{% endblock %}
+{% block filtros %}
+{% if not ativa %}<div class="alert alert-warning">A cobrança com registro bancário ainda não está ativa nesta escola.{% if perms.billing.configurar_cobranca %} <a href="{% url 'billing:configuracao' %}">Configurar agora</a>.{% endif %}</div>{% endif %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-5"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Aluno, código, pagador ou nosso número"></div>
+  <div class="col-6 col-md-3"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao"><option value="">Todas</option>{% for v, l in situacoes %}<option value="{{ v }}" {% if filtros.situacao == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="f-d" name="divergencia" value="1" {% if filtros.divergencia %}checked{% endif %}><label class="form-check-label small" for="f-d">Só com divergência</label></div></div>
+  <div class="col-md-2"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Aluno / parcela</th><th>Vencimento</th><th class="text-end">Valor</th><th>Situação</th><th>Nosso número</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for c in cobrancas %}
+<tr>
+  <td><a href="{% url 'finance:parcela_detalhe' c.parcela_id %}"><strong>{{ c.parcela.aluno.nome }}</strong></a><div class="small text-muted">{{ c.descricao }}</div>
+    {% if c.erro %}<div class="small text-danger"><i class="bi bi-exclamation-triangle"></i> {{ c.erro }}</div>{% endif %}
+    {% if c.divergencia %}<div class="small text-warning-emphasis"><i class="bi bi-flag"></i> {{ c.divergencia }}</div>{% endif %}</td>
+  <td class="text-nowrap">{{ c.vencimento|date:"d/m/Y" }}</td>
+  <td class="text-end money">{{ c.valor|brl }}{% if c.valor_pago %}<div class="small text-success">pago {{ c.valor_pago|brl }}</div>{% endif %}</td>
+  <td>{{ c|badge_cobranca }}{% if c.recebimento %}<div class="small"><a href="{% url 'finance:recebimento_detalhe' c.recebimento_id %}">Recibo {{ c.recebimento.numero }}</a></div>{% endif %}</td>
+  <td class="small text-nowrap">{{ c.nosso_numero|default:"—" }}</td>
+  <td class="text-end text-nowrap">
+    {% if c.status == 'PENDENTE' or c.status == 'PAGA' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'billing:boleto' c.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer"></i> Boleto</a>{% endif %}
+    {% if c.status == 'PENDENTE' %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_consultar' c.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" title="Consultar no banco"><i class="bi bi-arrow-repeat"></i></button></form>
+      {% if pode_cancelar %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_cancelar' c.pk %}" onsubmit="return confirm('Cancelar este boleto no banco?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Cancelar boleto"><i class="bi bi-x-circle"></i></button></form>{% endif %}{% endif %}
+    {% if c.status == 'ERRO' and pode_gerar %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_gerar' c.parcela_id %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-primary"><i class="bi bi-arrow-clockwise"></i> Tentar de novo</button></form>{% endif %}
+  </td>
+</tr>
+{% empty %}
+{% include "components/vazio.html" with colspan=6 icone="upc-scan" msg="Nenhum boleto encontrado." %}
+{% endfor %}
+{% endblock %}

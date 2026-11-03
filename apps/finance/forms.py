@@ -67,7 +67,7 @@ class AjusteParcelaForm(BaseForm):
 
 class CaixaForm(BaseForm):
     token = forms.UUIDField(initial=uuid.uuid4, widget=forms.HiddenInput)
-    forma = forms.ChoiceField(label="Forma de pagamento", choices=Recebimento.Forma.choices)
+    forma = forms.ChoiceField(label="Forma de pagamento", choices=Recebimento.formas_de_caixa())
     valor_recebido = forms.DecimalField(label="Valor recebido", required=False, min_value=0, max_digits=12,
                                         decimal_places=2)
     referencia = forms.CharField(label="Referência (NSU/ID PIX/final do cartão)", required=False, max_length=60,

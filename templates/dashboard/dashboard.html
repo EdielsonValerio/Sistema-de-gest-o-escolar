@@ -29,6 +29,8 @@
   {% endif %}
 </div>
 
+{% include "payables/_dashboard_alerta.html" %}
+
 {% if alunos_ativos is not None and not tem_alunos %}
 <div class="card"><div class="card-body empty-state">
   <i class="bi bi-rocket-takeoff"></i>

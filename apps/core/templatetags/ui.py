@@ -52,3 +52,10 @@ def badge_matricula(m):
 @register.filter
 def field_class(bound_field):
     return "is-invalid" if bound_field.errors else ""
+
+
+@register.filter
+def login_de(user):
+    """Login exibido de um usuário (sem o prefixo interno do username)."""
+    from apps.core.tenancy import login_do_usuario
+    return login_do_usuario(user) if user else ""

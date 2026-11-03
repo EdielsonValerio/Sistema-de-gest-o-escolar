@@ -1,14 +1,32 @@
+import os
+import uuid
+
 from django.db import models
+from django.db.models.functions import Lower
+from django.utils import timezone
+
+
+def logotipo_escola_path(instance, filename):
+    """Nome do arquivo gerado (aleatório): não depende do nome enviado pelo usuário."""
+    ext = os.path.splitext(filename)[1].lower()[:6]
+    return f"escolas/logotipos/{uuid.uuid4().hex}{ext}"
 
 
 class Instituicao(models.Model):
-    nome = models.CharField("nome", max_length=150)
+    """Escola (cliente do sistema). Todos os dados de negócio pertencem a exatamente uma instituição."""
+
+    nome = models.CharField("nome da escola", max_length=150)
     cnpj = models.CharField("CNPJ", max_length=18, blank=True)
-    ativa = models.BooleanField("ativa", default=True)
+    logotipo = models.ImageField("logotipo", upload_to=logotipo_escola_path, blank=True)
+    ativa = models.BooleanField("ativa", default=True,
+                                help_text="Escolas inativas não aparecem no login e seus usuários perdem o acesso.")
+    criada_em = models.DateTimeField("cadastrada em", default=timezone.now, editable=False)
 
     class Meta:
         verbose_name = "instituição"
         verbose_name_plural = "instituições"
+        ordering = ["nome"]
+        constraints = [models.UniqueConstraint(Lower("nome"), name="uniq_instituicao_nome")]
 
     def __str__(self):
         return self.nome
@@ -22,6 +40,17 @@ class ConfiguracaoGeral(models.Model):
         help_text="Se marcado, matrícula em turma com plano ativo exige a escolha de um plano.",
     )
     itens_por_pagina = models.PositiveSmallIntegerField("itens por página", default=20)
+    permitir_saldo_negativo = models.BooleanField(
+        "permitir saldo negativo no contas a pagar",
+        default=False,
+        help_text="Se desmarcado, não é possível liquidar uma conta a pagar maior que o saldo disponível "
+                  "(total recebido menos o total já pago).",
+    )
+    dias_aviso_contas_pagar = models.PositiveSmallIntegerField(
+        "avisar contas a pagar com antecedência de (dias)",
+        default=5,
+        help_text="As contas em aberto que vencem dentro deste prazo (e as vencidas) aparecem nas notificações.",
+    )
 
     class Meta:
         verbose_name = "configuração geral"

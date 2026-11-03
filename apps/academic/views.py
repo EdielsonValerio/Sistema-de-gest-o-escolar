@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from django.utils.functional import cached_property
 from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
@@ -12,6 +13,8 @@ VIGENTES = ("PENDENTE", "ATIVA")
 
 
 def _audit(view, obj, novo, form, entidade):
+    if view.instituicao is None:  # edição de tabela compartilhada pelo administrador do sistema (sem escola)
+        return
     registrar(instituicao=view.instituicao, usuario=view.request.user,
               acao=f"{entidade.upper()}_{'CRIADO' if novo else 'ALTERADO'}", entidade=entidade, entidade_id=obj.pk,
               descricao=str(obj)[:200], dados={"campos": [] if novo else form.changed_data})
@@ -94,12 +97,16 @@ class SerieOfertadaUpdateView(SerieOfertadaFormView):
 
 
 class SerieReferenciaListView(AcessoMixin, ListView):
+    exige_escola = False  # tabela compartilhada: leitura também pelo administrador do sistema
     model = SerieReferencia
     permission_required = "academic.view_seriereferencia"
     template_name = "academic/serie_ref_lista.html"
 
 
 class SerieReferenciaFormView(ObjetoFormView):
+    """Tabela compartilhada por todas as escolas: somente o administrador do sistema (superusuário) altera."""
+
+    exige_escola = False
     model = SerieReferencia
     form_class = SerieReferenciaForm
     escopo = None  # tabela de referência compartilhada
@@ -107,6 +114,14 @@ class SerieReferenciaFormView(ObjetoFormView):
     titulo_novo, titulo_editar = "Nova série de referência", "Editar série de referência"
     subtitulo = "Estrutura educacional usada pela instituição. Os códigos são internos, não oficiais do MEC."
     mensagem_sucesso = "Série de referência salva."
+
+    def has_permission(self):
+        return self.request.user.is_superuser and super().has_permission()
+
+    @cached_property
+    def instituicao(self):
+        perfil = getattr(self.request.user, "perfil", None)
+        return perfil.instituicao if perfil else None
 
     def apos_salvar(self, obj, form, novo):
         _audit(self, obj, novo, form, "SerieReferencia")

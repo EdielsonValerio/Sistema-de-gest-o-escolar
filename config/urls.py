@@ -10,9 +10,12 @@ urlpatterns = [
     path("", include("apps.students.urls")),
     path("secretaria/", include("apps.academic.urls")),
     path("matriculas/", include("apps.enrollments.urls")),
+    path("financeiro/contas-a-pagar/", include("apps.payables.urls")),
     path("financeiro/", include("apps.finance.urls")),
     path("auditoria/", include("apps.audit.urls")),
     path("", include("apps.documents.urls")),
+    path("", include("apps.billing.urls")),
+    path("", include("apps.assistente.urls")),
 ]
 
 if settings.DEBUG:  # fotos enviadas (somente desenvolvimento; em produção sirva MEDIA_ROOT pelo servidor web)

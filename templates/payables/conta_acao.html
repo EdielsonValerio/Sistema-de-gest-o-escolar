@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">{{ titulo }}</h1><p class="page-sub">{{ subtitulo }}</p></div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <form method="post" novalidate data-once>
+      {% csrf_token %}
+      <div class="card"><div class="card-body">
+        {% include "components/form_fields.html" %}
+      </div>
+      <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+        <a class="btn btn-outline-secondary" href="{{ cancelar_url }}">Cancelar</a>
+        <button type="submit" class="btn {{ botao_classe }}">{{ botao }}</button>
+      </div></div>
+    </form>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header">Conta</div><div class="card-body"><dl class="row mb-0 small">
+      <dt class="col-5">Descrição</dt><dd class="col-7">{{ conta.descricao }}</dd>
+      <dt class="col-5">Prestador</dt><dd class="col-7">{{ conta.prestador }}</dd>
+      <dt class="col-5">Data de pagamento</dt><dd class="col-7">{{ conta.vencimento|date:"d/m/Y" }}</dd>
+      <dt class="col-5">Valor</dt><dd class="col-7 money fw-semibold">{{ conta.valor|brl }}</dd>
+    </dl></div></div>
+    <div class="card"><div class="card-header">Saldo da escola</div><div class="card-body small">
+      Disponível: <strong class="money {% if saldo.saldo < 0 %}text-danger{% else %}text-success{% endif %}">{{ saldo.saldo|brl }}</strong>
+      <div class="text-muted">Saldo negativo: {% if permite_negativo %}permitido{% else %}não permitido{% endif %} (Configurações gerais).</div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

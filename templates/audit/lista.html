@@ -1,4 +1,5 @@
 {% extends "generic/lista.html" %}
+{% load ui %}
 {% block title %}Auditoria{% endblock %}
 {% block content %}
 {% with titulo="Auditoria" subtitulo="Trilha de operações administrativas e financeiras. Os registros são somente de inclusão e não guardam CPF, senhas ou endereços." %}{{ block.super }}{% endwith %}
@@ -7,7 +8,7 @@
 <form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
   <div class="col-md-3"><label class="form-label small mb-1" for="f-e">Entidade</label><select id="f-e" class="form-select" name="entidade"><option value="">Todas</option>{% for e in entidades %}<option value="{{ e }}" {% if filtros.entidade == e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
   <div class="col-md-3"><label class="form-label small mb-1" for="f-a">Ação contém</label><input id="f-a" class="form-control" name="acao" value="{{ filtros.acao }}" placeholder="Ex.: RECEBIMENTO"></div>
-  <div class="col-md-3"><label class="form-label small mb-1" for="f-u">Usuário</label><select id="f-u" class="form-select" name="usuario"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.pk }}" {% if filtros.usuario == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-u">Usuário</label><select id="f-u" class="form-select" name="usuario"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.pk }}" {% if filtros.usuario == u.pk|stringformat:"s" %}selected{% endif %}>{{ u|login_de }}</option>{% endfor %}</select></div>
   <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>{% if tem_filtro %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
 </div></form>
 {% endblock %}

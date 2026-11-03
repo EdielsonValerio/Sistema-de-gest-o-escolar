@@ -1,23 +1,31 @@
-"""Isolamento por instituição."""
+"""Isolamento por escola: qual escola o usuário autenticado pode acessar."""
 from django.core.exceptions import PermissionDenied
 
-from .models import ConfiguracaoGeral, Instituicao
+SESSAO_ESCOLA = "escola_id"  # escola escolhida no login (0 = administração do sistema)
+
+
+def perfil_do_usuario(user):
+    """PerfilUsuario do usuário ou None (administrador do sistema não pertence a nenhuma escola)."""
+    return getattr(user, "perfil", None)
 
 
 def instituicao_do_usuario(user):
-    """Instituição do usuário autenticado.
+    """Escola do usuário autenticado.
 
-    Superusuários criados por `createsuperuser` ainda não têm perfil: ele é criado
-    automaticamente, vinculado à primeira instituição (ou a uma nova).
+    Cada usuário pertence a UMA escola. Administradores do sistema (superusuários sem perfil) não têm escola e
+    não acessam dados de escolas pelas telas de secretaria/financeiro. Escolas inativas bloqueiam o acesso.
     """
-    from apps.accounts.models import PerfilUsuario
+    perfil = perfil_do_usuario(user)
+    if perfil is None:
+        raise PermissionDenied("Usuário sem escola vinculada.")
+    if not perfil.instituicao.ativa:
+        raise PermissionDenied("Escola inativa.")
+    return perfil.instituicao
 
-    perfil = getattr(user, "perfil", None)
-    if perfil is not None:
-        return perfil.instituicao
-    if user.is_superuser:
-        inst = Instituicao.objects.order_by("pk").first() or Instituicao.objects.create(nome="Minha Escola")
-        ConfiguracaoGeral.objects.get_or_create(instituicao=inst)
-        PerfilUsuario.objects.create(user=user, instituicao=inst)
-        return inst
-    raise PermissionDenied("Usuário sem instituição vinculada.")
+
+def login_do_usuario(user):
+    """Login exibido (sem o prefixo interno usado para garantir unicidade global do username)."""
+    if user is None:
+        return ""
+    perfil = perfil_do_usuario(user)
+    return perfil.login if perfil is not None and perfil.login else user.get_username()

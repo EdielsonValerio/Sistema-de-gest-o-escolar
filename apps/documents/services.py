@@ -15,8 +15,9 @@ def cabecalho_html(instituicao):
     if not cab or not cab.ativo:
         return "", ""
     partes = ['<div class="doc-cabecalho">']
-    if cab.exibir_logotipo and cab.logotipo:
-        partes.append(f'<img class="doc-logo" src="{escape(cab.logotipo.url)}" alt="Logotipo">')
+    logo = cab.logotipo or instituicao.logotipo  # sem logotipo próprio, usa o da escola
+    if cab.exibir_logotipo and logo:
+        partes.append(f'<img class="doc-logo" src="{escape(logo.url)}" alt="Logotipo">')
     texto = [f'<div class="doc-cab-titulo">{escape(cab.titulo or instituicao.nome)}</div>']
     texto += [f'<div class="doc-cab-linha">{escape(l.strip())}</div>' for l in cab.linhas.splitlines() if l.strip()]
     partes.append(f'<div class="doc-cab-texto">{"".join(texto)}</div></div>')

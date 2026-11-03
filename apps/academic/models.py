@@ -69,6 +69,10 @@ class SerieOfertada(models.Model):
         ATIVA = "ATIVA", "Ativa"
         ENCERRADA = "ENCERRADA", "Encerrada"
 
+    INSTITUICAO_DE = "ano_letivo"  # a escola é herdada do ano letivo ao gravar
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
     ano_letivo = models.ForeignKey(AnoLetivo, on_delete=models.PROTECT, related_name="series_ofertadas")
     serie_referencia = models.ForeignKey(SerieReferencia, on_delete=models.PROTECT, related_name="ofertas")
     situacao = models.CharField("situação", max_length=10, choices=Situacao.choices, default=Situacao.ATIVA)
@@ -84,10 +88,6 @@ class SerieOfertada(models.Model):
 
     def __str__(self):
         return f"{self.serie_referencia.nome} — {self.ano_letivo.ano}"
-
-    @property
-    def instituicao_id(self):
-        return self.ano_letivo.instituicao_id
 
 
 class Turma(models.Model):

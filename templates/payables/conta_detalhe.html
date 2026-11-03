@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load ui payables_ui %}
+{% block title %}{{ conta.numero }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div><h1 class="h4 page-title">{{ conta.descricao }}</h1>
+    <p class="page-sub"><code>{{ conta.numero }}</code> · {{ conta.prestador }} · {% badge_conta conta %}{% if conta.status == 'ABERTA' %} <span class="{{ conta|classe_prazo }}">{{ conta.prazo_texto }}</span>{% endif %}</p></div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if pode_liquidar %}<a class="btn btn-success" href="{% url 'payables:conta_liquidar' conta.pk %}"><i class="bi bi-check2-circle"></i> Liquidar</a>{% endif %}
+    {% if pode_editar %}<a class="btn btn-outline-primary" href="{% url 'payables:conta_editar' conta.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+    {% if pode_desativar %}<a class="btn btn-outline-danger" href="{% url 'payables:conta_desativar' conta.pk %}"><i class="bi bi-slash-circle"></i> Desativar</a>{% endif %}
+    {% if pode_reativar %}<form method="post" action="{% url 'payables:conta_reativar' conta.pk %}" data-once>{% csrf_token %}<button class="btn btn-outline-primary" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reativar</button></form>{% endif %}
+    {% if pode_estornar %}<a class="btn btn-outline-danger" href="{% url 'payables:conta_estornar' conta.pk %}"><i class="bi bi-arrow-return-left"></i> Estornar liquidação</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'payables:conta_lista' %}">Voltar</a>
+  </div>
+</div>
+{% if ficaria_negativo and not permite_negativo %}
+<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> O saldo disponível ({{ saldo.saldo|brl }}) é menor que o valor desta conta. Com a configuração atual <strong>não é permitido saldo negativo</strong>, então a liquidação será recusada até haver saldo.</div>
+{% elif ficaria_negativo %}
+<div class="alert alert-info"><i class="bi bi-info-circle"></i> O saldo disponível ({{ saldo.saldo|brl }}) é menor que o valor desta conta. A liquidação deixará o saldo negativo (permitido nas configurações).</div>
+{% endif %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Dados da conta</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-5">Valor</dt><dd class="col-7 money fw-semibold">{{ conta.valor|brl }}</dd>
+    <dt class="col-5">Data de pagamento</dt><dd class="col-7">{{ conta.vencimento|date:"d/m/Y" }}</dd>
+    <dt class="col-5">Categoria</dt><dd class="col-7">{{ conta.get_categoria_display }}</dd>
+    <dt class="col-5">Prestador</dt><dd class="col-7">{{ conta.prestador }}</dd>
+    <dt class="col-5">CPF/CNPJ</dt><dd class="col-7">{{ conta.prestador_documento|default:"—" }}</dd>
+    <dt class="col-5">Nº do documento</dt><dd class="col-7">{{ conta.numero_documento|default:"—" }}</dd>
+    <dt class="col-5">Cadastrada em</dt><dd class="col-7">{{ conta.criado_em|date:"d/m/Y H:i" }}{% if conta.criado_por %} por {{ conta.criado_por.get_username }}{% endif %}</dd>
+    {% if conta.observacoes %}<dt class="col-5">Observações</dt><dd class="col-7">{{ conta.observacoes|linebreaksbr }}</dd>{% endif %}
+    {% if conta.status == 'DESATIVADA' %}<dt class="col-5">Desativada</dt><dd class="col-7">{{ conta.desativada_em|date:"d/m/Y H:i" }}{% if conta.desativada_por %} por {{ conta.desativada_por.get_username }}{% endif %}<br><span class="text-muted">Motivo: {{ conta.motivo_desativacao }}</span></dd>{% endif %}
+  </dl></div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">Saldo da escola</div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-6">Total recebido</dt><dd class="col-6 money">{{ saldo.recebido|brl }}</dd>
+    <dt class="col-6">Total pago (liquidações)</dt><dd class="col-6 money">− {{ saldo.pago|brl }}</dd>
+    <dt class="col-6">Saldo disponível</dt><dd class="col-6 money fw-semibold {% if saldo.saldo < 0 %}text-danger{% else %}text-success{% endif %}">{{ saldo.saldo|brl }}</dd>
+    <dt class="col-6">Saldo negativo</dt><dd class="col-6">{% if permite_negativo %}Permitido{% else %}Não permitido{% endif %}</dd>
+  </dl></div></div></div>
+</div>
+{% if outras_do_grupo %}
+<div class="card mb-3"><div class="card-header">Demais contas desta repetição mensal</div><div class="table-responsive"><table class="table table-sm mb-0">
+  <thead><tr><th>Nº</th><th>Descrição</th><th>Data de pagamento</th><th class="text-end">Valor</th><th>Situação</th></tr></thead><tbody>
+  {% for o in outras_do_grupo %}<tr><td><a href="{% url 'payables:conta_detalhe' o.pk %}"><code>{{ o.numero }}</code></a></td><td>{{ o.descricao }}</td><td>{{ o.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ o.valor|brl }}</td><td>{% badge_conta o %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+<div class="card"><div class="card-header">Liquidações</div><div class="table-responsive"><table class="table table-sm mb-0">
+  <thead><tr><th>Data</th><th>Forma</th><th>Referência</th><th class="text-end">Valor</th><th>Registrada por</th><th>Situação</th></tr></thead><tbody>
+  {% for l in liquidacoes %}<tr>
+    <td>{{ l.data|date:"d/m/Y" }}</td><td>{{ l.get_forma_display }}</td><td>{{ l.referencia|default:"—" }}{% if l.observacao %}<div class="small text-muted">{{ l.observacao }}</div>{% endif %}</td>
+    <td class="text-end money">{{ l.valor|brl }}</td><td>{{ l.usuario_nome|default:"—" }}<div class="small text-muted">{{ l.criado_em|date:"d/m/Y H:i" }}</div></td>
+    <td>{% if l.estornada %}<span class="badge text-bg-secondary">Estornada</span><div class="small text-muted">{{ l.estorno_usuario_nome }} em {{ l.estornada_em|date:"d/m/Y H:i" }} — {{ l.estorno_justificativa }}</div>{% else %}<span class="badge text-bg-success">Ativa</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Nenhuma liquidação registrada.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

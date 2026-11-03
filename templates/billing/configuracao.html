@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load ui billing_ui %}
+{% block title %}Cobrança bancária{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div><h1 class="h4 page-title">Configuração financeira · cobrança bancária</h1>
+  <p class="page-sub">Cadastre o banco da escola, gere um boleto de teste e confirme o recebimento. Só então os boletos dos alunos passam a ser registrados no banco.</p></div>
+  <div>{% if ativa %}<span class="badge text-bg-success fs-6"><i class="bi bi-check-circle"></i> Cobrança ativa</span>
+    {% elif cfg.status == 'SUSPENSA' %}<span class="badge text-bg-warning fs-6">Suspensa</span>
+    {% else %}<span class="badge text-bg-secondary fs-6">Em configuração</span>{% endif %}</div>
+</div>
+
+{% if not segredo_ok %}<div class="alert alert-danger">Não foi possível ler a chave de API gravada (a chave de criptografia do servidor mudou). Informe a chave de API novamente na etapa 1.</div>{% endif %}
+{% if simulado %}<div class="alert alert-info"><i class="bi bi-mortarboard"></i> <strong>Modo simulado (treinamento):</strong> nenhum banco real é acionado e os códigos gerados não são pagáveis. Use para conhecer o fluxo; escolha o provedor real na etapa 1 para cobrar de verdade.</div>{% endif %}
+
+<div class="row g-3">
+<div class="col-xl-7">
+
+  <div class="card mb-3" id="etapa1"><div class="card-header d-flex justify-content-between"><span><span class="badge rounded-pill text-bg-primary me-1">1</span> Dados do banco</span>
+    {% if etapas.configurada %}<span class="badge text-bg-success">Preenchida</span>{% else %}<span class="badge text-bg-secondary">Pendente</span>{% endif %}</div>
+  <div class="card-body">
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="salvar">
+      <div class="row g-3">
+        <div class="col-md-6">{% include "billing/_campo.html" with field=form.provedor %}</div>
+        <div class="col-md-6">{% include "billing/_campo.html" with field=form.ambiente %}</div>
+        <div class="col-12">{% include "billing/_campo.html" with field=form.api_key %}
+          {% if chave_mascarada %}<div class="form-text">Chave gravada: <code>{{ chave_mascarada }}</code></div>{% endif %}</div>
+        <div class="col-md-6">{% include "billing/_campo.html" with field=form.banco_nome %}</div>
+        <div class="col-md-3">{% include "billing/_campo.html" with field=form.agencia %}</div>
+        <div class="col-md-3">{% include "billing/_campo.html" with field=form.conta %}</div>
+        <div class="col-md-8">{% include "billing/_campo.html" with field=form.beneficiario_nome %}</div>
+        <div class="col-md-4">{% include "billing/_campo.html" with field=form.beneficiario_documento %}</div>
+        <div class="col-12">{% include "billing/_campo.html" with field=form.instrucoes %}</div>
+      </div>
+      <div class="d-flex gap-2 mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Salvar dados</button></div>
+    </form>
+    {% if etapas.configurada and not simulado %}
+    <form method="post" class="mt-2" data-once>{% csrf_token %}<input type="hidden" name="acao" value="conexao">
+      <button class="btn btn-outline-secondary btn-sm" type="submit"><i class="bi bi-plug"></i> Testar conexão com o banco</button></form>{% endif %}
+    {% if ativa %}<div class="alert alert-warning small mt-3 mb-0">Se você trocar o provedor, o ambiente ou a chave, a cobrança volta para “Em configuração” e será preciso refazer o teste.</div>{% endif %}
+  </div></div>
+
+  <div class="card mb-3" id="etapa2"><div class="card-header d-flex justify-content-between"><span><span class="badge rounded-pill text-bg-primary me-1">2</span> Boleto de teste</span>
+    {% if etapas.teste_gerado %}<span class="badge text-bg-success">Gerado</span>{% else %}<span class="badge text-bg-secondary">Pendente</span>{% endif %}</div>
+  <div class="card-body">
+    {% if not etapas.configurada %}<p class="text-muted mb-0">Salve os dados do banco (etapa 1) para liberar o teste.</p>
+    {% else %}
+    <p class="small text-muted">O boleto de teste não é de aluno e <strong>não entra no caixa nem no saldo</strong>. Ele só prova que a integração com o banco funciona.</p>
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="teste">
+      <div class="row g-3">
+        <div class="col-md-7">{% include "billing/_campo.html" with field=form_teste.pagador_nome %}</div>
+        <div class="col-md-5">{% include "billing/_campo.html" with field=form_teste.pagador_documento %}</div>
+        <div class="col-md-7">{% include "billing/_campo.html" with field=form_teste.pagador_email %}</div>
+        <div class="col-md-5">{% include "billing/_campo.html" with field=form_teste.valor %}</div>
+      </div>
+      <button class="btn btn-primary mt-3" type="submit"><i class="bi bi-upc-scan"></i> Gerar boleto de teste</button>
+    </form>{% endif %}
+  </div></div>
+
+  <div class="card mb-3" id="etapa3"><div class="card-header d-flex justify-content-between"><span><span class="badge rounded-pill text-bg-primary me-1">3</span> Confirmar o recebimento</span>
+    {% if etapas.confirmado %}<span class="badge text-bg-success">Confirmado</span>{% else %}<span class="badge text-bg-secondary">Pendente</span>{% endif %}</div>
+  <div class="card-body">
+    {% if not testes %}<p class="text-muted mb-0">Gere o boleto de teste (etapa 2) para acompanhar o pagamento aqui.</p>{% endif %}
+    {% for t in testes %}
+    <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div><div>{{ t|badge_cobranca }} <strong>{{ t.valor|brl }}</strong> · vence {{ t.vencimento|date:"d/m/Y" }}{% if t.assinatura != cfg.assinatura %} <span class="badge text-bg-light border">configuração antiga</span>{% endif %}</div>
+        <div class="small text-muted">{{ t.criado_em|date:"d/m/Y H:i" }}{% if t.pago_em %} · pago em {{ t.pago_em|date:"d/m/Y" }}{% endif %}{% if t.nosso_numero %} · nosso nº {{ t.nosso_numero }}{% endif %}</div></div>
+      <div class="d-flex gap-1">
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'billing:boleto' t.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer"></i> Ver boleto</a>
+        {% if t.status == 'PENDENTE' %}
+        <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="consultar"><input type="hidden" name="cobranca" value="{{ t.pk }}"><button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Já paguei — consultar no banco</button></form>
+        {% if simulado %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="simular"><input type="hidden" name="cobranca" value="{{ t.pk }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-magic"></i> Simular pagamento</button></form>{% endif %}
+        {% endif %}
+      </div>
+    </div>{% endfor %}
+    {% if cfg.provedor == 'ASAAS' and cfg.ambiente == 'SANDBOX' %}<div class="alert alert-light border small mb-0"><strong>No sandbox do Asaas</strong> o pagamento não acontece de verdade: abra a cobrança no painel sandbox do Asaas e use <em>“Confirmar recebimento em dinheiro”</em>; depois clique em “consultar no banco”. O aviso automático (webhook) também confirma, se estiver configurado.</div>{% endif %}
+  </div></div>
+
+  <div class="card mb-3" id="etapa4"><div class="card-header d-flex justify-content-between"><span><span class="badge rounded-pill text-bg-primary me-1">4</span> Ativar a cobrança com registro</span>
+    {% if ativa %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Pendente</span>{% endif %}</div>
+  <div class="card-body">
+    {% if ativa %}
+      <p>Cobrança <strong>ativa</strong> desde {{ cfg.ativada_em|date:"d/m/Y H:i" }}. Toda parcela nova já nasce com boleto registrado no banco, com QR Code Pix.</p>
+      <div class="row g-3 mb-2">
+        <div class="col-sm-6"><div class="card card-body h-100"><div class="small text-muted">Parcelas em aberto sem boleto</div><div class="fs-4 fw-semibold">{{ sem_boleto }}</div></div></div>
+        <div class="col-sm-6"><div class="card card-body h-100"><div class="small text-muted">Boletos com erro no registro</div><div class="fs-4 fw-semibold {% if com_erro %}text-danger{% endif %}">{{ com_erro }}</div></div></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if pode_gerar and sem_boleto %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="lote"><button class="btn btn-primary" type="submit"><i class="bi bi-lightning-charge"></i> Gerar boletos das parcelas em aberto (até 100 por vez)</button></form>{% endif %}
+        {% if pode_gerar and com_erro %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="lote"><input type="hidden" name="incluir_erros" value="1"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-arrow-clockwise"></i> Tentar de novo os que deram erro</button></form>{% endif %}
+        <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="conciliar"><button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i> Conciliar com o banco agora</button></form>
+        <form method="post" onsubmit="return confirm('Suspender? Parcelas novas deixarão de gerar boleto.')">{% csrf_token %}<input type="hidden" name="acao" value="suspender"><button class="btn btn-outline-danger" type="submit"><i class="bi bi-pause-circle"></i> Suspender</button></form>
+      </div>
+      {% if com_erro %}<p class="small mt-2 mb-0">Veja o motivo de cada erro em <a href="{% url 'billing:cobranca_lista' %}?situacao=ERRO">Cobranças</a>. O erro mais comum é responsável sem CPF/CNPJ válido.</p>{% endif %}
+    {% else %}
+      {% if etapas.confirmado %}<p>O recebimento do teste foi confirmado. Ao ativar, as parcelas <strong>novas</strong> passam a ser registradas no banco; as já existentes ganham boleto quando você usar “Gerar boletos das parcelas em aberto”.</p>
+      <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="ativar"><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle"></i> {% if cfg.status == 'SUSPENSA' %}Reativar{% else %}Ativar{% endif %} cobrança com registro</button></form>
+      {% else %}<p class="text-muted mb-0"><i class="bi bi-lock"></i> A ativação só é liberada depois que o recebimento do boleto de teste for confirmado (etapa 3).</p>{% endif %}
+    {% endif %}
+  </div></div>
+</div>
+
+<div class="col-xl-5">
+  {% if cfg.provedor == 'ASAAS' %}
+  <div class="card mb-3"><div class="card-header">Aviso automático de pagamento (webhook)</div><div class="card-body small">
+    <p>No painel do Asaas, cadastre um webhook com estes dados para que os pagamentos sejam baixados sozinhos:</p>
+    <label class="form-label fw-semibold mb-0" for="wh-url">URL</label>
+    <input id="wh-url" class="form-control form-control-sm mb-2" readonly value="{{ webhook_url }}">
+    <label class="form-label fw-semibold mb-0" for="wh-tok">Token de autenticação</label>
+    <input id="wh-tok" class="form-control form-control-sm mb-2" readonly value="{{ webhook_token }}">
+    <p class="mb-2">Eventos: <code>PAYMENT_RECEIVED</code>, <code>PAYMENT_CONFIRMED</code>, <code>PAYMENT_DELETED</code>, <code>PAYMENT_REFUNDED</code>.</p>
+    {% if not webhook_url|slice:":5" == "https" %}<div class="alert alert-warning py-2">A URL precisa ser pública e acessível pelo banco (use o endereço HTTPS do sistema; defina <code>DJANGO_SITE_URL</code> no .env).</div>{% endif %}
+    <form method="post" onsubmit="return confirm('Gerar novo token? O webhook cadastrado no banco precisará ser atualizado.')">{% csrf_token %}<input type="hidden" name="acao" value="novo_token"><button class="btn btn-outline-secondary btn-sm" type="submit">Gerar novo token</button></form>
+  </div></div>
+  {% endif %}
+  <div class="card"><div class="card-header">Como funciona</div><div class="card-body small">
+    <ol class="ps-3 mb-2"><li>Você informa o banco/provedor e a chave de API.</li><li>O sistema emite um boleto de teste.</li><li>Quando o pagamento do teste chega (aviso do banco ou consulta), o recebimento é confirmado.</li><li>Com a confirmação, você ativa: as parcelas passam a ser registradas no banco, com <strong>QR Code Pix no boleto</strong>.</li></ol>
+    <p class="mb-1"><strong>Depois de ativa:</strong></p>
+    <ul class="ps-3 mb-0"><li>Pagamento no banco → o sistema registra o recebimento (forma “Boleto bancário”) e quita a parcela.</li><li>Desconto, mudança de vencimento ou cancelamento de parcela atualizam/cancelam o boleto no banco.</li><li>Parcela recebida no caixa tem o boleto cancelado.</li><li>A chave de API fica criptografada e nunca é exibida.</li></ul>
+  </div></div>
+</div>
+</div>
+{% endblock %}

@@ -50,7 +50,8 @@
     {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">Nenhum recebimento.</td></tr>{% endfor %}</tbody></table></div></div></div>
   <div class="col-lg-6"><div class="card"><div class="card-header">Histórico de alterações</div><div class="table-responsive"><table class="table table-sm mb-0">
     <thead><tr><th>Quando</th><th>Alteração</th><th>De → para</th><th>Quem / por quê</th></tr></thead><tbody>
-    {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y H:i" }}</td><td>{{ a.get_tipo_display }}</td><td>{{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">devido {{ a.valor_devido_anterior|brl }} → {{ a.valor_devido_posterior|brl }}</div></td><td>{{ a.usuario.get_username|default:"—" }}<div class="small text-muted">{{ a.justificativa }}</div></td></tr>
+    {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y H:i" }}</td><td>{{ a.get_tipo_display }}</td><td>{{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">devido {{ a.valor_devido_anterior|brl }} → {{ a.valor_devido_posterior|brl }}</div></td><td>{{ a.usuario|login_de|default:"—" }}<div class="small text-muted">{{ a.justificativa }}</div></td></tr>
     {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">Nenhuma alteração.</td></tr>{% endfor %}</tbody></table></div></div></div>
 </div>
+{% include "billing/_parcela_boleto.html" %}
 {% endblock %}

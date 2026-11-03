@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from apps.audit.services import registrar
 from apps.core.numbering import gerar_numero_recebimento
+from apps.core.tenancy import login_do_usuario
+from apps.core.tenant import verificar_escola
 
 from .models import (ZERO, AjusteParcela, AlocacaoRecebimento, ContratoFinanceiro, Estorno, Parcela,
                      PlanoFinanceiro, Recebimento)
@@ -135,11 +137,15 @@ def contratar_plano(*, matricula, plano, responsavel, usuario):
             numero=it["numero"], descricao=f"{plano.nome} — parcela {it['numero']}/{plano.quantidade_parcelas}",
             valor_original=it["valor_original"], desconto=it["desconto"], acrescimo=ZERO,
             valor_devido=it["valor_devido"], emissao=hoje, vencimento=it["vencimento"]))
+    for p in parcelas:  # bulk_create não dispara o gatilho de isolamento por escola
+        verificar_escola(p)
     Parcela.objects.bulk_create(parcelas)
     registrar(instituicao=inst, usuario=usuario, acao="PARCELAS_GERADAS", entidade="ContratoFinanceiro",
               entidade_id=contrato.pk, aluno_id=mat.aluno_id, descricao=f"{len(parcelas)} parcelas geradas",
               dados={"plano_id": plano.pk, "matricula_id": mat.pk, "responsavel_id": responsavel.pk,
                      "quantidade": len(parcelas), "valor_total": plano.valor_total})
+    from apps.billing import hooks  # registra os boletos no banco (somente se a cobrança bancária estiver ativa)
+    hooks.parcelas_geradas(contrato, usuario)
     return contrato
 
 
@@ -191,6 +197,9 @@ def _registrar_ajuste(p, usuario, tipo, anterior, posterior, devido_antes, justi
               entidade_id=p.pk, aluno_id=p.aluno_id, descricao=justificativa,
               dados={"anterior": str(anterior), "posterior": str(posterior),
                      "valor_devido": p.valor_devido, "parcela": p.numero})
+    if tipo != "ENCARGOS":  # mantém o boleto bancário (se houver) igual à parcela
+        from apps.billing import hooks
+        hooks.parcela_alterada(p, usuario)
 
 
 def _exigir_editavel(p):
@@ -371,7 +380,7 @@ def registrar_recebimento(*, aluno, itens, forma, valor_recebido, usuario, token
                 responsavel=parcelas[0].responsavel if len(responsaveis) == 1 else None,
                 forma=forma, valor_total=total, valor_recebido=recebido, troco=troco,
                 referencia=(referencia or "").strip(), token_idempotencia=token, operador=usuario,
-                operador_nome=usuario.get_username())
+                operador_nome=login_do_usuario(usuario))
             rec.full_clean(exclude=["responsavel", "operador"], validate_unique=False, validate_constraints=False)
             rec.save()
     except IntegrityError:
@@ -392,6 +401,8 @@ def registrar_recebimento(*, aluno, itens, forma, valor_recebido, usuario, token
               entidade_id=rec.pk, aluno_id=aluno.pk, descricao=f"Recebimento {rec.numero}",
               dados={"numero": rec.numero, "forma": forma, "valor_total": total, "troco": troco,
                      "parcelas": ids})
+    from apps.billing import hooks  # boleto pendente de parcela recebida no caixa é cancelado/atualizado no banco
+    hooks.recebimento_registrado(parcelas, usuario)
     return rec, True
 
 
@@ -420,7 +431,7 @@ def estornar_recebimento(recebimento, usuario, justificativa):
     rec.status = Recebimento.Status.ESTORNADO
     rec.save(update_fields=["status"])
     Estorno.objects.create(recebimento=rec, justificativa=justificativa, usuario=usuario,
-                           usuario_nome=usuario.get_username())
+                           usuario_nome=login_do_usuario(usuario))
     registrar(instituicao=rec.instituicao, usuario=usuario, acao="RECEBIMENTO_ESTORNADO", entidade="Recebimento",
               entidade_id=rec.pk, aluno_id=rec.aluno_id, descricao=justificativa,
               dados={"numero": rec.numero, "valor_total": rec.valor_total, "parcelas": list(parcelas)})

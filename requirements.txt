@@ -1,7 +1,7 @@
-asgiref==3.12.1
-Django==5.2.18
-pillow==12.3.0
-psycopg2-binary==2.9.13
-python-dotenv==1.2.4
-sqlparse==0.6.0
-tzdata==2026.5
+Django>=5.1,<6
+python-dotenv>=1.0
+Pillow>=10.0
+# Necessário apenas para PostgreSQL (DATABASE_URL=postgres://...)
+psycopg2-binary>=2.9
+cryptography>=42
+qrcode>=7.4

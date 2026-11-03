@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load ui billing_ui %}
+{% block title %}Boleto{% endblock %}
+{% block content %}
+<div class="comprovante">
+  <div class="d-flex justify-content-between align-items-start mb-3 no-print">
+    <h1 class="h4 page-title">Boleto {% if cob.eh_teste %}de teste{% endif %}</h1>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+      {% if cob.url_boleto %}<a class="btn btn-outline-secondary" href="{{ cob.url_boleto }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> PDF do banco</a>{% endif %}
+    </div>
+  </div>
+  {% if cob.eh_teste %}<div class="alert alert-info"><strong>BOLETO DE TESTE.</strong> Serve só para validar a integração com o banco; não é cobrança de aluno.</div>{% endif %}
+  {% if cfg.provedor == 'SIMULADO' %}<div class="alert alert-warning"><strong>SIMULADO.</strong> Os códigos abaixo têm o formato real, mas não são pagáveis.</div>{% endif %}
+  {% if cob.status == 'CANCELADA' %}<div class="alert alert-danger"><strong>BOLETO CANCELADO.</strong> Não pague este boleto.</div>{% endif %}
+  {% if cob.status == 'PAGA' %}<div class="alert alert-success"><strong>BOLETO PAGO</strong>{% if cob.pago_em %} em {{ cob.pago_em|date:"d/m/Y" }}{% endif %}.</div>{% endif %}
+  <div class="card"><div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div><div class="small text-muted">Beneficiário</div><div class="fw-semibold">{{ cfg.beneficiario_nome|default:instituicao_atual.nome }}</div>
+        {% if cfg.beneficiario_documento %}<div class="small">CNPJ {{ cfg.beneficiario_documento }}</div>{% endif %}
+        {% if cfg.banco_nome %}<div class="small text-muted">{{ cfg.banco_nome }}{% if cfg.agencia %} · ag. {{ cfg.agencia }}{% endif %}{% if cfg.conta %} · conta {{ cfg.conta }}{% endif %}</div>{% endif %}</div>
+      <div class="text-end"><div class="small text-muted">Vencimento</div><div class="fs-4 fw-semibold">{{ cob.vencimento|date:"d/m/Y" }}</div></div>
+    </div><hr>
+    <dl class="row mb-2">
+      <dt class="col-sm-3">Pagador</dt><dd class="col-sm-9">{{ cob.pagador_nome }}</dd>
+      <dt class="col-sm-3">Referente a</dt><dd class="col-sm-9">{{ cob.descricao }}</dd>
+      {% if cob.nosso_numero %}<dt class="col-sm-3">Nosso número</dt><dd class="col-sm-9">{{ cob.nosso_numero }}</dd>{% endif %}
+      <dt class="col-sm-3">Valor do documento</dt><dd class="col-sm-9 fs-5 fw-semibold money">{{ cob.valor|brl }}</dd>
+      {% if cfg.instrucoes %}<dt class="col-sm-3">Instruções</dt><dd class="col-sm-9">{{ cfg.instrucoes }}</dd>{% endif %}
+    </dl>
+    {% if cob.linha_digitavel %}<div class="border rounded p-2 mb-3 bg-light"><div class="small text-muted">Linha digitável</div><div class="fs-5 fw-semibold" style="letter-spacing:.04em;word-break:break-all">{{ cob.linha_digitavel|linha_fmt }}</div></div>{% endif %}
+    <div class="mb-3">{{ cob|barras_do_boleto }}</div>
+    {% if cob.pix_copia_cola %}
+    <div class="row g-3 align-items-center border-top pt-3">
+      {% if cob.pix_qrcode %}<div class="col-auto"><img src="{{ cob.qrcode_src }}" alt="QR Code Pix" width="160" height="160"></div>{% endif %}
+      <div class="col"><div class="fw-semibold"><i class="bi bi-qr-code"></i> Pague também com Pix</div>
+        <div class="small text-muted mb-1">Aponte a câmera do aplicativo do seu banco para o QR Code ou use o Pix copia e cola:</div>
+        <textarea id="pix-cc" class="form-control form-control-sm" rows="3" readonly>{{ cob.pix_copia_cola }}</textarea>
+        <button class="btn btn-sm btn-outline-secondary mt-1 no-print" type="button" onclick="navigator.clipboard.writeText(document.getElementById('pix-cc').value).then(function(){this.textContent='Copiado!'}.bind(this))"><i class="bi bi-clipboard"></i> Copiar</button></div>
+    </div>
+    {% else %}<p class="small text-muted border-top pt-3 mb-0">Este boleto não trouxe QR Code Pix (a conta no banco precisa ter uma chave Pix cadastrada).</p>{% endif %}
+  </div></div>
+</div>
+{% endblock %}

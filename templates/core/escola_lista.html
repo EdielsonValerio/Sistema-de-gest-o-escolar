@@ -1,0 +1,24 @@
+{% extends "generic/lista.html" %}
+{% block title %}Escolas{% endblock %}
+{% block acoes %}<a class="btn btn-primary" href="{% url 'core:escola_nova' %}"><i class="bi bi-plus-lg"></i> Nova escola</a>{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-6"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ q }}" placeholder="Nome da escola"></div>
+  <div class="col-md-3"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>{% if q %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th></th><th>Escola</th><th>CNPJ</th><th class="text-end">Usuários</th><th class="text-end">Alunos</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for e in escolas %}
+<tr>
+  <td style="width:3.2rem">{% if e.logotipo %}<img src="{{ e.logotipo.url }}" alt="" class="escola-mini">{% else %}<i class="bi bi-building fs-4 text-muted"></i>{% endif %}</td>
+  <td><strong>{{ e.nome }}</strong><div class="small text-muted">cadastrada em {{ e.criada_em|date:"d/m/Y" }}</div></td>
+  <td>{{ e.cnpj|default:"—" }}</td>
+  <td class="text-end">{{ e.qtd_usuarios }}</td><td class="text-end">{{ e.qtd_alunos }}</td>
+  <td><span class="badge text-bg-{% if e.ativa %}success{% else %}secondary{% endif %}">{% if e.ativa %}Ativa{% else %}Inativa{% endif %}</span></td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'core:escola_editar' e.pk %}">Abrir</a></td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="text-center text-muted py-4">{% if q %}Nenhuma escola encontrada.{% else %}Nenhuma escola cadastrada. Clique em <strong>Nova escola</strong> para começar.{% endif %}</td></tr>
+{% endfor %}
+{% endblock %}

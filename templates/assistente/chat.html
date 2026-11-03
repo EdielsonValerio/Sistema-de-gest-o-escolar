@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Assistente de IA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div><h1 class="h4 page-title"><i class="bi bi-stars"></i> Assistente de IA</h1>
+  <p class="page-sub">Peça análises e gráficos. A IA vê apenas totais da sua escola (sem nomes ou dados pessoais) e só o que o seu perfil permite.</p></div>
+</div>
+{% if not tem_ferramentas %}<div class="alert alert-warning">O seu perfil não tem acesso a nenhum dado que o assistente possa analisar.</div>{% endif %}
+{% if limite_atingido %}<div class="alert alert-warning">O limite mensal de uso definido pela escola foi atingido.</div>{% endif %}
+<div class="row g-3">
+  <div class="col-lg-3">
+    <a class="btn btn-outline-primary w-100 mb-2" href="{% url 'assistente:chat' %}"><i class="bi bi-plus-lg"></i> Nova conversa</a>
+    <div class="list-group">
+      {% for c in conversas %}<div class="list-group-item d-flex justify-content-between align-items-center {% if atual and atual.pk == c.pk %}active{% endif %}">
+        <a class="text-reset text-decoration-none text-truncate me-2" href="?c={{ c.pk }}">{{ c.titulo }}</a>
+        <form method="post" action="{% url 'assistente:conversa_excluir' c.pk %}" onsubmit="return confirm('Excluir esta conversa?')">{% csrf_token %}<button class="btn btn-sm btn-link text-reset p-0" title="Excluir"><i class="bi bi-trash"></i></button></form></div>
+      {% empty %}<div class="list-group-item text-muted small">Nenhuma conversa ainda.</div>{% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-9">
+    <div class="card"><div class="card-body" id="ia-msgs" style="min-height:300px;max-height:65vh;overflow:auto"></div>
+    <div class="card-footer">
+      <form id="ia-form" class="d-flex gap-2" autocomplete="off">
+        <input type="text" id="ia-pergunta" class="form-control" maxlength="1000" placeholder="Ex.: gráfico de alunos matriculados e valor recebido por mês" {% if not tem_ferramentas or limite_atingido %}disabled{% endif %}>
+        <button class="btn btn-primary" id="ia-enviar" type="submit" {% if not tem_ferramentas or limite_atingido %}disabled{% endif %}><i class="bi bi-send"></i></button>
+      </form>
+      <div class="form-text">Não digite dados pessoais (CPF, e-mail, telefone). Confira os números importantes no sistema antes de decidir.</div>
+    </div></div>
+  </div>
+</div>
+{{ mensagens|json_script:"ia-historico" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var conversa = {% if atual %}{{ atual.pk }}{% else %}null{% endif %};
+  var box = document.getElementById("ia-msgs"), form = document.getElementById("ia-form"),
+      campo = document.getElementById("ia-pergunta"), btn = document.getElementById("ia-enviar");
+  var csrf = "{{ csrf_token }}", url = "{% url 'assistente:perguntar' %}";
+  var cores = ["#2f6fed", "#e8590c", "#2b9348", "#9c36b5"];
+  function fmt(v, un) { return un === "R$" ? v.toLocaleString("pt-BR", {style: "currency", currency: "BRL"}) : v.toLocaleString("pt-BR"); }
+  function balao(papel, texto, aviso) {
+    var d = document.createElement("div"); d.className = "mb-3 " + (papel === "USUARIO" ? "text-end" : "");
+    var b = document.createElement("div");
+    b.className = "d-inline-block p-2 rounded text-start " + (papel === "USUARIO" ? "bg-primary text-white" : "bg-body-secondary");
+    b.style.maxWidth = "90%"; b.style.whiteSpace = "pre-wrap"; b.textContent = texto; d.appendChild(b);
+    if (aviso) { var a = document.createElement("div"); a.className = "small text-warning-emphasis mt-1"; a.textContent = aviso; d.appendChild(a); }
+    box.appendChild(d); box.scrollTop = box.scrollHeight; return d;
+  }
+  function grafico(host, g) {
+    var wrap = document.createElement("div"); wrap.style.maxWidth = "720px"; wrap.className = "mt-2";
+    var cv = document.createElement("canvas"); wrap.appendChild(cv); host.appendChild(wrap);
+    var pizza = g.series[0].tipo === "pie", direita = g.series.some(function (s) { return s.eixo === "direita"; });
+    var datasets = g.series.map(function (s, i) {
+      return {label: s.nome, data: s.valores, type: s.tipo, yAxisID: s.eixo === "direita" ? "y2" : "y", unidade: s.unidade,
+        backgroundColor: pizza ? g.rotulos.map(function (_, k) { return cores[k % 4] + "cc"; }) : cores[i % 4] + "cc",
+        borderColor: cores[i % 4], tension: .25};
+    });
+    var escalas = pizza ? {} : {y: {beginAtZero: true, position: "left"}};
+    if (direita && !pizza) escalas.y2 = {beginAtZero: true, position: "right", grid: {drawOnChartArea: false}};
+    new Chart(cv, {type: pizza ? "pie" : "bar", data: {labels: g.rotulos, datasets: datasets}, options: {
+      responsive: true, scales: escalas,
+      plugins: {title: {display: true, text: g.titulo}, tooltip: {callbacks: {label: function (c) {
+        return c.dataset.label + ": " + fmt(c.parsed.y !== undefined ? c.parsed.y : c.parsed, c.dataset.unidade); }}}}}});
+  }
+  function mostrar(m) { var h = balao(m.papel, m.texto, m.aviso); if (m.grafico && window.Chart) grafico(h, m.grafico); }
+  JSON.parse(document.getElementById("ia-historico").textContent).forEach(mostrar);
+  if (!box.children.length) balao("ASSISTENTE", "Olá! Posso montar gráficos e análises com os totais da escola. Experimente: “gráfico de alunos matriculados e valor recebido nos últimos 12 meses”.");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault(); var p = campo.value.trim(); if (!p) return;
+    balao("USUARIO", p); campo.value = ""; btn.disabled = campo.disabled = true;
+    var espera = balao("ASSISTENTE", "Analisando…");
+    fetch(url, {method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+                body: JSON.stringify({conversa: conversa, pergunta: p})})
+      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
+      .then(function (x) {
+        espera.remove(); if (x.j.conversa) conversa = x.j.conversa;
+        if (!x.ok) { balao("ASSISTENTE", x.j.erro || "Não foi possível responder."); } else { mostrar(x.j); }
+      })
+      .catch(function () { espera.remove(); balao("ASSISTENTE", "Falha de comunicação. Tente novamente."); })
+      .finally(function () { btn.disabled = campo.disabled = false; campo.focus(); });
+  });
+})();
+</script>
+{% endblock %}

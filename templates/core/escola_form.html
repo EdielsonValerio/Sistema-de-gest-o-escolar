@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div><h1 class="h4 page-title">{{ titulo }}</h1><p class="page-sub">{{ subtitulo }}</p></div>
+  <a class="btn btn-outline-secondary" href="{% url 'core:escola_lista' %}">Voltar à lista</a>
+</div>
+<form method="post" enctype="multipart/form-data" novalidate data-once>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="{% if escola %}col-12{% else %}col-lg-6{% endif %}">
+      <div class="card h-100"><div class="card-body">
+        {% if escola and escola.logotipo %}<div class="mb-3"><img src="{{ escola.logotipo.url }}" alt="Logotipo atual" class="escola-logo-atual"></div>{% endif %}
+        {% include "components/form_fields.html" %}
+      </div>
+      {% if escola %}<div class="card-footer bg-white d-flex justify-content-end"><button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Salvar</button></div>{% endif %}</div>
+    </div>
+    {% if not escola %}
+    <div class="col-lg-6">
+      <div class="card h-100"><div class="card-body">
+        {% include "components/form_fields.html" with form=form_admin %}
+      </div></div>
+    </div>
+    {% endif %}
+  </div>
+  {% if not escola %}
+  <div class="d-flex justify-content-end gap-2 mt-3">
+    <a class="btn btn-outline-secondary" href="{% url 'core:escola_lista' %}">Cancelar</a>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Cadastrar escola e administrador</button>
+  </div>
+  {% endif %}
+</form>
+
+{% if escola %}
+<div class="card mt-3"><div class="card-header d-flex justify-content-between align-items-center">Administradores da escola
+  <a class="btn btn-sm btn-primary" href="{% url 'core:escola_admin_novo' escola.pk %}"><i class="bi bi-person-plus"></i> Novo administrador</a></div>
+  <div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>Usuário</th><th>Nome</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>
+    {% for a in administradores %}
+    <tr><td><code>{{ a.perfil.login }}</code></td><td>{{ a.get_full_name|default:"—" }}</td><td>{{ a.email|default:"—" }}</td>
+      <td><span class="badge text-bg-{% if a.is_active %}success{% else %}secondary{% endif %}">{% if a.is_active %}Ativo{% else %}Inativo{% endif %}</span></td>
+      <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'core:escola_admin_senha' escola.pk a.pk %}"><i class="bi bi-key"></i> Redefinir senha</a></td></tr>
+    {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Nenhum administrador ativo. Crie um para que a escola possa acessar o sistema.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endif %}
+{% endblock %}

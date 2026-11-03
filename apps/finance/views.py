@@ -275,7 +275,7 @@ class CaixaAlunoView(AcessoMixin, TemplateView):
             saldo_vencido=sum((p.saldo_hoje for p in vencidas), ZERO), qtd_vencidas=len(vencidas),
             qtd_parciais=len([p for p in parcelas if p.status == "PARCIAL"]),
             form=kw.get("form") or CaixaForm(instituicao=self.instituicao, initial={"token": uuid.uuid4()}),
-            formas=Recebimento.Forma.choices)
+            formas=Recebimento.formas_de_caixa())
         return ctx
 
     def post(self, request, *args, **kwargs):

@@ -9,6 +9,8 @@ from html.parser import HTMLParser
 
 from django.utils import timezone
 
+from apps.core.tenancy import login_do_usuario
+
 MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro",
          "novembro", "dezembro"]
 
@@ -119,7 +121,7 @@ def montar_contexto(*, instituicao, usuario, aluno=None, responsavel=None):
     hoje = timezone.localdate()
     ctx.update(nomeEscola=instituicao.nome, cnpjEscola=instituicao.cnpj or VAZIO, dataAtual=_fmt_data(hoje),
                dataExtenso=f"{hoje.day} de {MESES[hoje.month - 1]} de {hoje.year}", anoAtual=str(hoje.year),
-               usuarioEmissor=usuario.get_username() if usuario else VAZIO)
+               usuarioEmissor=login_do_usuario(usuario) if usuario else VAZIO)
 
     vinculo = None
     if aluno is not None:

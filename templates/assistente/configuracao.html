@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Assistente de IA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div><h1 class="h4 page-title">Assistente de IA · integração</h1>
+  <p class="page-sub">Informe a chave de API da escola (Claude/Anthropic), teste a conexão e ative. O custo do uso é cobrado pela Anthropic diretamente da escola.</p></div>
+  <div>{% if cfg.pronta %}<span class="badge text-bg-success fs-6"><i class="bi bi-check-circle"></i> Ativo</span>{% else %}<span class="badge text-bg-secondary fs-6">Em configuração</span>{% endif %}</div>
+</div>
+{% if not segredo_ok %}<div class="alert alert-danger">Não foi possível ler a chave gravada (a chave de criptografia do servidor mudou). Informe a chave novamente.</div>{% endif %}
+<div class="row g-3">
+<div class="col-xl-7">
+  <div class="card mb-3"><div class="card-header"><span class="badge rounded-pill text-bg-primary me-1">1</span> Chave, modelo e termos</div>
+  <div class="card-body">
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="salvar">
+      <div class="row g-3">
+        <div class="col-12">{% include "billing/_campo.html" with field=form.api_key %}
+          {% if chave_mascarada %}<div class="form-text">Chave gravada: <code>{{ chave_mascarada }}</code></div>{% endif %}
+          <div class="form-text">Para treinamento sem custo, informe <code>DEMO</code>: o assistente responde em modo demonstração, sem acessar a Anthropic.</div></div>
+        <div class="col-md-7">{% include "billing/_campo.html" with field=form.modelo %}</div>
+        <div class="col-md-5">{% include "billing/_campo.html" with field=form.limite_mensal_tokens %}</div>
+        <div class="col-12">
+          <div class="form-check"><input type="checkbox" class="form-check-input" id="{{ form.aceitar_termo.id_for_label }}" name="aceitar_termo" {% if form.aceitar_termo.value %}checked{% endif %} {% if form.aceitar_termo.field.disabled %}disabled{% endif %}>
+            <label class="form-check-label" for="{{ form.aceitar_termo.id_for_label }}">{{ form.aceitar_termo.label }}</label></div>
+          {% for e in form.aceitar_termo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          {% if cfg.termo_aceito_em %}<div class="form-text">Aceito em {{ cfg.termo_aceito_em|date:"d/m/Y H:i" }}.</div>{% endif %}
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3" type="submit"><i class="bi bi-save"></i> Salvar</button>
+    </form>
+  </div></div>
+
+  <div class="card mb-3"><div class="card-header"><span class="badge rounded-pill text-bg-primary me-1">2</span> Testar e ativar</div>
+  <div class="card-body d-flex gap-2 flex-wrap">
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="testar"><button class="btn btn-outline-secondary" type="submit" {% if not cfg.tem_api_key %}disabled{% endif %}><i class="bi bi-plug"></i> Testar conexão</button></form>
+    {% if cfg.ativa %}
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="desativar"><button class="btn btn-outline-danger" type="submit"><i class="bi bi-power"></i> Desativar assistente</button></form>
+    {% else %}
+    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="ativar"><button class="btn btn-success" type="submit" {% if not cfg.testada_em %}disabled{% endif %}><i class="bi bi-check2-circle"></i> Ativar assistente</button></form>
+    {% endif %}
+    {% if cfg.testada_em %}<span class="small text-muted align-self-center">Última conexão testada em {{ cfg.testada_em|date:"d/m/Y H:i" }}.</span>{% endif %}
+  </div></div>
+</div>
+<div class="col-xl-5">
+  <div class="card mb-3"><div class="card-header">Uso no mês</div><div class="card-body">
+    {% if uso %}<p class="mb-1"><strong>{{ uso.perguntas }}</strong> pergunta(s) · <strong>{{ uso.tokens }}</strong> tokens{% if cfg.limite_mensal_tokens %} de {{ cfg.limite_mensal_tokens }}{% endif %}</p>
+    {% else %}<p class="text-muted mb-1">Sem uso neste mês.</p>{% endif %}
+    <p class="small text-muted mb-0">Valores aproximados, para controle interno. A cobrança oficial está no painel da Anthropic.</p></div></div>
+  <div class="card"><div class="card-header"><i class="bi bi-shield-check"></i> Privacidade (LGPD)</div><div class="card-body small">
+    <ul class="mb-0 ps-3">
+      <li>A IA recebe <strong>apenas totais</strong>: nunca nomes, CPF, endereços, telefones ou e-mails.</li>
+      <li>Grupos com menos de 3 pessoas são agrupados em “Outros”.</li>
+      <li>CPF, CNPJ, e-mail e telefone digitados nas perguntas são removidos antes do envio.</li>
+      <li>O assistente só lê dados; não altera nada no sistema.</li>
+      <li>Cada usuário só vê o que suas permissões permitem. O texto das perguntas não vai para a auditoria.</li>
+      <li>A chave é gravada criptografada. Seus dados seguem a política da Anthropic para uso de API.</li>
+    </ul></div></div>
+</div></div>
+{% endblock %}

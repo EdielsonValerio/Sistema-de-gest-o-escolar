@@ -19,7 +19,11 @@ class AcessoMixin(LoginRequiredMixin, PermissionRequiredMixin):
     Se `permission_required` for vazio, basta estar autenticado.
     """
 
+    exige_escola = True  # telas de escola: o usuário precisa pertencer a uma escola ativa
+
     def has_permission(self):
+        if self.exige_escola:
+            instituicao_do_usuario(self.request.user)  # PermissionDenied (403) se sem escola ou escola inativa
         if not self.permission_required:
             return True
         return super().has_permission()

@@ -1,0 +1,26 @@
+{% load ui payables_ui %}
+{% if notif_contas %}
+<div class="dropdown">
+  <button class="btn btn-light btn-sm position-relative" data-bs-toggle="dropdown" data-bs-auto-close="outside" type="button" aria-label="Notificações de contas a pagar" id="sino-contas">
+    <i class="bi {% if notif_contas.total %}bi-bell-fill{% else %}bi-bell{% endif %}{% if notif_contas.vencidas %} text-danger{% elif notif_contas.total %} text-warning-emphasis{% endif %}"></i>
+    {% if notif_contas.total %}<span class="sino-badge badge rounded-pill {% if notif_contas.vencidas %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ notif_contas.total }}</span>{% endif %}
+  </button>
+  <div class="dropdown-menu dropdown-menu-end p-0 sino-menu">
+    <div class="px-3 py-2 border-bottom fw-semibold">Contas a pagar</div>
+    {% if notif_contas.itens %}
+    <ul class="list-group list-group-flush">
+      {% for c in notif_contas.itens %}
+      <li class="list-group-item list-group-item-action p-0"><a class="d-block px-3 py-2 text-decoration-none text-reset" href="{% url 'payables:conta_detalhe' c.pk %}">
+        <div class="d-flex justify-content-between gap-2"><span class="fw-semibold text-truncate">{{ c.descricao }}</span><span class="money small text-nowrap">{{ c.valor|brl }}</span></div>
+        <div class="small d-flex justify-content-between"><span class="text-truncate text-muted">{{ c.prestador }}</span><span class="{{ c|classe_prazo }} text-nowrap">{{ c.prazo_texto }} · {{ c.vencimento|date:"d/m" }}</span></div>
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% if notif_contas.mais %}<div class="px-3 py-1 small text-muted border-top">e mais {{ notif_contas.mais }} conta{{ notif_contas.mais|pluralize }}…</div>{% endif %}
+    {% else %}
+    <div class="px-3 py-3 text-muted small"><i class="bi bi-check2-circle text-success"></i> Nenhuma conta vencida ou a vencer nos próximos dias.</div>
+    {% endif %}
+    <a class="d-block text-center py-2 border-top small" href="{% url 'payables:conta_lista' %}">Ver contas a pagar</a>
+  </div>
+</div>
+{% endif %}

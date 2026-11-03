@@ -46,7 +46,21 @@ class ConfiguracaoNumeracaoForm(BaseModelForm):
 class ConfiguracaoGeralForm(BaseModelForm):
     class Meta:
         model = ConfiguracaoGeral
-        fields = ["exigir_plano_na_matricula", "itens_por_pagina"]
+        fields = ["exigir_plano_na_matricula", "itens_por_pagina", "permitir_saldo_negativo",
+                  "dias_aviso_contas_pagar"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Opcional no envio: formulários anteriores a este campo continuam válidos (mantém o valor atual).
+        self.fields["dias_aviso_contas_pagar"].required = False
+
+    def clean_dias_aviso_contas_pagar(self):
+        v = self.cleaned_data.get("dias_aviso_contas_pagar")
+        if v is None:
+            return self.instance.dias_aviso_contas_pagar or 5
+        if not 0 <= v <= 60:
+            raise ValidationError("Informe um valor entre 0 e 60 dias.")
+        return v
 
     def clean_itens_por_pagina(self):
         v = self.cleaned_data["itens_por_pagina"]

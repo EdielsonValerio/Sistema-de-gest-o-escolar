@@ -21,6 +21,12 @@ from .tenancy import instituicao_do_usuario
 class DashboardView(AcessoMixin, TemplateView):
     template_name = "dashboard/dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        u = request.user
+        if u.is_authenticated and u.is_superuser and getattr(u, "perfil", None) is None:
+            return redirect("core:escola_lista")  # administrador do sistema não tem escola/dashboard
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
         user, inst = self.request.user, self.instituicao

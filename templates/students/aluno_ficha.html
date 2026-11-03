@@ -58,7 +58,7 @@
         {% for v in historico_responsaveis %}<div class="small">{{ v.responsavel.nome }} · {{ v.get_parentesco_display }} · {{ v.inicio|date:"d/m/Y" }} → {% if v.fim %}{{ v.fim|date:"d/m/Y" }}{% else %}atual{% endif %}</div>{% endfor %}{% endif %}
     </div></div></div>
     <div class="col-12"><div class="card"><div class="card-header">Dados administrativos</div><div class="card-body"><dl class="row mb-0">
-      <dt class="col-sm-3">Cadastrado em</dt><dd class="col-sm-9">{{ aluno.criado_em|date:"d/m/Y H:i" }} por {{ aluno.criado_por.get_username|default:"—" }}</dd>
+      <dt class="col-sm-3">Cadastrado em</dt><dd class="col-sm-9">{{ aluno.criado_em|date:"d/m/Y H:i" }} por {{ aluno.criado_por|login_de|default:"—" }}</dd>
       <dt class="col-sm-3">Observações internas</dt><dd class="col-sm-9">{{ aluno.observacoes_internas|default:"—"|linebreaksbr }}</dd>
     </dl></div></div></div>
   </div>
@@ -97,7 +97,7 @@
       {% for r in recebimentos %}<tr><td>{% if perms.finance.view_recebimento %}<a href="{% url 'finance:recebimento_detalhe' r.pk %}">{{ r.numero }}</a>{% else %}{{ r.numero }}{% endif %}</td><td>{{ r.criado_em|date:"d/m/Y H:i" }}</td><td>{{ r.get_forma_display }}</td><td class="text-end money">{{ r.valor_total|brl }}</td><td>{% if r.status == 'ESTORNADO' %}<span class="badge text-bg-secondary">Estornado</span>{% endif %}</td></tr>
       {% empty %}<tr><td colspan="5" class="text-center text-muted py-3">Nenhum recebimento.</td></tr>{% endfor %}</tbody></table></div></div></div>
     <div class="col-lg-6"><div class="card"><div class="card-header">Descontos e ajustes</div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Quando</th><th>Parcela</th><th>Alteração</th><th>Quem</th></tr></thead><tbody>
-      {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y" }}</td><td>{{ a.parcela.numero }}</td><td>{{ a.get_tipo_display }}: {{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">{{ a.justificativa }}</div></td><td>{{ a.usuario.get_username|default:"—" }}</td></tr>
+      {% for a in ajustes %}<tr><td class="text-nowrap">{{ a.criado_em|date:"d/m/Y" }}</td><td>{{ a.parcela.numero }}</td><td>{{ a.get_tipo_display }}: {{ a.anterior }} → {{ a.posterior }}<div class="small text-muted">{{ a.justificativa }}</div></td><td>{{ a.usuario|login_de|default:"—" }}</td></tr>
       {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Nenhum ajuste.</td></tr>{% endfor %}</tbody></table></div></div>
       {% if estornos %}<div class="card mt-3"><div class="card-header">Estornos</div><ul class="list-group list-group-flush">{% for e in estornos %}<li class="list-group-item small">{{ e.criado_em|date:"d/m/Y H:i" }} · recebimento {{ e.recebimento.numero }} ({{ e.recebimento.valor_total|brl }}) · {{ e.usuario_nome }} — {{ e.justificativa }}</li>{% endfor %}</ul></div>{% endif %}
     </div>

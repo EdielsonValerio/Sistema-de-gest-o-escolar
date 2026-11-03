@@ -1,8 +1,16 @@
+import os
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
 from .tipos import CHOICES_TIPO
+
+
+def logotipo_cabecalho_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()[:6]
+    return f"logotipos/{instance.instituicao_id}/{uuid.uuid4().hex}{ext}"
 
 
 class Destinatario(models.TextChoices):
@@ -16,7 +24,7 @@ class CabecalhoDocumento(models.Model):
     instituicao = models.OneToOneField("core.Instituicao", on_delete=models.CASCADE, related_name="cabecalho_documento")
     ativo = models.BooleanField("usar cabeçalho padrão nos documentos", default=False)
     exibir_logotipo = models.BooleanField("exibir logotipo", default=True)
-    logotipo = models.ImageField("logotipo da escola", upload_to="logotipos/", blank=True)
+    logotipo = models.ImageField("logotipo da escola", upload_to=logotipo_cabecalho_path, blank=True)
     titulo = models.CharField("título do cabeçalho", max_length=150, blank=True,
                               help_text="Se vazio, usa o nome da instituição.")
     linhas = models.TextField("linhas complementares", max_length=500, blank=True,

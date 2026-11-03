@@ -11,7 +11,7 @@
   <tbody>
   {% for u in object_list %}
     <tr>
-      <td>{{ u.username }}</td><td>{{ u.get_full_name|default:"—" }}</td>
+      <td>{{ u.perfil.login }}</td><td>{{ u.get_full_name|default:"—" }}</td>
       <td>{% for g in u.groups.all %}<span class="badge text-bg-primary">{{ g.name }}</span> {% empty %}<span class="text-muted">—</span>{% endfor %}</td>
       <td><span class="badge text-bg-{% if u.is_active %}success{% else %}secondary{% endif %}">{% if u.is_active %}Ativo{% else %}Inativo{% endif %}</span></td>
       <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:usuario_editar' u.pk %}">Editar</a></td>

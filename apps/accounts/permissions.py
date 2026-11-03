@@ -1,7 +1,8 @@
 """Perfis de acesso iniciais (grupos do Django) e suas permissões."""
 from django.contrib.auth.models import Group, Permission
+from django.db.models import Q
 
-APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents"]
+APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente"]
 
 PERFIS = ["Administrador", "Secretaria", "Financeiro", "Consulta"]
 
@@ -33,6 +34,8 @@ def permissoes_por_perfil():
         + ver("core", "configuracaonumeracao", "configuracaogeral")
         + _codes("students", "ver_cpf_completo")
         + _codes("finance", "ver_relatorios")
+        + ver("payables", "contapagar", "liquidacao")
+        + ver("billing", "cobranca")
     )
     # Consulta: somente leitura (sem CPF completo).
     consulta = [p for p in leitura if p[1] != "ver_cpf_completo"]
@@ -48,6 +51,7 @@ def permissoes_por_perfil():
         + ver("core", "configuracaonumeracao")
         + _codes("students", "ver_cpf_completo")
         + ver("documents", "modelodocumento", "documentoemitido") + _codes("documents", "emitir_documento")
+        + _codes("assistente", "usar_assistente")
     )
 
     financeiro = (
@@ -61,6 +65,10 @@ def permissoes_por_perfil():
                  "gerar_cobrancas", "registrar_recebimento", "ver_relatorios")
         + _codes("students", "ver_cpf_completo")
         + ver("documents", "modelodocumento", "documentoemitido") + _codes("documents", "emitir_documento")
+        + _crud("payables", "contapagar") + ver("payables", "liquidacao")
+        + _codes("payables", "liquidar_conta", "desativar_conta")
+        + ver("billing", "cobranca") + _codes("billing", "gerar_boleto", "cancelar_boleto")
+        + _codes("assistente", "usar_assistente")
     )
     return {"Secretaria": secretaria, "Financeiro": financeiro, "Consulta": consulta}
 
@@ -79,8 +87,13 @@ def sincronizar_perfis(**kwargs):
     todas = Permission.objects.filter(content_type__app_label__in=APPS)
     mapa = {(p.content_type.app_label, p.codename): p for p in todas.select_related("content_type")}
 
+    # Administrador DA ESCOLA: tudo o que é da escola. Cadastro de escolas e tabela de séries de referência
+    # (compartilhada por todas as escolas) são do administrador do sistema (superusuário), não da escola.
+    do_sistema = (Q(content_type__app_label="core", content_type__model="instituicao")
+                  | Q(content_type__app_label="academic", content_type__model="seriereferencia",
+                      codename__regex=r"^(add|change|delete)_"))
     admin, _ = Group.objects.get_or_create(name="Administrador")
-    admin.permissions.set(todas)
+    admin.permissions.set(todas.exclude(do_sistema))
 
     for nome, itens in permissoes_por_perfil().items():
         grupo, _ = Group.objects.get_or_create(name=nome)

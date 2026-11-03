@@ -1,0 +1,19 @@
+{% load ui billing_ui %}
+{% if perms.billing.view_cobranca %}
+<div class="card mb-3"><div class="card-header">Boleto bancário</div><div class="card-body">
+  {% with cobs=parcela.cobrancas.all %}
+  {% for c in cobs %}{% if forloop.first %}
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>{{ c|badge_cobranca }} <strong>{{ c.valor|brl }}</strong> · vence {{ c.vencimento|date:"d/m/Y" }}{% if c.nosso_numero %} · nosso nº {{ c.nosso_numero }}{% endif %}
+        {% if c.erro %}<div class="small text-danger">{{ c.erro }}</div>{% endif %}{% if c.divergencia %}<div class="small text-warning-emphasis">{{ c.divergencia }}</div>{% endif %}</div>
+      <div class="d-flex gap-2">
+        {% if c.status == 'PENDENTE' or c.status == 'PAGA' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'billing:boleto' c.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer"></i> Ver boleto</a>{% endif %}
+        {% if c.status == 'ERRO' and perms.billing.gerar_boleto %}<form method="post" action="{% url 'billing:cobranca_gerar' parcela.pk %}">{% csrf_token %}<button class="btn btn-sm btn-primary"><i class="bi bi-arrow-clockwise"></i> Tentar de novo</button></form>{% endif %}
+      </div></div>
+  {% endif %}{% empty %}
+    <p class="text-muted mb-2">Esta parcela ainda não tem boleto registrado no banco.</p>
+    {% if perms.billing.gerar_boleto and editavel %}<form method="post" action="{% url 'billing:cobranca_gerar' parcela.pk %}">{% csrf_token %}<button class="btn btn-sm btn-primary"><i class="bi bi-upc-scan"></i> Gerar boleto</button></form>{% endif %}
+  {% endfor %}
+  {% endwith %}
+</div></div>
+{% endif %}
