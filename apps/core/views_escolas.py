@@ -7,17 +7,31 @@ from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic import ListView, TemplateView
+from django.views.generic import ListView, TemplateView, View
 
 from apps.audit.services import registrar
 
 from .forms_escolas import AdministradorForm, EscolaForm, NovaSenhaForm
 from .models import Instituicao
+from apps.accounts import emails
+from apps.core.tenancy import SESSAO_SUPORTE
+
 from .services_escolas import cadastrar_escola, criar_administrador, redefinir_senha
 
 
 # Os dois formulários da tela "Nova escola" têm um campo "nome": o prefixo evita colisão no POST e ids duplicados.
 PREFIXO_ADMIN = "admin"
+
+
+def _avisar_email(request, dados, usuario, escola, senha=None, redefinicao=False):
+    if not dados.get("enviar_email"):
+        return
+    ok = emails.enviar_boas_vindas(usuario=usuario, senha_provisoria=senha or dados["senha1"], escola=escola,
+                                   request=request, redefinicao=redefinicao)
+    (messages.success if ok else messages.warning)(
+        request, "Acesso enviado por e-mail." if ok else
+        "O e-mail não pôde ser enviado (verifique a configuração de e-mail do servidor). "
+        "Informe a senha provisória por outro meio.")
 
 
 class SistemaMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -66,7 +80,9 @@ class EscolaCreateView(SistemaMixin, TemplateView):
             return self.render_to_response(self.get_context_data(form=form, form_admin=form_admin))
         escola, admin = cadastrar_escola(form, form_admin.cleaned_data, request.user)
         messages.success(request, f"Escola “{escola.nome}” cadastrada. O administrador acessa escolhendo a escola "
-                                  f"e informando o usuário “{form_admin.cleaned_data['login']}”.")
+                                  f"e informando o usuário “{form_admin.cleaned_data['login']}”; no primeiro acesso "
+                                  "ele cria a própria senha.")
+        _avisar_email(request, form_admin.cleaned_data, admin, escola)
         return redirect("core:escola_editar", pk=escola.pk)
 
 
@@ -124,9 +140,10 @@ class AdministradorCreateView(SistemaMixin, TemplateView):
             return self.render_to_response(self.get_context_data(form=form))
         d = form.cleaned_data
         with transaction.atomic():
-            criar_administrador(escola, login=d["login"], nome=d["nome"], sobrenome=d["sobrenome"],
-                                email=d["email"], senha=d["senha1"], criado_por=request.user)
-        messages.success(request, "Administrador criado.")
+            admin = criar_administrador(escola, login=d["login"], nome=d["nome"], sobrenome=d["sobrenome"],
+                                        email=d["email"], senha=d["senha1"], criado_por=request.user)
+        messages.success(request, "Administrador criado. No primeiro acesso ele cria a própria senha.")
+        _avisar_email(request, d, admin, escola)
         return redirect("core:escola_editar", pk=escola.pk)
 
 
@@ -152,5 +169,27 @@ class AdministradorSenhaView(SistemaMixin, TemplateView):
         if not form.is_valid():
             return self.render_to_response(self.get_context_data(form=form))
         redefinir_senha(u, form.cleaned_data["senha1"], request.user)
-        messages.success(request, "Senha redefinida.")
+        messages.success(request, "Senha redefinida. No próximo acesso o usuário cria uma nova senha.")
+        if form.cleaned_data["enviar_email"]:
+            _avisar_email(request, {"enviar_email": True}, u, u.perfil.instituicao,
+                          senha=form.cleaned_data["senha1"], redefinicao=True)
         return redirect("core:escola_editar", pk=u.perfil.instituicao_id)
+
+
+class EscolaAcessarView(SistemaMixin, View):
+    """Modo suporte: o administrador do sistema abre uma escola para ver e gerenciar os dados dela (auditado)."""
+
+    def post(self, request, pk):
+        escola = get_object_or_404(Instituicao, pk=pk)
+        if getattr(request.user, "perfil", None) is not None:
+            raise PermissionDenied
+        request.session[SESSAO_SUPORTE] = escola.pk
+        registrar(instituicao=escola, usuario=request.user, acao="SUPORTE_ACESSO_ESCOLA", entidade="Instituicao",
+                  entidade_id=escola.pk, descricao=f"Administrador do sistema abriu a escola {escola.nome}")
+        return redirect("core:dashboard")
+
+
+class EscolaSairView(SistemaMixin, View):
+    def post(self, request):
+        request.session.pop(SESSAO_SUPORTE, None)
+        return redirect("core:escola_lista")

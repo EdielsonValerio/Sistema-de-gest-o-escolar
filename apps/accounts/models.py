@@ -9,6 +9,9 @@ class PerfilUsuario(models.Model):
     # Login exibido e digitado pelo usuário: único DENTRO da escola (duas escolas podem ter "secretaria").
     # O `User.username` do Django é interno e global (gerado como "<id da escola>.<login>").
     login = models.CharField("usuário (login)", max_length=100, default="")
+    # Senha provisória (definida por outra pessoa): o usuário só usa o sistema depois de criar a própria senha.
+    deve_trocar_senha = models.BooleanField("deve trocar a senha no próximo acesso", default=False)
+    senha_trocada_em = models.DateTimeField("última troca de senha pelo próprio usuário", null=True, blank=True)
 
     class Meta:
         verbose_name = "perfil de usuário"

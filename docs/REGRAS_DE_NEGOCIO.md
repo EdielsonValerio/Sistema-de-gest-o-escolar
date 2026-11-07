@@ -183,3 +183,26 @@ Cada escola tem a **sua** configuração (provedor, ambiente, chave de API e dad
 - **Auditoria.** Ficam registradas a habilitação, a configuração, a ativação e cada pergunta (ferramentas usadas e consumo), mas **não o texto da pergunta**.
 - **Confiança nos números.** Os valores vêm do sistema, não da "memória" da IA; mesmo assim, confira dados críticos antes de decidir.
 
+## Administradores, primeiro acesso e níveis de acesso
+
+**Dois níveis de administração**
+- **Administrador do sistema (superadmin):** entra pelo "modo sistema" do login. Cadastra escolas e administradores escolares,
+  redefine senhas e cuida das configurações globais (séries de referência etc.). Para ver ou gerenciar os dados de uma escola ele usa
+  **Escolas → Acessar dados** (*modo suporte*): a escola fica aberta na sessão, aparece uma faixa "Modo suporte" e cada abertura é
+  registrada na auditoria (`SUPORTE_ACESSO_ESCOLA`). Sem escola aberta, as telas de secretaria/financeiro respondem 403. Dá para trocar de
+  escola a qualquer momento e sair com **Sair da escola**.
+- **Administrador da escola:** só enxerga e gerencia a própria escola (alunos, turmas, séries, usuários, configurações) e as próprias
+  credenciais. Não acessa a área do sistema (403) nem outras escolas; adulterar a sessão não abre outra escola.
+- A validação é feita no servidor em toda requisição (permissões + escola da sessão/perfil); ocultar o menu é só conveniência.
+
+**Primeiro acesso (senha provisória)**
+1. Ao cadastrar um administrador (ou redefinir a senha dele), a senha informada é **provisória** e o perfil fica marcado para troca.
+   O mesmo vale para usuários criados ou com senha redefinida por outra pessoa na tela *Usuários e permissões*.
+2. Opcionalmente o sistema **envia um e-mail** com o link de acesso, a escola, o usuário e a senha provisória (requer e-mail do usuário e
+   `EMAIL_HOST` configurado). Se o envio falhar, o cadastro continua e o operador é avisado para informar a senha por outro meio.
+3. No primeiro login o usuário é levado à tela **Crie a sua senha**; nenhuma outra tela funciona (só sair). Precisa informar a senha
+   provisória, uma nova senha válida (as regras de senha do sistema) e diferente da atual.
+4. Concluída a troca: a senha provisória deixa de valer, o acesso normal é liberado e fica registrado `SENHA_INICIAL_SUBSTITUIDA`
+   (trocas voluntárias posteriores: `SENHA_ALTERADA_PELO_USUARIO`, em *Alterar minha senha*, no menu do usuário).
+5. Usuários já existentes **não** são afetados (a marcação nasce desligada). Senhas nunca vão para a auditoria nem para o log.
+

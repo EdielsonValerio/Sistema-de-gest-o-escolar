@@ -220,6 +220,12 @@ class AreaDoSistemaTests(BaseTest):
             # o administrador consegue entrar e vê o logotipo da própria escola
             self.client.logout()
             self.entrar(escola, "diretor", d["senha1"])
+            # primeiro acesso: antes de usar o sistema o administrador cria a própria senha
+            self.assertRedirects(self.client.get(reverse("core:dashboard")), reverse("accounts:senha_trocar"),
+                                 fetch_redirect_response=False)
+            nova = "SenhaPropria#4471x"
+            self.client.post(reverse("accounts:senha_trocar"),
+                             {"senha_atual": d["senha1"], "senha1": nova, "senha2": nova})
             pagina = self.client.get(reverse("core:dashboard"))
             self.assertContains(pagina, escola.logotipo.url)
             self.assertContains(pagina, "Colégio Gama")

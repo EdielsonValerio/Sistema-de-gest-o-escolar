@@ -23,7 +23,8 @@ class DashboardView(AcessoMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and u.is_superuser and getattr(u, "perfil", None) is None:
+        if (u.is_authenticated and u.is_superuser and getattr(u, "perfil", None) is None
+                and getattr(request, "instituicao", None) is None):
             return redirect("core:escola_lista")  # administrador do sistema não tem escola/dashboard
         return super().dispatch(request, *args, **kwargs)
 

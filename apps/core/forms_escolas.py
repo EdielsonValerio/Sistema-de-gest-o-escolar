@@ -66,9 +66,12 @@ class AdministradorForm(BootstrapFormMixin, SecoesMixin, forms.Form):
                             help_text="É o que o administrador digita ao entrar, depois de escolher a escola.")
     senha1 = forms.CharField(label="Senha", strip=False, widget=forms.PasswordInput(render_value=False))
     senha2 = forms.CharField(label="Confirmar senha", strip=False, widget=forms.PasswordInput(render_value=False))
+    enviar_email = forms.BooleanField(
+        label="Enviar acesso por e-mail (link, usuário e senha provisória)", required=False,
+        help_text="Requer e-mail preenchido e o envio de e-mail configurado no servidor.")
 
     SECOES = [("Administrador da escola", ["nome", "sobrenome", "email", "login"]),
-              ("Senha inicial", ["senha1", "senha2"])]
+              ("Senha provisória (será trocada no primeiro acesso)", ["senha1", "senha2", "enviar_email"])]
 
     def __init__(self, *args, instituicao=None, **kwargs):
         self.instituicao = instituicao  # None no cadastro (a escola ainda não existe)
@@ -85,12 +88,15 @@ class AdministradorForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     def clean(self):
         d = super().clean()
         validar_senha_confirmada(self, d, User(username=d.get("login", ""), first_name=d.get("nome", "")))
+        if d.get("enviar_email") and not d.get("email"):
+            self.add_error("email", "Informe o e-mail para enviar o acesso.")
         return d
 
 
 class NovaSenhaForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     senha1 = forms.CharField(label="Nova senha", strip=False, widget=forms.PasswordInput(render_value=False))
     senha2 = forms.CharField(label="Confirmar nova senha", strip=False, widget=forms.PasswordInput(render_value=False))
+    enviar_email = forms.BooleanField(label="Enviar a senha provisória por e-mail", required=False)
 
     def __init__(self, *args, usuario=None, **kwargs):
         self.usuario = usuario
@@ -99,4 +105,6 @@ class NovaSenhaForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     def clean(self):
         d = super().clean()
         validar_senha_confirmada(self, d, self.usuario)
+        if d.get("enviar_email") and not self.usuario.email:
+            self.add_error("enviar_email", "Este usuário não tem e-mail cadastrado.")
         return d

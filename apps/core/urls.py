@@ -13,6 +13,8 @@ urlpatterns = [
     path("sistema/escolas/", views_escolas.EscolaListView.as_view(), name="escola_lista"),
     path("sistema/escolas/nova/", views_escolas.EscolaCreateView.as_view(), name="escola_nova"),
     path("sistema/escolas/<int:pk>/", views_escolas.EscolaUpdateView.as_view(), name="escola_editar"),
+    path("sistema/escolas/<int:pk>/acessar/", views_escolas.EscolaAcessarView.as_view(), name="escola_acessar"),
+    path("sistema/sair-da-escola/", views_escolas.EscolaSairView.as_view(), name="escola_sair"),
     path("sistema/escolas/<int:pk>/administradores/novo/", views_escolas.AdministradorCreateView.as_view(),
          name="escola_admin_novo"),
     path("sistema/escolas/<int:pk>/administradores/<int:user_pk>/senha/",

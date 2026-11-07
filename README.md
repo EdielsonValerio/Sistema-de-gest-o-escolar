@@ -61,6 +61,11 @@ e confirma o recebimento; só depois disso os boletos dos alunos passam a ser re
 `docs/REGRAS_DE_NEGOCIO.md` (seção "Cobrança bancária"). Defina no `.env` `BILLING_CRYPTO_KEY` e `DJANGO_SITE_URL`
 e rode `pip install -r requirements.txt` e `python manage.py migrate`.
 
+### Primeiro acesso e e-mail
+Administradores e usuários cadastrados por outra pessoa entram com uma **senha provisória** e são obrigados a criar a própria no
+primeiro acesso. Para enviar o acesso por e-mail, configure `EMAIL_HOST` e demais `EMAIL_*` no `.env` (opcional). O administrador do
+sistema vê os dados de uma escola em *Escolas → Acessar dados* (modo suporte, auditado). Rode `python manage.py migrate`.
+
 ### Segurança HTTP em produção
 O sistema já envia CSP, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` e bloqueia TRACE/TRACK. Em
 produção use **gunicorn atrás de Nginx com HTTPS** (nunca `runserver`), `DJANGO_DEBUG=False` e defina no `.env`

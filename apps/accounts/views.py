@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -13,7 +14,8 @@ from apps.core.mixins import AcessoMixin
 from apps.core.models import Instituicao
 from apps.core.tenancy import SESSAO_ESCOLA
 
-from .forms import LoginForm, UsuarioForm
+from . import emails, services
+from .forms import LoginForm, SenhaTrocarForm, UsuarioForm
 from .models import PerfilUsuario
 
 
@@ -61,6 +63,40 @@ class LoginView(FormView):
                                                        require_https=self.request.is_secure()):
             return redirect(destino)
         return redirect(self.destino_padrao(user))
+
+
+class SenhaTrocarView(LoginRequiredMixin, FormView):
+    """Troca de senha pelo próprio usuário. Com senha provisória, é a única tela liberada até concluir."""
+
+    template_name = "accounts/senha_trocar.html"
+    form_class = SenhaTrocarForm
+
+    @property
+    def obrigatoria(self):
+        return bool(getattr(getattr(self.request.user, "perfil", None), "deve_trocar_senha", False))
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw["usuario"] = self.request.user
+        return kw
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        if self.obrigatoria:
+            ctx.update(titulo="Crie a sua senha",
+                       subtitulo="Este é o seu primeiro acesso (ou a senha foi redefinida). Para continuar, "
+                                 "crie uma senha só sua: a senha provisória deixa de funcionar.",
+                       botao="Salvar nova senha", obrigatoria=True)
+        else:
+            ctx.update(titulo="Alterar minha senha", subtitulo="Informe a senha atual e escolha a nova.",
+                       botao="Alterar senha", obrigatoria=False,
+                       cancelar_url=resolve_url("core:dashboard"))
+        return ctx
+
+    def form_valid(self, form):
+        substituiu = services.trocar_senha_propria(self.request, self.request.user, form.cleaned_data["senha1"])
+        messages.success(self.request, "Senha criada. Bem-vindo(a)!" if substituiu else "Senha alterada.")
+        return redirect(LoginView.destino_padrao(self.request.user))
 
 
 class LogoutView(auth_views.LogoutView):
@@ -130,13 +166,25 @@ class UsuarioFormView(AcessoMixin, TemplateView):
             PerfilUsuario.objects.create(user=usuario, instituicao=self.instituicao, login=d["username"])
         else:
             PerfilUsuario.objects.filter(user=usuario).update(login=d["username"])
+        # Senha definida por outra pessoa é provisória (exceto quando o usuário altera a própria).
+        if d["senha1"] and usuario.pk != request.user.pk:
+            usuario = User.objects.select_related("perfil").get(pk=usuario.pk)
+            services.marcar_senha_provisoria(usuario)
         usuario.groups.set([d["perfil"]])
         registrar(instituicao=self.instituicao, usuario=request.user,
                   acao="USUARIO_CRIADO" if novo else "USUARIO_ALTERADO", entidade="User", entidade_id=usuario.pk,
                   descricao=f"Usuário {d['username']}",
                   dados={"perfil_anterior": antes, "perfil_novo": d["perfil"].name, "ativo": usuario.is_active,
                          "senha_alterada": bool(d["senha1"])})
-        messages.success(request, "Usuário salvo.")
+        if d["enviar_email"]:
+            ok = emails.enviar_boas_vindas(usuario=usuario, senha_provisoria=d["senha1"], escola=self.instituicao,
+                                           request=request, redefinicao=not novo)
+            (messages.success if ok else messages.warning)(
+                request, "Usuário salvo e acesso enviado por e-mail." if ok else
+                "Usuário salvo, mas o e-mail não pôde ser enviado (verifique a configuração de e-mail). "
+                "Informe a senha provisória à pessoa por outro meio.")
+        else:
+            messages.success(request, "Usuário salvo.")
         return redirect("accounts:usuario_lista")
 
 

@@ -2,6 +2,7 @@
 from django.core.exceptions import PermissionDenied
 
 SESSAO_ESCOLA = "escola_id"  # escola escolhida no login (0 = administração do sistema)
+SESSAO_SUPORTE = "suporte_escola_id"  # escola aberta pelo administrador do sistema ("modo suporte")
 
 
 def perfil_do_usuario(user):
@@ -29,3 +30,19 @@ def login_do_usuario(user):
         return ""
     perfil = perfil_do_usuario(user)
     return perfil.login if perfil is not None and perfil.login else user.get_username()
+
+
+def em_modo_suporte(user, request):
+    """Administrador do sistema (superusuário sem escola) com uma escola aberta para suporte."""
+    return bool(user.is_authenticated and user.is_superuser and perfil_do_usuario(user) is None
+                and getattr(request, "instituicao", None) is not None)
+
+
+def instituicao_da_requisicao(request):
+    """Escola da requisição: a do perfil do usuário ou, para o administrador do sistema, a escola aberta em modo
+    suporte (definida pelo middleware depois de validada). Sem nenhuma das duas, 403."""
+    escola = getattr(request, "instituicao", None)
+    user = request.user
+    if escola is not None and (perfil_do_usuario(user) is not None or (user.is_superuser and user.is_active)):
+        return escola
+    return instituicao_do_usuario(user)

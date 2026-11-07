@@ -9,7 +9,7 @@ from django.utils.functional import cached_property
 from django.views.generic import TemplateView
 
 from .models import ConfiguracaoGeral
-from .tenancy import instituicao_do_usuario
+from .tenancy import instituicao_da_requisicao
 
 
 class AcessoMixin(LoginRequiredMixin, PermissionRequiredMixin):
@@ -23,7 +23,7 @@ class AcessoMixin(LoginRequiredMixin, PermissionRequiredMixin):
 
     def has_permission(self):
         if self.exige_escola:
-            instituicao_do_usuario(self.request.user)  # PermissionDenied (403) se sem escola ou escola inativa
+            instituicao_da_requisicao(self.request)  # PermissionDenied (403) se sem escola ou escola inativa
         if not self.permission_required:
             return True
         return super().has_permission()
@@ -35,7 +35,7 @@ class AcessoMixin(LoginRequiredMixin, PermissionRequiredMixin):
 
     @cached_property
     def instituicao(self):
-        return instituicao_do_usuario(self.request.user)
+        return instituicao_da_requisicao(self.request)
 
 
 class PaginacaoMixin:

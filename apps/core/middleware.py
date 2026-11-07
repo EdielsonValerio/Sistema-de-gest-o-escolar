@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 
-from .tenancy import SESSAO_ESCOLA, perfil_do_usuario
+from .tenancy import SESSAO_ESCOLA, SESSAO_SUPORTE, perfil_do_usuario
 
 
 class EscolaMiddleware:
@@ -28,7 +28,25 @@ class EscolaMiddleware:
                     messages.error(request, "Sessão encerrada: escola inativa ou acesso não autorizado.")
                     return redirect("accounts:login")
                 request.instituicao = escola
+                if perfil.deve_trocar_senha and not self._rota_liberada(request):
+                    return redirect("accounts:senha_trocar")
+            elif user.is_superuser and user.is_active:
+                # Modo suporte: o administrador do sistema abre uma escola (auditado) e passa a ver os dados dela.
+                sid = request.session.get(SESSAO_SUPORTE)
+                if sid:
+                    from .models import Instituicao
+                    request.instituicao = Instituicao.objects.filter(pk=sid).first()
+                    if request.instituicao is None:
+                        request.session.pop(SESSAO_SUPORTE, None)
         return self.get_response(request)
+
+    @staticmethod
+    def _rota_liberada(request):
+        """Com senha provisória só a troca de senha, a saída e os arquivos estáticos ficam liberados."""
+        from django.conf import settings
+        from django.urls import reverse
+        p = request.path
+        return p in (reverse("accounts:senha_trocar"), reverse("accounts:logout")) or p.startswith(settings.STATIC_URL if settings.STATIC_URL.startswith("/") else "/" + settings.STATIC_URL)
 
 
 class SegurancaMiddleware:

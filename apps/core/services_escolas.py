@@ -14,7 +14,8 @@ def criar_administrador(instituicao, *, login, nome, sobrenome="", email="", sen
                 is_active=True, is_staff=False, is_superuser=False)
     user.set_password(senha)
     user.save()
-    PerfilUsuario.objects.create(user=user, instituicao=instituicao, login=login)
+    # Senha inicial: provisória. No primeiro acesso o administrador é obrigado a criar a própria senha.
+    PerfilUsuario.objects.create(user=user, instituicao=instituicao, login=login, deve_trocar_senha=True)
     user.groups.set([Group.objects.get(name="Administrador")])
     registrar(instituicao=instituicao, usuario=criado_por, acao="ADMIN_ESCOLA_CRIADO", entidade="User",
               entidade_id=user.pk, descricao=f"Administrador da escola: {login}", dados={"login": login})
@@ -39,7 +40,10 @@ def cadastrar_escola(form_escola, dados_admin, criado_por):
 
 @transaction.atomic
 def redefinir_senha(usuario, nova_senha, por):
+    """Redefinição feita por outra pessoa: a nova senha é provisória e o usuário terá de trocá-la ao entrar."""
     usuario.set_password(nova_senha)
     usuario.save(update_fields=["password"])
+    usuario.perfil.deve_trocar_senha = True
+    usuario.perfil.save(update_fields=["deve_trocar_senha"])
     registrar(instituicao=usuario.perfil.instituicao, usuario=por, acao="SENHA_REDEFINIDA", entidade="User",
               entidade_id=usuario.pk, descricao=f"Senha redefinida: {usuario.perfil.login}")

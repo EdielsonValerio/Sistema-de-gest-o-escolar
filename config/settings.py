@@ -198,3 +198,16 @@ LOGGING = {
 
 # Endereço público (HTTPS) do sistema: usado para exibir a URL do webhook da cobrança bancária.
 SITE_URL = os.environ.get("DJANGO_SITE_URL", "").strip().rstrip("/")
+
+
+# E-mail (boas-vindas de novos usuários). Sem EMAIL_HOST configurado, em desenvolvimento os e-mails vão para o console.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "").strip()
+EMAIL_BACKEND = ("django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST
+                 else "django.core.mail.backends.console.EmailBackend")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "EduNex <nao-responda@localhost>")
+EMAIL_CONFIGURADO = bool(EMAIL_HOST)

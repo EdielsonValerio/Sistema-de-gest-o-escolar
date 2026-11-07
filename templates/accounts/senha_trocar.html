@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 page-title">{{ titulo }}</h1>
+  <p class="page-sub">{{ subtitulo }}</p>
+</div>
+<form method="post" novalidate data-once id="form-senha">
+  {% csrf_token %}
+  <div class="card" style="max-width:640px"><div class="card-body">
+    {% include "components/form_fields.html" %}
+    <div class="form-text mt-2">Use ao menos 8 caracteres, sem ser só números nem uma senha comum, e diferente da senha atual.</div>
+  </div>
+  <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+    {% if obrigatoria %}
+    <button type="submit" form="form-sair" class="btn btn-outline-secondary">Sair</button>
+    {% else %}
+    <a class="btn btn-outline-secondary" href="{{ cancelar_url }}">Cancelar</a>
+    {% endif %}
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> {{ botao }}</button>
+  </div></div>
+</form>
+<form id="form-sair" method="post" action="{% url 'accounts:logout' %}" class="d-none">{% csrf_token %}</form>
+{% endblock %}

@@ -365,6 +365,17 @@ Django; criação/alteração é auditada (`USUARIO_CRIADO`, `SENHA_REDEFINIDA`)
 
 ---
 
+### Primeiro acesso, e-mail e modo suporte (acrescentado depois)
+- `PerfilUsuario.deve_trocar_senha` / `senha_trocada_em` (migração `accounts/0005`, padrão `False`: usuários antigos não são afetados).
+- `core/middleware.py` (`EscolaMiddleware`): com `deve_trocar_senha`, só `accounts:senha_trocar`, o logout e os estáticos passam; o resto redireciona.
+  Também aplica o **modo suporte**: para superusuário sem perfil, lê `suporte_escola_id` da sessão e define `request.instituicao`.
+- `core/tenancy.py`: `instituicao_da_requisicao(request)` (usada por `AcessoMixin`) e `em_modo_suporte`.
+- `accounts/services.py` (`trocar_senha_propria`, `marcar_senha_provisoria`), `accounts/emails.py` (e-mail sem exceções), tela `accounts/senha_trocar.html`.
+- `core/views_escolas.py`: `EscolaAcessarView` / `EscolaSairView` (modo suporte, auditado); `criar_administrador` e `redefinir_senha` marcam a senha como provisória.
+- E-mail por variáveis `EMAIL_*` / `DEFAULT_FROM_EMAIL` (veja `.env.example`); sem `EMAIL_HOST` o backend é o console.
+
+---
+
 ## 8. App `audit` — auditoria
 
 - **Model** `RegistroAuditoria`: `instituicao`, `usuario` (FK, `SET_NULL`), `usuario_nome` (texto, sobrevive à
@@ -836,6 +847,7 @@ Use sempre `{% url 'app:nome' %}` / `reverse('app:nome')`; os nomes estão nas t
 | Receber | `PLANO_CRIADO`, `PARCELAS_GERADAS`, `RECEBIMENTO_REGISTRADO`, `RECEBIMENTO_ESTORNADO` (e os ajustes de parcela) |
 | Documentos | `DOCUMENTO_EMITIDO` |
 | Cobrança bancária | `COBRANCA_CONFIG_ALTERADA`, `COBRANCA_WEBHOOK_TOKEN_RENOVADO`, `COBRANCA_TESTE_GERADA`, `COBRANCA_TESTE_CONFIRMADA`, `COBRANCA_ATIVADA`, `COBRANCA_SUSPENSA`, `COBRANCA_REGISTRADA`, `COBRANCA_ERRO`, `COBRANCA_ALTERADA`, `COBRANCA_CANCELADA`, `COBRANCA_PAGA`, `COBRANCA_DIVERGENCIA`, `COBRANCA_LOTE` |
+| Acesso e senhas | `SENHA_INICIAL_SUBSTITUIDA`, `SENHA_ALTERADA_PELO_USUARIO`, `SUPORTE_ACESSO_ESCOLA` |
 | Assistente de IA | `IA_HABILITADA`, `IA_DESABILITADA`, `IA_CONFIGURADA`, `IA_ATIVADA`, `IA_DESATIVADA`, `IA_PERGUNTA` |
 | Contas a pagar | `CONTA_PAGAR_CRIADA`, `CONTA_PAGAR_ALTERADA`, `CONTA_PAGAR_LIQUIDADA`, `CONTA_PAGAR_DESATIVADA`, `CONTA_PAGAR_REATIVADA`, `CONTA_PAGAR_LIQUIDACAO_ESTORNADA` |
 
@@ -859,6 +871,7 @@ Rodar tudo: `python manage.py test tests`. Os testes de cobrança usam hash de s
 | `test_contas_pagar.py` | 47 | Saldo, liquidação, situação, cadastro, notificações, telas, isolamento, **concorrência** |
 | `test_cobranca_bancaria.py` | 76 | Cofre, códigos de boleto/Pix, teste e ativação, registro de boletos, baixa, sincronização, conector Asaas (simulado), webhook, telas e permissões, isolamento |
 | `test_assistente.py` | 40 | LGPD (remoção e agrupamento), ferramentas agregadas, permissões, isolamento, cliente Claude (simulado), laço do agente, limite mensal, telas, habilitação pela escola |
+| `test_acesso_admin.py` | 25 | Senha provisória, troca obrigatória no primeiro acesso, e-mail de boas-vindas, modo suporte do superadmin, isolamento entre escolas e níveis de administrador |
 | **Total** | **278** | |
 
 - `tests/helpers.py` oferece fábricas (`criar_instituicao`, `criar_usuario`, `criar_aluno`, `criar_turma_oficial`,

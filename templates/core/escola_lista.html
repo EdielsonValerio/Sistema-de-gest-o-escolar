@@ -16,7 +16,8 @@
   <td>{{ e.cnpj|default:"—" }}</td>
   <td class="text-end">{{ e.qtd_usuarios }}</td><td class="text-end">{{ e.qtd_alunos }}</td>
   <td><span class="badge text-bg-{% if e.ativa %}success{% else %}secondary{% endif %}">{% if e.ativa %}Ativa{% else %}Inativa{% endif %}</span></td>
-  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'core:escola_editar' e.pk %}">Abrir</a></td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{% url 'core:escola_editar' e.pk %}">Abrir</a>
+    <form method="post" action="{% url 'core:escola_acessar' e.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" type="submit" title="Ver os dados desta escola (modo suporte, auditado)"><i class="bi bi-life-preserver"></i> Acessar dados</button></form></td>
 </tr>
 {% empty %}
 <tr><td colspan="7" class="text-center text-muted py-4">{% if q %}Nenhuma escola encontrada.{% else %}Nenhuma escola cadastrada. Clique em <strong>Nova escola</strong> para começar.{% endif %}</td></tr>

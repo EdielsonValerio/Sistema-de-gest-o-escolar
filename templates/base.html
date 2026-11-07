@@ -18,13 +18,13 @@
       <button type="button" class="btn-close btn-close-white d-lg-none ms-auto" data-bs-dismiss="offcanvas" data-bs-target="#sidebar"></button>
     </div>
     <nav class="sidebar-nav">
-      {% include "components/menu.html" %}
+      {% if not troca_obrigatoria %}{% include "components/menu.html" %}{% endif %}
     </nav>
   </aside>
   <div class="app-main">
     <header class="topbar">
       <button class="btn btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Menu"><i class="bi bi-list"></i></button>
-      {% if instituicao_atual and perms.students.view_aluno %}
+      {% if instituicao_atual and perms.students.view_aluno and not troca_obrigatoria %}
       <form class="topbar-search" action="{% url 'core:busca' %}" method="get" role="search">
         <div class="input-group">
           <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
@@ -33,20 +33,22 @@
       </form>
       {% endif %}
       <div class="ms-auto d-flex align-items-center gap-2">
-        {% if instituicao_atual and perms.students.add_aluno %}<a class="btn btn-primary btn-sm" href="{% url 'students:aluno_novo' %}"><i class="bi bi-person-plus"></i> <span class="d-none d-md-inline">Novo aluno</span></a>{% endif %}
-        {% if instituicao_atual and perms.finance.registrar_recebimento %}<a class="btn btn-success btn-sm" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> <span class="d-none d-md-inline">Recebimento</span></a>{% endif %}
-        {% include "payables/_sino.html" %}
+        {% if instituicao_atual and perms.students.add_aluno and not troca_obrigatoria %}<a class="btn btn-primary btn-sm" href="{% url 'students:aluno_novo' %}"><i class="bi bi-person-plus"></i> <span class="d-none d-md-inline">Novo aluno</span></a>{% endif %}
+        {% if instituicao_atual and perms.finance.registrar_recebimento and not troca_obrigatoria %}<a class="btn btn-success btn-sm" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> <span class="d-none d-md-inline">Recebimento</span></a>{% endif %}
+        {% if not troca_obrigatoria %}{% include "payables/_sino.html" %}{% endif %}
         <div class="dropdown">
           <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-person-circle"></i> {{ login_exibicao }}</button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><span class="dropdown-item-text small text-muted">{% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% if user.is_superuser %}Administrador do sistema{% else %}Sem perfil{% endif %}{% endfor %}</span></li>
             <li><hr class="dropdown-divider"></li>
+            {% if not troca_obrigatoria %}<li><a class="dropdown-item" href="{% url 'accounts:senha_trocar' %}"><i class="bi bi-key"></i> Alterar minha senha</a></li>{% endif %}
             <li><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> Sair</button></form></li>
           </ul>
         </div>
       </div>
     </header>
     <main class="content container-fluid">
+      {% if modo_suporte %}<div class="alert alert-warning d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-life-preserver"></i> <strong>Modo suporte</strong> — você está vendo os dados da escola <strong>{{ instituicao_atual.nome }}</strong>. Suas ações ficam registradas na auditoria.</span><form method="post" action="{% url 'core:escola_sair' %}" class="m-0">{% csrf_token %}<button class="btn btn-sm btn-dark" type="submit">Sair da escola</button></form></div>{% endif %}
       {% include "components/messages.html" %}
       {% block content %}{% endblock %}
     </main>
