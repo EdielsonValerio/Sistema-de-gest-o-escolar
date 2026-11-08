@@ -17,7 +17,6 @@
 <a class="nav-link {% if rm.url_name == 'fechamento' %}active{% endif %}" href="{% url 'diario:fechamento' %}"><i class="bi bi-lock"></i> Fechamento</a>
 <a class="nav-link {% if rm.url_name == 'disciplinas' or rm.url_name == 'disciplina_nova' or rm.url_name == 'disciplina_editar' %}active{% endif %}" href="{% url 'diario:disciplinas' %}"><i class="bi bi-book"></i> Disciplinas</a>
 <a class="nav-link {% if 'periodo' in rm.url_name or rm.url_name == 'criar_bimestres' %}active{% endif %}" href="{% url 'diario:periodos' %}"><i class="bi bi-calendar3-range"></i> Períodos letivos</a>
-<a class="nav-link {% if rm.url_name == 'criterios' %}active{% endif %}" href="{% url 'diario:criterios' %}"><i class="bi bi-sliders"></i> Critérios</a>
 <a class="nav-link {% if rm.url_name == 'relatorios' or rm.url_name == 'relatorio' %}active{% endif %}" href="{% url 'diario:relatorios' %}"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
 {% endif %}
 

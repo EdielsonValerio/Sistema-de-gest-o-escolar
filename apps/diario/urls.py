@@ -35,7 +35,6 @@ urlpatterns = [
     path("coordenacao/periodos/novo/", c.PeriodoCreateView.as_view(), name="periodo_novo"),
     path("coordenacao/periodos/<int:pk>/", c.PeriodoUpdateView.as_view(), name="periodo_editar"),
     path("coordenacao/periodos/bimestres/<int:ano_pk>/", c.CriarBimestresView.as_view(), name="criar_bimestres"),
-    path("coordenacao/criterios/", c.ConfiguracaoView.as_view(), name="criterios"),
     path("coordenacao/aulas/", c.AulasAcompanhamentoView.as_view(), name="aulas_coordenacao"),
     path("coordenacao/aulas/<int:pk>/correcao/", c.SolicitarCorrecaoView.as_view(), name="solicitar_correcao"),
     path("coordenacao/planejamentos/", c.PlanejamentosCoordenacaoView.as_view(), name="planejamentos_coordenacao"),
@@ -44,6 +43,7 @@ urlpatterns = [
     path("coordenacao/fechamento/<int:pk>/reabrir/", c.ReabrirDiarioView.as_view(), name="reabrir"),
     # parametrização da avaliação (somente administrador do sistema, em modo suporte)
     path("sistema/avaliacao/", s.ModeloListView.as_view(), name="modelos"),
+    path("sistema/avaliacao/regra-padrao/", s.RegraPadraoView.as_view(), name="regra_padrao"),
     path("sistema/avaliacao/novo/", s.ModeloFormView.as_view(editando=False), name="modelo_novo"),
     path("sistema/avaliacao/<int:pk>/", s.ModeloDetalheView.as_view(), name="modelo"),
     path("sistema/avaliacao/<int:pk>/editar/", s.ModeloFormView.as_view(editando=True), name="modelo_editar"),

@@ -241,31 +241,7 @@ class CriarBimestresView(CoordenacaoMixin, View):
         return redirect("diario:periodos")
 
 
-class ConfiguracaoView(CoordenacaoMixin, TemplateView):
-    template_name = "generic/form.html"
 
-    def get_context_data(self, **kw):
-        ctx = super().get_context_data(**kw)
-        cfg = servicos.configuracao(self.instituicao)
-        ctx.update(titulo="Critérios de avaliação e frequência",
-                   subtitulo="Valem para todas as turmas da escola (média, frequência mínima e recuperação).",
-                   form=kw.get("form") or ConfiguracaoDiarioForm(instance=cfg, instituicao=self.instituicao),
-                   cancelar_url=reverse("diario:coordenacao"))
-        return ctx
-
-    def post(self, request, *args, **kwargs):
-        cfg = servicos.configuracao(self.instituicao)
-        form = ConfiguracaoDiarioForm(request.POST, instance=cfg, instituicao=self.instituicao)
-        if form.is_valid():
-            form.save()
-            servicos._audit(self.instituicao, request.user, "DIARIO_CRITERIOS_ALTERADOS", "ConfiguracaoDiario", cfg.pk,
-                            "Critérios do diário alterados", {"campos": form.changed_data})
-            messages.success(request, "Critérios salvos.")
-            return redirect("diario:coordenacao")
-        return self.render_to_response(self.get_context_data(form=form))
-
-
-# ----------------------------------------------------------------------------- acompanhamento
 class AulasAcompanhamentoView(InstituicaoQuerysetMixin, ListView):
     model = Aula
     permission_required = "diario.coordenar_diario"

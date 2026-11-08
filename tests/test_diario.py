@@ -111,7 +111,7 @@ class RestricoesDoProfessorTests(Base):
                     reverse("finance:caixa"), reverse("enrollments:lista"), reverse("billing:configuracao"),
                     reverse("diario:alocacoes"), reverse("diario:alocacao_nova"), reverse("diario:coordenacao"),
                     reverse("diario:fechamento"), reverse("diario:disciplinas"), reverse("diario:aulas_coordenacao"),
-                    reverse("diario:planejamentos_coordenacao"), reverse("diario:criterios")):
+                    reverse("diario:planejamentos_coordenacao"), reverse("diario:regra_padrao")):
             self.assertEqual(c.get(url).status_code, 403, url)
         self.assertEqual(c.get(reverse("core:escola_lista")).status_code, 403)
 
@@ -362,11 +362,17 @@ class NotasTests(Base):
         cfg.save()
         _, l = calculos.desempenho_da_alocacao(self.aloc)
         self.assertEqual(l[0]["situacao"], "Abaixo da média")
-        r = self.cli(self.coord).post(reverse("diario:criterios"), {"media_aprovacao": "5", "frequencia_minima": "70",
-                                                                      "usa_recuperacao": "on", "nota_maxima_padrao": "10"})
+        # a regra padrão só é alterada pelo administrador do sistema (modo suporte); coordenação e professor: 403
+        for u in (self.coord, self.prof1, self.adm):
+            self.assertEqual(self.cli(u).post(reverse("diario:regra_padrao"), {"media_aprovacao": "5"}).status_code, 403)
+        su = User.objects.create_superuser("root2", "r2@x.com", "senha-root-123")
+        c = Client()
+        c.force_login(su)
+        c.post(reverse("core:escola_acessar", args=[self.a.pk]))
+        r = c.post(reverse("diario:regra_padrao"), {"media_aprovacao": "5", "frequencia_minima": "70",
+                                                    "usa_recuperacao": "on", "nota_maxima_padrao": "10"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(ConfiguracaoDiario.objects.get(instituicao=self.a).media_aprovacao, Decimal("5.00"))
-        self.assertEqual(self.cli(self.prof1).get(reverse("diario:criterios")).status_code, 403)
 
     def test_periodo_de_outro_ano_e_invalido(self):
         outro = AnoLetivo.objects.create(instituicao=self.a, nome="2028", ano=2028, data_inicio=date(2028, 2, 1), data_fim=date(2028, 12, 1))
@@ -465,7 +471,7 @@ class PaineisERelatoriosTests(Base):
 
     def test_telas_da_coordenacao_abrem(self):
         c = self.cli(self.coord)
-        for nome in ("alocacoes", "alocacao_nova", "disciplinas", "disciplina_nova", "periodos", "periodo_novo", "criterios",
+        for nome in ("alocacoes", "alocacao_nova", "disciplinas", "disciplina_nova", "periodos", "periodo_novo",
                      "aulas_coordenacao", "pendencias", "fechamento", "relatorios", "planejamentos_coordenacao"):
             self.assertEqual(c.get(reverse(f"diario:{nome}")).status_code, 200, nome)
         c.post(reverse("diario:disciplina_nova"), {"nome": "História", "sigla": "HIS", "ativa": "on"})

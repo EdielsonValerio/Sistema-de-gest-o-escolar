@@ -4,7 +4,8 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div><h1 class="h4 page-title">Modelos de avaliação</h1>
   <p class="page-sub">Parametrização das fases, composição de notas, recuperações e aprovação de <strong>{{ instituicao_atual.nome }}</strong>. Cada modelo vale para um ano letivo e para as séries escolhidas.</p></div>
-  <a class="btn btn-primary" href="{% url 'diario:modelo_novo' %}"><i class="bi bi-plus-lg"></i> Novo modelo (em branco)</a>
+  <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% url 'diario:regra_padrao' %}"><i class="bi bi-sliders"></i> Regra padrão da escola</a>
+  <a class="btn btn-primary" href="{% url 'diario:modelo_novo' %}"><i class="bi bi-plus-lg"></i> Novo modelo (em branco)</a></div>
 </div>
 <div class="card mb-3"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
 <thead><tr><th>Modelo</th><th>Ano</th><th>Fases</th><th>Séries</th><th>Nota mínima</th><th>Situação</th><th></th></tr></thead><tbody>

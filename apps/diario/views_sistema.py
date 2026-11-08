@@ -17,7 +17,7 @@ from django.views.generic import TemplateView
 from apps.core.mixins import AcessoMixin
 
 from . import formulas, motor, servicos
-from .forms import (ComponenteForm, DuplicarModeloForm, FaseForm, ModeloAvaliacaoForm, PresetModeloForm)
+from .forms import (ComponenteForm, ConfiguracaoDiarioForm, DuplicarModeloForm, FaseForm, ModeloAvaliacaoForm, PresetModeloForm)
 from .models import ComponenteNota, ModeloAvaliacao, PeriodoLetivo
 
 
@@ -331,3 +331,29 @@ class SimuladorView(SistemaMixin, TemplateView):
         except (ValidationError, formulas.FormulaErro) as exc:
             msg = exc.messages[0] if isinstance(exc, ValidationError) else str(exc)
             return self.render_to_response(self.get_context_data(dados=P, erro=msg))
+
+
+class RegraPadraoView(SistemaMixin, TemplateView):
+    """Regra padrão da escola (ConfiguracaoDiario): vale só para turmas SEM modelo de avaliação publicado."""
+
+    template_name = "generic/form.html"
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx.update(titulo="Regra padrão de avaliação",
+                   subtitulo="Vale apenas para turmas sem modelo de avaliação publicado (média, frequência mínima e recuperação).",
+                   form=kw.get("form") or ConfiguracaoDiarioForm(instance=servicos.configuracao(self.instituicao),
+                                                                  instituicao=self.instituicao),
+                   cancelar_url=reverse("diario:modelos"))
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        cfg = servicos.configuracao(self.instituicao)
+        form = ConfiguracaoDiarioForm(request.POST, instance=cfg, instituicao=self.instituicao)
+        if form.is_valid():
+            form.save()
+            servicos._audit(self.instituicao, request.user, "DIARIO_CRITERIOS_ALTERADOS", "ConfiguracaoDiario", cfg.pk,
+                            "Regra padrão do diário alterada", {"campos": form.changed_data})
+            messages.success(request, "Regra padrão salva.")
+            return redirect("diario:modelos")
+        return self.render_to_response(self.get_context_data(form=form))
