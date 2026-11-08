@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}Vincular a turma{% endblock %}
 {% block content %}
@@ -17,7 +18,7 @@
   <tr><td><strong>{{ t.nome }}</strong><div class="small text-muted">{{ t.codigo }}</div></td>
     <td>{% if t.eh_oficial %}{{ t.serie_ofertada.serie_referencia.nome }} · {{ t.ano_letivo.ano }}{% else %}{{ t.data_inicio|date:"d/m/Y" }} a {{ t.data_fim|date:"d/m/Y" }}{% endif %}</td>
     <td>{{ t.ocupacao }}{% if t.capacidade %} / {{ t.capacidade }}{% endif %}</td>
-    <td class="text-end">{% if t.ja_vinculado %}<span class="badge text-bg-secondary">Já vinculado</span>{% elif t.lotada %}<span class="badge text-bg-danger">Lotada</span>{% else %}<a class="btn btn-sm btn-primary" href="?tipo={{ tipo }}&turma={{ t.pk }}">Selecionar</a>{% endif %}</td></tr>
+    <td class="text-end">{% if t.ja_vinculado %}<span class="badge text-bg-secondary">Já vinculado</span>{% elif t.lotada %}<span class="badge text-bg-danger">Lotada</span>{% else %}<a class="btn btn-sm btn-primary" href="?tipo={{ tipo }}&turma={{ t.pk|unlocalize }}">Selecionar</a>{% endif %}</td></tr>
   {% empty %}<tr><td colspan="4"><div class="empty-state"><i class="bi bi-easel"></i>Nenhuma turma disponível deste tipo.{% if perms.academic.add_turma %}<div class="mt-2"><a class="btn btn-sm btn-primary" href="{% url 'academic:turma_nova' %}">Cadastrar turma</a></div>{% endif %}</div></td></tr>{% endfor %}
   </tbody></table></div></div>
 <a class="btn btn-outline-secondary mt-3" href="{% url 'students:aluno_ficha' aluno.pk %}">Voltar à ficha</a>
@@ -33,8 +34,8 @@
 
 <form method="post" novalidate data-once>
   {% csrf_token %}
-  <input type="hidden" name="turma" value="{{ turma.pk }}">
-  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value }}">{% endif %}
+  <input type="hidden" name="turma" value="{{ turma.pk|unlocalize }}">
+  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk|unlocalize }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value|unlocalize }}">{% endif %}
   <div class="card"><div class="card-header">Confirmação</div><div class="card-body">
     {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
     <div class="row g-3">

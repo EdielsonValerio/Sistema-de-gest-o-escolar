@@ -1,0 +1,17 @@
+{% extends "generic/lista.html" %}
+{% load l10n %}
+{% block title %}Aulas registradas{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk|unlocalize }}" {% if f.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-p">Professor</label><select id="f-p" class="form-select" name="professor"><option value="">Todos</option>{% for p in professores %}<option value="{{ p.pk|unlocalize }}" {% if f.professor == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.get_full_name|default:p.perfil.login }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-d">Disciplina</label><select id="f-d" class="form-select" name="disciplina"><option value="">Todas</option>{% for d in disciplinas %}<option value="{{ d.pk|unlocalize }}" {% if f.disciplina == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="status"><option value="">Todas</option><option value="FINALIZADA" {% if f.status == 'FINALIZADA' %}selected{% endif %}>Finalizadas</option><option value="RASCUNHO" {% if f.status == 'RASCUNHO' %}selected{% endif %}>Rascunho</option><option value="CORRECAO" {% if f.status == 'CORRECAO' %}selected{% endif %}>Correção</option></select></div>
+  <div class="col-md-2"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Data</th><th>Turma</th><th>Disciplina</th><th>Professor</th><th>Conteúdo</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}{% for a in object_list %}<tr><td>{{ a.data|date:"d/m/Y" }}</td><td>{{ a.turma.nome }}</td><td>{{ a.disciplina.nome }}</td><td>{{ a.professor.get_full_name|default:a.professor.perfil.login }}</td><td>{{ a.conteudo|truncatechars:70 }}</td>
+<td>{% if a.status == 'FINALIZADA' %}<span class="badge text-bg-success">Finalizada</span>{% elif a.status == 'CORRECAO' %}<span class="badge text-bg-danger">Correção solicitada</span>{% else %}<span class="badge text-bg-warning">Rascunho</span>{% endif %}</td>
+<td class="text-end">{% if a.status == 'FINALIZADA' %}<form class="d-flex gap-1" method="post" action="{% url 'diario:solicitar_correcao' a.pk %}">{% csrf_token %}<input class="form-control form-control-sm" name="motivo" placeholder="Motivo da correção" required maxlength="255"><button class="btn btn-sm btn-outline-danger text-nowrap">Solicitar correção</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma aula encontrada.</td></tr>{% endfor %}{% endblock %}

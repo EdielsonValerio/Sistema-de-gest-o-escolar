@@ -206,3 +206,26 @@ Cada escola tem a **sua** configuração (provedor, ambiente, chave de API e dad
    (trocas voluntárias posteriores: `SENHA_ALTERADA_PELO_USUARIO`, em *Alterar minha senha*, no menu do usuário).
 5. Usuários já existentes **não** são afetados (a marcação nasce desligada). Senhas nunca vão para a auditoria nem para o log.
 
+
+## Diário de Classe
+
+- **Perfis**: Professor e Coordenador usam o cadastro de usuários existente (senha provisória, e-mail de acesso, troca obrigatória no primeiro login). Não há tabela paralela de professores.
+- **Alocação** (turma × disciplina × ano letivo): só usuário ativo com perfil Professor, da mesma escola; sem duplicidade ativa; troca/encerramento preservam o histórico (aulas, notas e frequência ficam com o professor original).
+- **Professor**: só enxerga as próprias alocações ativas (alocação alheia ou de outra escola → 404); sem acesso a alunos, turmas, usuários, financeiro ou coordenação.
+- **Coordenador**: painel, alocações, acompanhamento, pendências, relatórios, solicitação de correção e reabertura de fechamento (com motivo). Não edita registros finalizados diretamente nem administra usuários/configurações globais.
+- **Aula**: rascunho ou finalizada; finalizar exige conteúdo e frequência de todos; finalizada é somente leitura (só reabre via correção pedida pela coordenação). Só contam na frequência aulas finalizadas; falta justificada é abonada.
+- **Notas**: 0 a nota máxima; média por período ponderada e normalizada em 0–10; recuperação substitui se maior; critérios (média, frequência mínima) por escola.
+- **Fechamento**: bloqueia aulas/avaliações/notas do período; não fecha com rascunhos; reabertura só pela coordenação, com motivo e auditoria.
+- **Relatórios**: tela e PDF (auditado como `RELATORIO_DIARIO_PDF`); professor só vê os seus; relatórios gerenciais e boletim só para a coordenação.
+
+## Modelos de avaliação (parametrização por escola)
+
+- **Quem configura:** somente o administrador do sistema (superusuário em modo suporte, menu *Sistema → Modelos de avaliação*). Administrador da escola, coordenador e professor não têm acesso (403).
+- **Modelo** = escola + ano letivo + séries atendidas. Série com modelo próprio tem prioridade; modelo sem séries vale para as demais; sem modelo publicado vale a regra padrão da escola (média 6,0 / frequência 75%, sem mudança de comportamento). Duas séries (ou "todas") não podem ter dois modelos publicados no mesmo ano.
+- **Fases** (bimestral 4, trimestral 3, semestral 2, mensal 10), com datas e peso. As fases do modelo substituem os períodos gerais para as turmas atendidas (aulas, avaliações, fechamento e planejamento usam as fases).
+- **Composição da nota da fase (opcional):** componentes (ex.: Atividades 4,0 + Prova 6,0), cada um com sigla, valor máximo e agrupamento (soma limitada, média, média ponderada, maior nota, média sem a menor). Fórmula da fase opcional (padrão: soma dos componentes). Fase sem componentes usa a média ponderada das avaliações. O professor escolhe o componente ao criar a avaliação.
+- **Média anual:** fórmula livre (padrão `MP`, média ponderada pelos pesos das fases). Variáveis: `B1..Bn`, `MA`, `MP`, `SOMA`, `N`, `MAXIMA`.
+- **Recuperações (cada escola define):** de fase (regra: maior nota, substitui ou média) e/ou final (fórmula padrão `MAX(MF, (MF + RF) / 2)`, nota mínima própria opcional).
+- **Situação:** Sem notas · Em andamento · Aprovado · Recuperação final · Aprovado na recuperação final · Reprovado · Reprovado por frequência. A situação final só é calculada com todas as fases lançadas.
+- **Fórmulas:** avaliadas no servidor sem `eval` (somente números, variáveis do contexto, `+ - * / % **`, comparações, `and/or/not` e `MAX MIN MEDIA SOMA ABS ARRED SE`; decimais com ponto).
+- **Publicação e versões:** o modelo nasce em rascunho; a publicação valida fórmulas, fases e conflitos. Com notas lançadas a estrutura (fases/componentes/séries/ano) trava; só parâmetros (nota mínima, fórmulas, arredondamento) podem mudar, com auditoria. Mudança estrutural = duplicar para outro ano ou despublicar antes do lançamento de notas.

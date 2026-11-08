@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ m.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div><h1 class="h4 page-title">{{ m.nome }} <span class="badge text-bg-{% if publicado %}success{% else %}secondary{% endif %} fs-6">{{ m.get_situacao_display }}</span></h1>
+  <p class="page-sub"><a href="{% url 'diario:modelos' %}">Modelos</a> · Ano letivo {{ m.ano_letivo.ano }} · {{ m.get_tipo_fase_display }}</p></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="{% url 'diario:modelo_simulador' m.pk %}"><i class="bi bi-calculator"></i> Simulador</a>
+    <a class="btn btn-outline-secondary" href="{% url 'diario:modelo_duplicar' m.pk %}"><i class="bi bi-copy"></i> Duplicar</a>
+    <a class="btn btn-outline-primary" href="{% url 'diario:modelo_editar' m.pk %}"><i class="bi bi-pencil"></i> Editar {% if publicado %}parâmetros{% else %}configuração{% endif %}</a>
+    {% if publicado %}<form method="post" action="{% url 'diario:modelo_despublicar' m.pk %}" class="m-0">{% csrf_token %}<button class="btn btn-outline-danger">Despublicar</button></form>
+    {% else %}<form method="post" action="{% url 'diario:modelo_publicar' m.pk %}" class="m-0">{% csrf_token %}<button class="btn btn-success"><i class="bi bi-check2-circle"></i> Publicar</button></form>{% endif %}
+  </div>
+</div>
+{% if travada %}<div class="alert alert-info">Já existem notas lançadas: a estrutura (fases e componentes) está travada. Os parâmetros (nota mínima, fórmulas, arredondamento) ainda podem ser ajustados e ficam na auditoria.</div>{% endif %}
+{% for e in erros %}<div class="alert alert-danger py-2 mb-2"><i class="bi bi-x-octagon"></i> {{ e }}</div>{% endfor %}
+{% for a in avisos %}<div class="alert alert-warning py-2 mb-2"><i class="bi bi-exclamation-triangle"></i> {{ a }}</div>{% endfor %}
+
+<div class="row g-3 mb-3">
+ <div class="col-lg-6"><div class="card h-100"><div class="card-header">Aprovação e arredondamento</div><div class="card-body small">
+  <div>Nota máxima: <strong>{{ m.nota_maxima }}</strong> · nota mínima de aprovação: <strong>{{ m.media_aprovacao }}</strong> · frequência mínima: <strong>{{ m.frequencia_minima }}%</strong></div>
+  <div>Arredondamento: {{ m.get_arredondamento_display }}, {{ m.casas_decimais }} casa(s)</div>
+  <div class="mt-2">Séries: {% for s in series %}<span class="badge text-bg-light border">{{ s.nome }}</span> {% empty %}<span class="text-muted">todas as séries sem modelo próprio</span>{% endfor %}</div></div></div></div>
+ <div class="col-lg-6"><div class="card h-100"><div class="card-header">Cálculo geral e recuperações</div><div class="card-body small">
+  <div>Média anual: <code>{{ formula_final }}</code></div>
+  <div class="text-muted">Variáveis: {{ vars_final }}</div>
+  <div class="mt-2">Recuperação de fase: {% if m.usa_rec_parcial %}<strong>sim</strong> — {{ m.get_regra_rec_parcial_display }}{% else %}não{% endif %}</div>
+  <div>Recuperação final: {% if m.usa_rec_final %}<strong>sim</strong> — <code>{{ formula_rec }}</code>{% if m.media_aprovacao_rec_final %} (mínimo {{ m.media_aprovacao_rec_final }}){% endif %}{% else %}não{% endif %}</div></div></div></div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 m-0">Fases avaliativas</h2>
+ <div class="d-flex gap-2">{% if not fases and not travada %}<form method="post" action="{% url 'diario:modelo_gerar_fases' m.pk %}" class="m-0">{% csrf_token %}<button class="btn btn-sm btn-primary">Gerar fases ({{ m.get_tipo_fase_display }})</button></form>{% endif %}
+ {% if not travada %}<a class="btn btn-sm btn-outline-primary" href="{% url 'diario:fase_nova' m.pk %}"><i class="bi bi-plus-lg"></i> Fase</a>{% endif %}</div></div>
+{% for f in fases %}
+<div class="card mb-2"><div class="card-body">
+ <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ f.ordem }}. {{ f.nome }}</strong> <span class="text-muted small">{{ f.data_inicio|date:"d/m/Y" }} a {{ f.data_fim|date:"d/m/Y" }} · peso {{ f.peso }}</span>
+  <div class="small">Nota da fase: {% if f.componentes.all %}<code>{{ f.formula|default:"soma dos componentes" }}</code>{% else %}<span class="text-muted">sem composição — média ponderada das avaliações do professor</span>{% endif %}</div></div>
+  <div class="d-flex gap-1 align-items-start">{% if not travada %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'diario:componente_novo' m.pk f.pk %}">+ Componente</a>{% endif %}
+  <a class="btn btn-sm btn-outline-primary" href="{% url 'diario:fase_editar' m.pk f.pk %}">Editar</a>
+  {% if not travada %}<form method="post" action="{% url 'diario:fase_excluir' m.pk f.pk %}" class="m-0" onsubmit="return confirm('Remover a fase e seus componentes?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</div></div>
+ {% if f.componentes.all %}<table class="table table-sm mt-2 mb-0"><thead><tr><th>Componente</th><th>Sigla</th><th class="text-end">Vale até</th><th>Agrupamento</th><th></th></tr></thead><tbody>
+ {% for c in f.componentes.all %}<tr><td>{{ c.nome }}</td><td><code>{{ c.sigla }}</code></td><td class="text-end">{{ c.valor_maximo }}</td><td>{{ c.get_agregacao_display }}</td>
+ <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:componente_editar' m.pk f.pk c.pk %}">Editar</a>
+ {% if not travada %}<form method="post" action="{% url 'diario:componente_excluir' m.pk f.pk c.pk %}" class="d-inline" onsubmit="return confirm('Remover o componente?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</div></div>
+{% empty %}<div class="card"><div class="card-body text-center text-muted">Nenhuma fase ainda. Use "Gerar fases" para criar automaticamente conforme o tipo escolhido.</div></div>{% endfor %}
+
+<div class="card mt-3"><div class="card-body small">
+<strong>Como escrever fórmulas</strong> — operadores <code>+ - * / ** ( )</code>, comparações <code>&lt; &lt;= &gt; &gt;= == !=</code>, <code>and</code>/<code>or</code>; funções <code>MAX MIN MEDIA SOMA ABS ARRED SE</code>. Use ponto nos decimais.<br>
+Na fase: siglas dos componentes (ex.: <code>ATV + PROVA</code>). Na média anual: <code>B1, B2... MA MP SOMA N MAXIMA</code>. Na recuperação final: <code>MF RF MA MP MAXIMA</code>. Exemplo: <code>SE(MF &gt;= 6, MF, (MF + RF) / 2)</code>.</div></div>
+{% endblock %}

@@ -9,7 +9,7 @@ Observação: `bulk_create`/`update` não disparam este gatilho; nesses pontos u
 from django.core.exceptions import SuspiciousOperation
 from django.db.models.signals import pre_save
 
-APPS_DE_NEGOCIO = {"core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente"}
+APPS_DE_NEGOCIO = {"core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente", "diario"}
 # Tabelas compartilhadas por todas as escolas (administradas somente pelo administrador do sistema).
 GLOBAIS = {"academic.seriereferencia", "core.instituicao", "billing.titulosimulado"}
 

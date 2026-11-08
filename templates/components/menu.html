@@ -2,6 +2,25 @@
 {% if instituicao_atual %}
 <a class="nav-link {% if rm.app_name == 'core' and rm.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
 
+{% if perms.diario.usar_diario_professor and not perms.diario.coordenar_diario %}
+<div class="nav-section">Diário de classe</div>
+<a class="nav-link {% if rm.app_name == 'diario' and rm.url_name != 'relatorios' and rm.url_name != 'relatorio' %}active{% endif %}" href="{% url 'diario:painel' %}"><i class="bi bi-journal-bookmark"></i> Meu diário</a>
+<a class="nav-link {% if rm.url_name == 'relatorios' or rm.url_name == 'relatorio' %}active{% endif %}" href="{% url 'diario:relatorios' %}"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
+{% endif %}
+{% if perms.diario.coordenar_diario %}
+<div class="nav-section">Coordenação pedagógica</div>
+<a class="nav-link {% if rm.url_name == 'coordenacao' %}active{% endif %}" href="{% url 'diario:coordenacao' %}"><i class="bi bi-clipboard-data"></i> Painel</a>
+{% if perms.diario.gerenciar_alocacoes %}<a class="nav-link {% if 'alocac' in rm.url_name %}active{% endif %}" href="{% url 'diario:alocacoes' %}"><i class="bi bi-person-lines-fill"></i> Alocação de professores</a>{% endif %}
+<a class="nav-link {% if rm.url_name == 'aulas_coordenacao' %}active{% endif %}" href="{% url 'diario:aulas_coordenacao' %}"><i class="bi bi-calendar-check"></i> Aulas registradas</a>
+<a class="nav-link {% if rm.url_name == 'planejamentos_coordenacao' %}active{% endif %}" href="{% url 'diario:planejamentos_coordenacao' %}"><i class="bi bi-list-check"></i> Planejamentos</a>
+<a class="nav-link {% if rm.url_name == 'pendencias' %}active{% endif %}" href="{% url 'diario:pendencias' %}"><i class="bi bi-exclamation-circle"></i> Pendências</a>
+<a class="nav-link {% if rm.url_name == 'fechamento' %}active{% endif %}" href="{% url 'diario:fechamento' %}"><i class="bi bi-lock"></i> Fechamento</a>
+<a class="nav-link {% if rm.url_name == 'disciplinas' or rm.url_name == 'disciplina_nova' or rm.url_name == 'disciplina_editar' %}active{% endif %}" href="{% url 'diario:disciplinas' %}"><i class="bi bi-book"></i> Disciplinas</a>
+<a class="nav-link {% if 'periodo' in rm.url_name or rm.url_name == 'criar_bimestres' %}active{% endif %}" href="{% url 'diario:periodos' %}"><i class="bi bi-calendar3-range"></i> Períodos letivos</a>
+<a class="nav-link {% if rm.url_name == 'criterios' %}active{% endif %}" href="{% url 'diario:criterios' %}"><i class="bi bi-sliders"></i> Critérios</a>
+<a class="nav-link {% if rm.url_name == 'relatorios' or rm.url_name == 'relatorio' %}active{% endif %}" href="{% url 'diario:relatorios' %}"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</a>
+{% endif %}
+
 {% if perms.students.view_aluno or perms.academic.view_turma or perms.enrollments.view_matricula %}
 <div class="nav-section">Secretaria</div>
 {% if perms.students.view_aluno %}<a class="nav-link {% if rm.app_name == 'students' and 'aluno' in rm.url_name %}active{% endif %}" href="{% url 'students:aluno_lista' %}"><i class="bi bi-people"></i> Alunos</a>{% endif %}
@@ -42,5 +61,6 @@
 <div class="nav-section">Sistema</div>
 <a class="nav-link {% if rm.app_name == 'core' and 'escola' in rm.url_name %}active{% endif %}" href="{% url 'core:escola_lista' %}"><i class="bi bi-buildings"></i> Escolas</a>
 <a class="nav-link {% if rm.app_name == 'academic' and 'serie_ref' in rm.url_name %}active{% endif %}" href="{% url 'academic:serie_ref_lista' %}"><i class="bi bi-table"></i> Séries de referência</a>
+{% if modo_suporte %}<a class="nav-link {% if rm.app_name == 'diario' and 'modelo' in rm.url_name or rm.url_name == 'fase_nova' %}active{% endif %}" href="{% url 'diario:modelos' %}"><i class="bi bi-sliders"></i> Modelos de avaliação</a>{% endif %}
 {% endif %}
 {% endwith %}

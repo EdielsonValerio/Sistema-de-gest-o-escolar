@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load static %}
 {% block title %}Entrar{% endblock %}
 {% block anon %}
@@ -22,7 +23,7 @@
         <label class="form-label" for="id_escola">Escola</label>
         <select class="form-select {% if form.escola.errors %}is-invalid{% endif %}" name="escola" id="id_escola" required autofocus>
           <option value="">Selecione a escola…</option>
-          {% for e in escolas %}<option value="{{ e.pk }}" data-logo="{{ e.logo }}" {% if e.pk|stringformat:"s" == escola_sel %}selected{% endif %}>{{ e.nome }}</option>{% endfor %}
+          {% for e in escolas %}<option value="{{ e.pk|unlocalize }}" data-logo="{{ e.logo }}" {% if e.pk|stringformat:"s" == escola_sel %}selected{% endif %}>{{ e.nome }}</option>{% endfor %}
         </select>
         {% for e in form.escola.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
       </div>

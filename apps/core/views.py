@@ -26,6 +26,12 @@ class DashboardView(AcessoMixin, TemplateView):
         if (u.is_authenticated and u.is_superuser and getattr(u, "perfil", None) is None
                 and getattr(request, "instituicao", None) is None):
             return redirect("core:escola_lista")  # administrador do sistema não tem escola/dashboard
+        if u.is_authenticated and not u.is_superuser:
+            grupos = set(u.groups.values_list("name", flat=True))
+            if grupos == {"Professor"}:
+                return redirect("diario:painel")
+            if grupos and grupos <= {"Coordenador", "Professor"}:
+                return redirect("diario:coordenacao")
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kw):

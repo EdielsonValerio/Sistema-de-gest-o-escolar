@@ -16,6 +16,7 @@ urlpatterns = [
     path("", include("apps.documents.urls")),
     path("", include("apps.billing.urls")),
     path("", include("apps.assistente.urls")),
+    path("", include("apps.diario.urls")),
 ]
 
 if settings.DEBUG:  # fotos enviadas (somente desenvolvimento; em produção sirva MEDIA_ROOT pelo servidor web)

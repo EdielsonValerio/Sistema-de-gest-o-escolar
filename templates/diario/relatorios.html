@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Relatórios pedagógicos{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">Relatórios pedagógicos</h1><p class="page-sub">Visualize na tela ou exporte em PDF.</p></div>
+<div class="list-group">{% for cod, nome in lista %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'diario:relatorio' cod %}"><span>{{ nome }}</span><i class="bi bi-chevron-right"></i></a>{% endfor %}</div>
+{% endblock %}

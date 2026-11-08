@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Pendências dos diários{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">Pendências dos diários</h1><p class="page-sub">Onde falta alocação ou registro.</p></div>
+<div class="row g-3">
+<div class="col-lg-4"><div class="card"><div class="card-header">Turmas sem professor alocado ({{ turmas_sem_professor|length }})</div><ul class="list-group list-group-flush">
+{% for t in turmas_sem_professor %}<li class="list-group-item d-flex justify-content-between">{{ t.nome }}<a href="{% url 'diario:alocacao_nova' %}?turma={{ t.pk|unlocalize }}">Alocar</a></li>{% empty %}<li class="list-group-item text-muted">Nenhuma.</li>{% endfor %}</ul></div></div>
+<div class="col-lg-4"><div class="card"><div class="card-header">Sem nenhuma aula registrada ({{ sem_registro|length }})</div><ul class="list-group list-group-flush">
+{% for a in sem_registro %}<li class="list-group-item">{{ a.turma.nome }} · {{ a.disciplina.nome }}<div class="small text-muted">{{ a.professor.get_full_name|default:a.professor.perfil.login }}</div></li>{% empty %}<li class="list-group-item text-muted">Nenhum.</li>{% endfor %}</ul></div></div>
+<div class="col-lg-4"><div class="card"><div class="card-header">Aulas em rascunho/correção ({{ com_pendencia|length }})</div><ul class="list-group list-group-flush">
+{% for a in com_pendencia %}<li class="list-group-item">{{ a.turma.nome }} · {{ a.disciplina.nome }} <span class="badge text-bg-warning">{{ a.n_rasc }}</span><div class="small text-muted">{{ a.professor.get_full_name|default:a.professor.perfil.login }}</div></li>{% empty %}<li class="list-group-item text-muted">Nenhuma.</li>{% endfor %}</ul></div></div>
+</div>
+{% endblock %}

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "apps.payables",
     "apps.billing",
     "apps.assistente",
+    "apps.diario",
 ]
 
 MIDDLEWARE = [

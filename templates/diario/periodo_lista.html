@@ -1,0 +1,8 @@
+{% extends "generic/lista.html" %}
+{% block title %}Períodos letivos{% endblock %}
+{% block acoes %}<a class="btn btn-primary" href="{% url 'diario:periodo_novo' %}"><i class="bi bi-plus-lg"></i> Novo período</a>{% endblock %}
+{% block filtros %}{% if anos %}<div class="card card-body mb-3"><div class="small text-muted mb-1">Criar 4 bimestres automaticamente para um ano letivo sem períodos:</div><div class="d-flex gap-2 flex-wrap">
+{% for a in anos %}<form method="post" action="{% url 'diario:criar_bimestres' a.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{{ a.nome }}</button></form>{% endfor %}</div></div>{% endif %}{% endblock %}
+{% block thead %}<tr><th>Ano letivo</th><th>Período</th><th>Início</th><th>Término</th><th></th></tr>{% endblock %}
+{% block tbody %}{% for p in object_list %}<tr><td>{{ p.ano_letivo.ano }}</td><td>{{ p.nome }}</td><td>{{ p.data_inicio|date:"d/m/Y" }}</td><td>{{ p.data_fim|date:"d/m/Y" }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:periodo_editar' p.pk %}">Editar</a></td></tr>
+{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">Nenhum período cadastrado.</td></tr>{% endfor %}{% endblock %}

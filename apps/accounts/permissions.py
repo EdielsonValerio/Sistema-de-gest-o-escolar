@@ -2,9 +2,9 @@
 from django.contrib.auth.models import Group, Permission
 from django.db.models import Q
 
-APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente"]
+APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente", "diario"]
 
-PERFIS = ["Administrador", "Secretaria", "Financeiro", "Consulta"]
+PERFIS = ["Administrador", "Secretaria", "Financeiro", "Consulta", "Professor", "Coordenador"]
 
 
 def _codes(app, *nomes):
@@ -70,7 +70,16 @@ def permissoes_por_perfil():
         + ver("billing", "cobranca") + _codes("billing", "gerar_boleto", "cancelar_boleto")
         + _codes("assistente", "usar_assistente")
     )
-    return {"Secretaria": secretaria, "Financeiro": financeiro, "Consulta": consulta}
+    # Professor: só o próprio ambiente pedagógico (turmas/disciplinas alocadas). Sem cadastro geral, sem financeiro.
+    professor = _codes("diario", "usar_diario_professor")
+    # Coordenador: acompanhamento pedagógico e alocação de professores; consulta turmas e alunos, sem CPF completo.
+    coordenador = (
+        _codes("diario", "coordenar_diario", "gerenciar_alocacoes")
+        + ver("students", "aluno") + ver("academic", "anoletivo", "serieofertada", "turma")
+        + ver("enrollments", "matricula")
+    )
+    return {"Secretaria": secretaria, "Financeiro": financeiro, "Consulta": consulta, "Professor": professor,
+            "Coordenador": coordenador}
 
 
 def sincronizar_perfis(**kwargs):

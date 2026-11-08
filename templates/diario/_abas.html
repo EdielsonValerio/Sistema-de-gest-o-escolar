@@ -1,0 +1,14 @@
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div><h1 class="h4 page-title">{{ alocacao.disciplina }} — {{ alocacao.turma }}</h1>
+  <p class="page-sub">{{ alocacao.ano_letivo }} · <a href="{% url 'diario:painel' %}">Minhas turmas</a>{% if alocacao.situacao != 'ATIVA' %} · <span class="badge text-bg-secondary">Alocação encerrada (somente consulta)</span>{% endif %}</p></div>
+</div>
+<ul class="nav nav-tabs mb-3">
+  {% with rm=request.resolver_match.url_name %}
+  <li class="nav-item"><a class="nav-link {% if rm == 'diario' %}active{% endif %}" href="{% url 'diario:diario' alocacao.pk %}">Resumo</a></li>
+  <li class="nav-item"><a class="nav-link {% if 'aula' in rm %}active{% endif %}" href="{% url 'diario:aulas' alocacao.pk %}">Aulas</a></li>
+  <li class="nav-item"><a class="nav-link {% if rm == 'frequencia' %}active{% endif %}" href="{% url 'diario:frequencia' alocacao.pk %}">Frequência</a></li>
+  <li class="nav-item"><a class="nav-link {% if rm == 'avaliacoes' or rm == 'notas' or rm == 'avaliacao_nova' %}active{% endif %}" href="{% url 'diario:avaliacoes' alocacao.pk %}">Avaliações e notas</a></li>
+  <li class="nav-item"><a class="nav-link {% if rm == 'desempenho' %}active{% endif %}" href="{% url 'diario:desempenho' alocacao.pk %}">Desempenho</a></li>
+  <li class="nav-item"><a class="nav-link {% if 'planejamento' in rm %}active{% endif %}" href="{% url 'diario:planejamentos' alocacao.pk %}">Planejamento</a></li>
+  {% endwith %}
+</ul>

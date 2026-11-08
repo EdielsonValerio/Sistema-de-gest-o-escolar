@@ -1,4 +1,5 @@
 {% extends "generic/lista.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}Planos financeiros{% endblock %}
 {% block content %}
@@ -8,7 +9,7 @@
 {% block filtros %}
 <form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
   <div class="col-md-4"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Nome do plano ou da turma"></div>
-  <div class="col-md-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk|unlocalize }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
   <div class="col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao"><option value="">Todas</option><option value="ATIVO" {% if filtros.situacao == 'ATIVO' %}selected{% endif %}>Ativo</option><option value="INATIVO" {% if filtros.situacao == 'INATIVO' %}selected{% endif %}>Inativo</option></select></div>
   <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
 </div></form>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Modelos de avaliação{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div><h1 class="h4 page-title">Modelos de avaliação</h1>
+  <p class="page-sub">Parametrização das fases, composição de notas, recuperações e aprovação de <strong>{{ instituicao_atual.nome }}</strong>. Cada modelo vale para um ano letivo e para as séries escolhidas.</p></div>
+  <a class="btn btn-primary" href="{% url 'diario:modelo_novo' %}"><i class="bi bi-plus-lg"></i> Novo modelo (em branco)</a>
+</div>
+<div class="card mb-3"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+<thead><tr><th>Modelo</th><th>Ano</th><th>Fases</th><th>Séries</th><th>Nota mínima</th><th>Situação</th><th></th></tr></thead><tbody>
+{% for m in modelos %}<tr><td>{{ m.nome }}</td><td>{{ m.ano_letivo.ano }}</td><td>{{ m.get_tipo_fase_display }} · {{ m.fases.all|length }}</td>
+<td>{% for s in m.series.all %}<span class="badge text-bg-light border">{{ s.nome }}</span> {% empty %}<span class="text-muted small">todas as séries sem modelo próprio</span>{% endfor %}</td>
+<td>{{ m.media_aprovacao }} de {{ m.nota_maxima }}</td>
+<td><span class="badge text-bg-{% if m.situacao == 'PUBLICADO' %}success{% else %}secondary{% endif %}">{{ m.get_situacao_display }}</span></td>
+<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:modelo' m.pk %}">Abrir</a></td></tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhum modelo. Sem modelo publicado, vale a regra padrão da escola (média 6,0 / frequência 75%).</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-header">Começar de um modelo pronto</div><div class="card-body">
+<form method="post" novalidate data-once>{% csrf_token %}
+{% include "components/form_fields.html" with form=preset_form %}
+<div class="mt-3"><button class="btn btn-outline-primary"><i class="bi bi-magic"></i> Criar a partir do modelo pronto</button></div></form></div></div>
+{% endblock %}

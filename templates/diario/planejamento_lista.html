@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Planejamento{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+<div class="d-flex justify-content-end mb-2"><a class="btn btn-primary" href="{% url 'diario:planejamento_novo' alocacao.pk %}"><i class="bi bi-plus-lg"></i> Novo planejamento</a></div>
+{% for p in planos %}<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><strong>{{ p.get_tipo_display }}</strong>{% if p.periodo %} · {{ p.periodo.nome }}{% endif %}</span>
+<a class="btn btn-sm btn-outline-primary" href="{% url 'diario:planejamento_editar' alocacao.pk p.pk %}">Editar</a></div>
+<div class="card-body row g-3">
+<div class="col-lg-6"><div class="small text-muted">Conteúdos previstos</div><div style="white-space:pre-wrap">{{ p.conteudos_previstos }}</div>
+ {% if p.objetivos %}<div class="small text-muted mt-2">Objetivos de aprendizagem</div><div style="white-space:pre-wrap">{{ p.objetivos }}</div>{% endif %}
+ {% if p.metodologias %}<div class="small text-muted mt-2">Metodologias</div><div style="white-space:pre-wrap">{{ p.metodologias }}</div>{% endif %}
+ {% if p.habilidades or p.bncc %}<div class="small text-muted mt-2">Habilidades e competências{% if p.bncc %} · BNCC: {{ p.bncc }}{% endif %}</div><div style="white-space:pre-wrap">{{ p.habilidades }}</div>{% endif %}</div>
+<div class="col-lg-6"><div class="small text-muted">Conteúdos ministrados ({{ p.ministrados|length }} aula(s) finalizada(s))</div>
+ <ul class="mb-0 ps-3">{% for au in p.ministrados %}<li>{{ au.data|date:"d/m" }} — {{ au.conteudo|truncatechars:90 }}</li>{% empty %}<li class="text-muted">Nenhuma aula finalizada ainda.</li>{% endfor %}</ul></div>
+</div></div>{% empty %}<div class="card card-body text-center text-muted">Nenhum planejamento cadastrado.</div>{% endfor %}
+{% endblock %}

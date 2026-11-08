@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Registro de aula{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+{% if aula and aula.status == 'CORRECAO' %}<div class="alert alert-danger"><strong>Correção solicitada pela coordenação:</strong> {{ aula.motivo_correcao }}</div>{% endif %}
+{% if somente_leitura %}<div class="alert alert-info">Aula finalizada: somente leitura. Para alterar, peça uma correção à coordenação.</div>{% endif %}
+<form method="post" novalidate data-once>{% csrf_token %}
+<fieldset {% if somente_leitura %}disabled{% endif %}>
+<div class="card mb-3"><div class="card-header">Dados da aula</div><div class="card-body">{% include "components/form_fields.html" %}</div></div>
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span>Frequência (chamada)</span>
+  <span><button type="button" class="btn btn-sm btn-outline-success" id="todos-presentes">Marcar todos como presentes</button></span></div>
+<div class="table-responsive"><table class="table mb-0 align-middle">
+<thead><tr><th>Aluno</th><th class="text-center">Presente</th><th class="text-center">Falta</th><th class="text-center">Justificada</th></tr></thead><tbody>
+{% for l in linhas %}<tr><td>{{ l.m.aluno.nome }}</td>
+ <td class="text-center"><input type="radio" class="form-check-input" name="freq_{{ l.m.pk|unlocalize }}" value="P" {% if l.sit == 'P' %}checked{% endif %}></td>
+ <td class="text-center"><input type="radio" class="form-check-input" name="freq_{{ l.m.pk|unlocalize }}" value="F" {% if l.sit == 'F' %}checked{% endif %}></td>
+ <td class="text-center"><input type="radio" class="form-check-input" name="freq_{{ l.m.pk|unlocalize }}" value="J" {% if l.sit == 'J' %}checked{% endif %}></td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Não há alunos com matrícula ativa nesta turma.</td></tr>{% endfor %}</tbody></table></div></div>
+</fieldset>
+<div class="d-flex gap-2 justify-content-end">
+  <a class="btn btn-outline-secondary" href="{% url 'diario:aulas' alocacao.pk %}">Voltar</a>
+  {% if not somente_leitura %}<button class="btn btn-outline-primary" type="submit" name="acao" value="rascunho">Salvar rascunho</button>
+  <button class="btn btn-primary" type="submit" name="acao" value="finalizar"><i class="bi bi-check2"></i> Finalizar aula</button>{% endif %}
+</div></form>
+{% endblock %}
+{% block scripts %}<script>document.getElementById("todos-presentes").addEventListener("click",function(){document.querySelectorAll('input[type=radio][value=P]').forEach(function(r){r.checked=true;});});</script>{% endblock %}

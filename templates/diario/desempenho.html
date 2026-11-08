@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Desempenho{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+<p class="small text-muted">
+{% if modelo %}Modelo de avaliação: <strong>{{ modelo.nome }}</strong> · nota mínima {{ media_minima }} · frequência mínima {{ freq_minima }}%. As notas e a situação seguem as regras definidas para esta série.
+{% else %}Média mínima {{ media_minima }} · frequência mínima {{ freq_minima }}%. A média do período é ponderada pelo peso; a recuperação substitui a média quando é maior.{% endif %}</p>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+<thead><tr><th>Aluno</th>{% for p in periodos %}<th class="text-end">{{ p.nome }}</th>{% endfor %}{% if tem_rec_final %}<th class="text-end">Rec. final</th>{% endif %}<th class="text-end">{% if modelo %}Média final{% else %}Média final{% endif %}</th><th class="text-end">Frequência</th><th>Situação</th></tr></thead><tbody>
+{% for l in linhas %}<tr><td>{{ l.aluno.nome }}</td>{% for m in l.medias %}<td class="text-end">{{ m|default_if_none:"—" }}</td>{% endfor %}
+{% if tem_rec_final %}<td class="text-end">{{ l.rec_final|default_if_none:"—" }}</td>{% endif %}
+<td class="text-end"><strong>{{ l.media_final|default_if_none:"—" }}</strong>{% if l.parcial %} <span class="text-muted small" title="Parcial: ainda faltam fases">(parcial)</span>{% endif %}</td><td class="text-end">{% if l.frequencia is not None %}{{ l.frequencia }}%{% else %}—{% endif %}</td>
+<td><span class="badge text-bg-{% if l.situacao == 'Aprovado' or l.situacao == 'Aprovado na recuperação final' %}success{% elif l.situacao == 'Sem notas' or l.situacao == 'Em andamento' %}secondary{% elif l.situacao == 'Recuperação final' %}warning{% else %}danger{% endif %}">{{ l.situacao }}</span></td></tr>
+{% empty %}<tr><td colspan="12" class="text-center text-muted py-4">Sem alunos.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

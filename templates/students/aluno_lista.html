@@ -1,4 +1,5 @@
 {% extends "generic/lista.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}Alunos{% endblock %}
 {% block content %}
@@ -10,9 +11,9 @@
   <div class="row g-2 align-items-end">
     <div class="col-lg-5"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Código, nome, CPF, matrícula, nome da mãe ou do responsável financeiro" autofocus></div>
     <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-s">Cadastro</label><select id="f-s" class="form-select" name="situacao"><option value="">Todos</option><option value="ativo" {% if filtros.situacao == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filtros.situacao == 'inativo' %}selected{% endif %}>Inativo</option></select></div>
-    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
-    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-se">Série</label><select id="f-se" class="form-select" name="serie"><option value="">Todas</option>{% for s in series %}<option value="{{ s.pk }}" {% if filtros.serie == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>{% endfor %}</select></div>
-    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk|unlocalize }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-se">Série</label><select id="f-se" class="form-select" name="serie"><option value="">Todas</option>{% for s in series %}<option value="{{ s.pk|unlocalize }}" {% if filtros.serie == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk|unlocalize }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
     <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-m">Situação da matrícula</label><select id="f-m" class="form-select" name="situacao_matricula"><option value="">Todas</option>{% for v, l in status_matricula %}<option value="{{ v }}" {% if filtros.situacao_matricula == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
     <div class="col-12 col-lg-3 d-flex align-items-center gap-3">
       <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="sem_matricula" value="1" id="f-sm" {% if filtros.sem_matricula %}checked{% endif %}><label class="form-check-label small" for="f-sm">Somente sem matrícula</label></div>

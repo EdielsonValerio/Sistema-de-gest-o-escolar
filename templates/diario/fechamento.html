@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Fechamento dos diários{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">Fechamento dos diários por período</h1><p class="page-sub">O professor fecha o seu diário; a coordenação pode reabrir informando o motivo.</p></div>
+<div class="card"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead><tr><th>Turma</th><th>Disciplina</th><th>Professor</th><th>Períodos</th></tr></thead><tbody>
+{% for l in linhas %}<tr><td>{{ l.a.turma.nome }}</td><td>{{ l.a.disciplina.nome }}</td><td>{{ l.a.professor.get_full_name|default:l.a.professor.perfil.login }}</td>
+<td>{% for c in l.cel %}<div class="mb-1"><span class="small">{{ c.p.nome }}</span> {% if c.fechado %}<span class="badge text-bg-secondary">Fechado</span>
+ <form class="d-inline-flex gap-1 ms-1" method="post" action="{% url 'diario:reabrir' c.f.pk %}">{% csrf_token %}<input class="form-control form-control-sm" name="motivo" placeholder="Motivo" required maxlength="255"><button class="btn btn-sm btn-outline-danger">Reabrir</button></form>
+ {% else %}<span class="badge text-bg-success">Aberto</span>{% endif %}</div>{% endfor %}</td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted py-4">Sem alocações ativas.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

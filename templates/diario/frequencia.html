@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Frequência{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+{% if baixa %}<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> <strong>{{ baixa|length }}</strong> aluno(s) com frequência abaixo de {{ minima }}%.</div>{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+<thead><tr><th>Aluno</th><th class="text-end">Aulas</th><th class="text-end">Faltas</th><th class="text-end">Frequência</th></tr></thead><tbody>
+{% for l in linhas %}<tr class="{% if l.baixa_frequencia %}table-warning{% endif %}"><td>{{ l.aluno.nome }}</td><td class="text-end">{{ l.aulas }}</td><td class="text-end">{{ l.faltas }}</td><td class="text-end">{% if l.frequencia is not None %}{{ l.frequencia }}%{% else %}—{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted py-4">Sem alunos.</td></tr>{% endfor %}</tbody></table></div></div>
+<p class="small text-muted mt-2">Contam apenas aulas finalizadas. Falta justificada é abonada no cálculo.</p>
+{% endblock %}

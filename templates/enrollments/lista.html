@@ -1,4 +1,5 @@
 {% extends "generic/lista.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}Matrículas{% endblock %}
 {% block content %}
@@ -10,8 +11,8 @@
   <div class="col-md-3"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ filtros.q }}" placeholder="Aluno, código ou número"></div>
   <div class="col-md-2"><label class="form-label small mb-1" for="f-t">Tipo</label><select id="f-t" class="form-select" name="tipo"><option value="">Todos</option><option value="OFICIAL" {% if filtros.tipo == 'OFICIAL' %}selected{% endif %}>Oficial</option><option value="NAO_OFICIAL" {% if filtros.tipo == 'NAO_OFICIAL' %}selected{% endif %}>Não oficial</option></select></div>
   <div class="col-md-2"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="status"><option value="">Todas</option>{% for v, l in status_opcoes %}<option value="{{ v }}" {% if filtros.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
-  <div class="col-md-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
-  <div class="col-md-3"><label class="form-label small mb-1" for="f-tu">Turma</label><select id="f-tu" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk|unlocalize }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-tu">Turma</label><select id="f-tu" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk|unlocalize }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
   <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button> {% if tem_filtro %}<a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
 </div></form>
 {% endblock %}

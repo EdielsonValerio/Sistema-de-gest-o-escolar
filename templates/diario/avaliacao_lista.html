@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Avaliações{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+<div class="d-flex justify-content-end mb-2"><a class="btn btn-primary" href="{% url 'diario:avaliacao_nova' alocacao.pk %}"><i class="bi bi-plus-lg"></i> Nova avaliação</a></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+<thead><tr><th>Avaliação</th><th>Período</th><th>Data</th><th class="text-end">Nota máx.</th><th class="text-end">Peso</th><th class="text-end">Notas lançadas</th><th></th></tr></thead><tbody>
+{% for a in avaliacoes %}<tr><td>{{ a.titulo }}{% if a.tipo == 'RECUPERACAO' %} <span class="badge text-bg-info">Recuperação</span>{% elif a.tipo == 'REC_FINAL' %} <span class="badge text-bg-warning">Rec. final</span>{% endif %}{% if a.componente %} <span class="badge text-bg-light border">{{ a.componente.nome }}</span>{% endif %}</td><td>{{ a.periodo.nome }}</td><td>{{ a.data|date:"d/m/Y" }}</td><td class="text-end">{{ a.nota_maxima }}</td><td class="text-end">{{ a.peso }}</td><td class="text-end">{{ a.lancadas }}</td>
+<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:notas' alocacao.pk a.pk %}">Lançar notas</a></td></tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma avaliação cadastrada.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

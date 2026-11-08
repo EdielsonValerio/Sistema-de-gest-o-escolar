@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Simulador{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">Simulador — {{ m.nome }}</h1>
+<p class="page-sub"><a href="{% url 'diario:modelo' m.pk %}">Voltar ao modelo</a> · Informe as notas de um aluno fictício e veja o resultado conforme as regras configuradas (nada é gravado).</p></div>
+{% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+<form method="post" novalidate>{% csrf_token %}
+<div class="card mb-3"><div class="card-body"><div class="row g-3">
+{% for f in fases %}<div class="col-lg-6"><div class="border rounded p-2 h-100"><strong>{{ f.nome }}</strong>
+ {% for c in f.componentes.all %}<div class="mt-2"><label class="form-label small mb-0">{{ c.nome }} (até {{ c.valor_maximo }})</label><input class="form-control form-control-sm" name="c_{{ c.pk }}" value="{{ c.v }}"></div>{% empty %}
+ <div class="mt-2"><label class="form-label small mb-0">Nota da fase (0 a {{ m.nota_maxima }})</label><input class="form-control form-control-sm" name="f_{{ f.pk }}" value="{{ f.v_nota }}"></div>{% endfor %}
+ {% if m.usa_rec_parcial %}<div class="mt-2"><label class="form-label small mb-0">Recuperação da fase (opcional)</label><input class="form-control form-control-sm" name="rp_{{ f.pk }}" value="{{ f.v_rp }}"></div>{% endif %}
+</div></div>{% endfor %}
+{% if m.usa_rec_final %}<div class="col-lg-6"><label class="form-label small mb-0">Recuperação final (opcional)</label><input class="form-control form-control-sm" name="rf" value="{{ dados.rf }}"></div>{% endif %}
+<div class="col-lg-6"><label class="form-label small mb-0">Frequência do aluno (%)</label><input class="form-control form-control-sm" name="freq" value="{{ dados.freq }}" placeholder="ex.: 90"></div>
+</div></div><div class="card-footer bg-white"><button class="btn btn-primary"><i class="bi bi-calculator"></i> Calcular</button></div></div></form>
+{% if resultado %}<div class="card"><div class="card-header">Resultado</div><div class="card-body">
+<table class="table table-sm"><thead><tr><th>Fase</th><th class="text-end">Nota calculada</th><th class="text-end">Após recuperação</th></tr></thead><tbody>
+{% for r in resultado.fases %}<tr><td>{{ r.fase.nome }}</td><td class="text-end">{{ r.bruta|default_if_none:"—" }}</td><td class="text-end">{{ r.final|default_if_none:"—" }}</td></tr>{% endfor %}</tbody></table>
+<div>Média anual: <strong>{{ resultado.media_anual|default_if_none:"—" }}</strong>{% if resultado.rec_final is not None %} · Média após recuperação final: <strong>{{ resultado.media_final }}</strong>{% endif %}</div>
+<div class="mt-2 fs-5">Situação: <span class="badge text-bg-{% if 'Aprovado' in resultado.situacao %}success{% elif resultado.situacao == 'Recuperação final' %}warning{% elif resultado.situacao == 'Sem notas' or resultado.situacao == 'Em andamento' %}secondary{% else %}danger{% endif %}">{{ resultado.situacao }}</span></div>
+{% if resultado.parcial %}<div class="small text-muted mt-1">Faltam notas em alguma fase: a média anual só é calculada com todas as fases.</div>{% endif %}</div></div>{% endif %}
+{% endblock %}

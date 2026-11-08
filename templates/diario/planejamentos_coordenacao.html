@@ -1,0 +1,6 @@
+{% extends "generic/lista.html" %}
+{% block title %}Planejamentos{% endblock %}
+{% block thead %}<tr><th>Turma</th><th>Disciplina</th><th>Professor</th><th>Tipo</th><th>Conteúdos previstos</th><th class="text-end">Aulas finalizadas</th></tr>{% endblock %}
+{% block tbody %}{% for p in object_list %}<tr><td>{{ p.alocacao.turma.nome }}</td><td>{{ p.alocacao.disciplina.nome }}</td><td>{{ p.alocacao.professor.get_full_name|default:p.alocacao.professor.perfil.login }}</td>
+<td>{{ p.get_tipo_display }}{% if p.periodo %} · {{ p.periodo.nome }}{% endif %}</td><td>{{ p.conteudos_previstos|truncatechars:120 }}</td><td class="text-end">{{ p.n_aulas }}</td></tr>
+{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhum planejamento cadastrado pelos professores.</td></tr>{% endfor %}{% endblock %}

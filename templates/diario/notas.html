@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Notas{% endblock %}
+{% block content %}
+{% include "diario/_abas.html" %}
+<h2 class="h5">{{ av.titulo }} <small class="text-muted">· {{ av.periodo.nome }} · nota máxima {{ av.nota_maxima }} · peso {{ av.peso }}</small></h2>
+{% if fechado %}<div class="alert alert-info">O diário deste período está fechado: notas somente leitura.</div>{% endif %}
+<form method="post" novalidate data-once>{% csrf_token %}
+<div class="card"><div class="table-responsive"><table class="table mb-0 align-middle" style="max-width:640px">
+<thead><tr><th>Aluno</th><th style="width:9rem">Nota</th></tr></thead><tbody>
+{% for l in linhas %}<tr><td>{{ l.m.aluno.nome }}</td><td><input type="text" inputmode="decimal" class="form-control form-control-sm" name="nota_{{ l.m.pk|unlocalize }}" value="{{ l.valor }}" {% if fechado %}disabled{% endif %}></td></tr>
+{% empty %}<tr><td colspan="2" class="text-center text-muted py-3">Sem alunos.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="d-flex gap-2 justify-content-end mt-3"><a class="btn btn-outline-secondary" href="{% url 'diario:avaliacoes' alocacao.pk %}">Voltar</a>
+{% if not fechado %}<button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Salvar notas</button>{% endif %}</div></form>
+{% endblock %}

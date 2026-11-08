@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}Documentos — {{ alvo_nome }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap gap-2">
@@ -14,14 +15,14 @@
         {% if destinatario == 'RESPONSAVEL' %}
         <div class="card-body border-bottom">
           <label class="form-label" for="aluno">Aluno de referência <span class="text-muted small">(opcional — preenche as variáveis do aluno)</span></label>
-          <select class="form-select" id="aluno" name="aluno"><option value="">Nenhum</option>{% for a in alunos_vinculados %}<option value="{{ a.pk }}">{{ a.nome }}</option>{% endfor %}</select>
+          <select class="form-select" id="aluno" name="aluno"><option value="">Nenhum</option>{% for a in alunos_vinculados %}<option value="{{ a.pk|unlocalize }}">{{ a.nome }}</option>{% endfor %}</select>
         </div>
         {% endif %}
         <ul class="list-group list-group-flush">
           {% for m in modelos %}
           <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
             <span><strong>{{ m.nome }}</strong><br><small class="text-muted">{{ m.get_tipo_display }}</small></span>
-            <button class="btn btn-sm btn-primary" type="submit" name="modelo" value="{{ m.pk }}"><i class="bi bi-file-earmark-text"></i> Gerar</button>
+            <button class="btn btn-sm btn-primary" type="submit" name="modelo" value="{{ m.pk|unlocalize }}"><i class="bi bi-file-earmark-text"></i> Gerar</button>
           </li>
           {% endfor %}
         </ul>

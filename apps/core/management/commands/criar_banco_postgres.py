@@ -35,9 +35,11 @@ class Command(BaseCommand):
         try:
             con = psycopg2.connect(dbname="postgres", user=opts["admin_user"], password=admin_senha,
                                    host=cfg["HOST"] or "localhost", port=cfg["PORT"] or 5432)
-        except psycopg2.OperationalError as exc:
+        except (psycopg2.OperationalError, UnicodeDecodeError) as exc:
             raise CommandError(f"Não foi possível conectar ao PostgreSQL em {cfg['HOST']}:{cfg['PORT']}. "
-                               f"Confira se ele está instalado e em execução e se a senha está correta.\n{exc}") from exc
+                               "Confira: 1) o serviço do PostgreSQL está em execução; 2) a porta (DB_PORT) está correta; "
+                               "3) a senha do administrador do PostgreSQL ('postgres') está correta. "
+                               f"Veja docs/INSTALACAO_POSTGRESQL.md.\nDetalhe técnico: {exc}") from exc
         con.autocommit = True  # CREATE DATABASE não pode rodar dentro de um bloco de transação
         try:
             cur = con.cursor()

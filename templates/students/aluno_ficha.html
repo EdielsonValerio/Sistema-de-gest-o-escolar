@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}{{ aluno.nome }}{% endblock %}
 {% block content %}
@@ -11,7 +12,7 @@
   <div class="d-flex flex-wrap gap-2">
     {% if perms.students.change_aluno %}<a class="btn btn-outline-primary" href="{% url 'students:aluno_editar' aluno.pk %}"><i class="bi bi-pencil"></i> Editar cadastro</a>{% endif %}
     {% if perms.enrollments.add_matricula %}<a class="btn btn-primary" href="{% url 'enrollments:vincular' aluno.pk %}"><i class="bi bi-link-45deg"></i> Vincular a turma</a>{% endif %}
-    {% if mostrar_financeiro %}<a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}?aluno={{ aluno.pk }}&situacao=todas"><i class="bi bi-receipt"></i> Parcelas</a>{% endif %}
+    {% if mostrar_financeiro %}<a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}?aluno={{ aluno.pk|unlocalize }}&situacao=todas"><i class="bi bi-receipt"></i> Parcelas</a>{% endif %}
     {% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_aluno' aluno.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
     {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' aluno.pk %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}
   </div>

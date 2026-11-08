@@ -976,3 +976,11 @@ só no menu.
 - **Duas matrículas oficiais no mesmo ano** são proibidas por constraint, sem exceção configurável.
 - **Mídia em produção:** o Django só serve `media/` com `DEBUG=True`; em produção configure o servidor web.
 - **Segredos:** `DJANGO_SECRET_KEY` e senhas do banco ficam apenas no `.env` (que não deve ser versionado).
+
+## Módulo Diário de Classe (`apps/diario`)
+
+`models.py` (Disciplina, PeriodoLetivo, ConfiguracaoDiario, AlocacaoProfessor, Aula, Frequencia, Avaliacao, Nota, Planejamento, FechamentoDiario) · `acesso.py` (`ProfessorMixin`, `CoordenacaoMixin`) · `servicos.py` (regras e auditoria) · `calculos.py` (frequência e médias) · `relatorios.py`/`pdf.py` · `views_prof.py`, `views_coord.py`, `views_rel.py`. Templates em `templates/diario/`. Ações de auditoria: ALOCACAO_CRIADA/ENCERRADA/TROCADA, AULA_SALVA/FINALIZADA, CORRECAO_SOLICITADA, NOTAS_LANCADAS, PLANEJAMENTO_SALVO, DIARIO_FECHADO, DIARIO_REABERTO, RELATORIO_DIARIO_PDF. Testes: `tests/test_diario.py` (43).
+
+## Modelos de avaliação (`apps/diario`)
+
+`models.py`: `ModeloAvaliacao`, `ComponenteNota`, `PeriodoLetivo.modelo/peso/formula` (fase), `Avaliacao.componente` e tipo `REC_FINAL`. `formulas.py`: avaliador seguro (ast + Decimal). `motor.py`: `nota_da_fase`, `fechar` (puras, usadas também pelo simulador) e `calcular_alocacao`. `servicos.py`: `modelo_da_alocacao`, `periodos_da_alocacao`, `criterios_da_alocacao`, `gerar_fases`, `validar_modelo`, `publicar_modelo`, `despublicar_modelo`, `duplicar_modelo`, `criar_de_preset`. `calculos.desempenho_da_alocacao` delega ao motor quando há modelo publicado (senão regra padrão). `views_sistema.py`: telas do administrador (superusuário em modo suporte). Auditoria: MODELO_AVALIACAO_CRIADO/ALTERADO/PUBLICADO/DESPUBLICADO/DUPLICADO/FASES_GERADAS/FASE_SALVA/COMPONENTE_SALVO/ITEM_REMOVIDO. Testes: `tests/test_avaliacao.py` (30).

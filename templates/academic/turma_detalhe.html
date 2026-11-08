@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}{{ turma.nome }}{% endblock %}
 {% block content %}
@@ -19,7 +20,7 @@
       <dt class="col-sm-4">Numeração</dt><dd class="col-sm-8">{% if turma.exige_numero_matricula %}Gera número de matrícula/inscrição{% else %}Sem número de matrícula{% endif %}</dd>
     </dl></div></div></div>
   {% if planos is not None %}
-  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Planos financeiros {% if perms.finance.add_planofinanceiro %}<a class="btn btn-sm btn-outline-primary" href="{% url 'finance:plano_novo' %}?turma={{ turma.pk }}">Novo plano</a>{% endif %}</div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Planos financeiros {% if perms.finance.add_planofinanceiro %}<a class="btn btn-sm btn-outline-primary" href="{% url 'finance:plano_novo' %}?turma={{ turma.pk|unlocalize }}">Novo plano</a>{% endif %}</div>
     <ul class="list-group list-group-flush">
       {% for p in planos %}<li class="list-group-item d-flex justify-content-between"><span>{{ p.nome }} <span class="text-muted small">· {{ p.quantidade_parcelas }}x {{ p.valor_parcela|brl }}</span></span><span class="badge text-bg-{% if p.situacao == 'ATIVO' %}success{% else %}secondary{% endif %}">{{ p.get_situacao_display }}</span></li>
       {% empty %}<li class="list-group-item text-muted">Nenhum plano financeiro configurado.</li>{% endfor %}

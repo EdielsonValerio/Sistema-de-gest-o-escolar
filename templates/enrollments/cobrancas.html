@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load ui %}
 {% block title %}Gerar cobranças{% endblock %}
 {% block content %}
@@ -11,7 +12,7 @@
 {% include "enrollments/_plano.html" %}
 <form method="post" novalidate data-once>
   {% csrf_token %}
-  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value }}">{% endif %}
+  {% if plano_sel %}<input type="hidden" name="plano" value="{{ plano_sel.pk|unlocalize }}">{% elif form.plano.value %}<input type="hidden" name="plano" value="{{ form.plano.value|unlocalize }}">{% endif %}
   <div class="card"><div class="card-body">
     {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
     {% if form.plano.errors %}<div class="text-danger small mb-2">{{ form.plano.errors.0 }}</div>{% endif %}
