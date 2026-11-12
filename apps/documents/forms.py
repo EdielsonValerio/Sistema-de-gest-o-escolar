@@ -9,7 +9,7 @@ from .variaveis import sanitizar_html, texto_puro, variaveis_desconhecidas
 class ModeloDocumentoForm(BaseModelForm):
     class Meta:
         model = ModeloDocumento
-        fields = ["nome", "tipo", "destinatario", "usar_cabecalho", "ativo", "conteudo"]
+        fields = ["nome", "tipo", "destinatario", "usar_cabecalho", "usar_na_matricula", "ativo", "conteudo"]
         widgets = {"conteudo": forms.Textarea(attrs={"rows": 14})}
 
     def clean_conteudo(self):

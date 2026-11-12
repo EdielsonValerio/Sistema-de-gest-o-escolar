@@ -7,7 +7,7 @@
   <div class="d-flex gap-3 align-items-center">
     {% if aluno.foto %}<img src="{{ aluno.foto.url }}" alt="Foto de {{ aluno.nome }}" class="rounded" style="width:64px;height:64px;object-fit:cover">{% else %}<div class="kpi"><div class="icon" style="width:64px;height:64px"><i class="bi bi-person"></i></div></div>{% endif %}
     <div><h1 class="h4 page-title mb-0">{{ aluno.nome }}</h1>
-      <div class="text-muted">Código <code>{{ aluno.codigo }}</code> · {{ aluno.idade }} anos · <span class="badge text-bg-{% if aluno.ativo %}success{% else %}secondary{% endif %}">Cadastro {% if aluno.ativo %}ativo{% else %}inativo{% endif %}</span></div></div>
+      <div class="text-muted">Código <code>{{ aluno.codigo }}</code> · {{ aluno.idade }} anos · <span class="badge text-bg-{% if aluno.ativo %}success{% else %}secondary{% endif %}">Cadastro {% if aluno.ativo %}ativo{% else %}inativo{% endif %}</span>{% if aluno.pre_matricula_online %} <span class="badge text-bg-info">Pré-matrícula online</span>{% endif %}</div></div>
   </div>
   <div class="d-flex flex-wrap gap-2">
     {% if perms.students.change_aluno %}<a class="btn btn-outline-primary" href="{% url 'students:aluno_editar' aluno.pk %}"><i class="bi bi-pencil"></i> Editar cadastro</a>{% endif %}
@@ -17,6 +17,15 @@
     {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' aluno.pk %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}
   </div>
 </div>
+
+{% if aluno.pre_matricula_online %}
+<div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><i class="bi bi-globe2"></i> <strong>Pré-matrícula online</strong> recebida em {{ aluno.pre_matricula_em|date:"d/m/Y H:i" }}.
+    {% if aluno.serie_pretendida %}Matrícula desejada: <strong>{{ aluno.serie_pretendida.nome }}</strong>{% if aluno.ano_letivo_pretendido %} em <strong>{{ aluno.ano_letivo_pretendido.ano }}</strong>{% endif %}.{% endif %}
+    Revise os dados e conclua a matrícula vinculando o aluno a uma turma.</div>
+  {% if perms.enrollments.add_matricula %}<a class="btn btn-primary btn-sm" href="{% url 'enrollments:vincular' aluno.pk %}"><i class="bi bi-journal-check"></i> Matricular</a>{% endif %}
+</div>
+{% endif %}
 
 <ul class="nav nav-tabs mb-3" role="tablist">
   <li class="nav-item"><button class="nav-link {% if aba == 'dados' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-dados" type="button" role="tab">Dados cadastrais</button></li>

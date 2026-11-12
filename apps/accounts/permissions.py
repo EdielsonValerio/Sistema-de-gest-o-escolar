@@ -42,6 +42,7 @@ def permissoes_por_perfil():
 
     secretaria = (
         _crud("students", "aluno") + _crud("students", "responsavel") + _crud("students", "alunoresponsavelfinanceiro")
+        + [("students", "change_linkprematricula")]
         + _crud("academic", "anoletivo") + _crud("academic", "serieofertada") + _crud("academic", "turma")
         + ver("academic", "seriereferencia")
         + _crud("enrollments", "matricula")

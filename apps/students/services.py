@@ -96,3 +96,22 @@ def aplicar_responsavel_financeiro(aluno, dados, usuario):
                     complemento=dados.get("resp_complemento", ""), bairro=dados.get("resp_bairro", ""),
                     municipio=dados.get("resp_municipio", ""), uf=dados.get("resp_uf", ""))
     return definir_responsavel_financeiro(aluno, r, tipo, usuario)
+
+
+@transaction.atomic
+def cadastrar_pre_matricula(*, form, instituicao):
+    """Cria o aluno a partir do formulário público, na situação "Pré-matrícula online" (sem usuário logado)."""
+    d = form.cleaned_data
+    aluno = form.save(commit=False)
+    aluno.instituicao = instituicao
+    aluno.ativo = True
+    aluno.pre_matricula_online = True
+    aluno.pre_matricula_em = timezone.now()
+    aluno.ano_letivo_pretendido = d["ano_letivo"]
+    aluno.serie_pretendida = d["serie"]
+    cadastrar_aluno(aluno, None)
+    aplicar_responsavel_financeiro(aluno, d, None)
+    registrar(instituicao=instituicao, usuario=None, acao="PRE_MATRICULA_ONLINE", entidade="Aluno",
+              entidade_id=aluno.pk, aluno_id=aluno.pk, descricao="Pré-matrícula online recebida",
+              dados={"ano_letivo_id": d["ano_letivo"].pk, "serie_id": d["serie"].pk})
+    return aluno

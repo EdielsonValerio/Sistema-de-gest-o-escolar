@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 import os
+import secrets
 import uuid
 
 
@@ -126,6 +127,16 @@ class Aluno(models.Model):
     telefone_responsavel_legal = models.CharField("telefone do responsável legal", max_length=20, blank=True)
     observacoes_filiacao = models.TextField("observações relevantes", blank=True)
 
+    # Pré-matrícula online (cadastro feito pelo responsável por meio do link público da escola)
+    pre_matricula_online = models.BooleanField(
+        "pré-matrícula online", default=False,
+        help_text="Aluno cadastrado pelo link público e ainda não matriculado pela escola.")
+    pre_matricula_em = models.DateTimeField("pré-matrícula feita em", null=True, blank=True, editable=False)
+    ano_letivo_pretendido = models.ForeignKey("academic.AnoLetivo", null=True, blank=True, editable=False,
+                                              on_delete=models.SET_NULL, related_name="+")
+    serie_pretendida = models.ForeignKey("academic.SerieReferencia", null=True, blank=True, editable=False,
+                                         on_delete=models.SET_NULL, related_name="+")
+
     # Administrativo
     ativo = models.BooleanField("situação cadastral ativa", default=True)
     observacoes_internas = models.TextField("observações internas", blank=True)
@@ -142,6 +153,7 @@ class Aluno(models.Model):
             models.Index(fields=["instituicao", "nome"]),
             models.Index(fields=["instituicao", "cpf"]),
             models.Index(fields=["instituicao", "nome_mae"]),
+            models.Index(fields=["instituicao", "pre_matricula_online"]),
         ]
         constraints = [
             models.UniqueConstraint(fields=["instituicao", "codigo"], name="uniq_aluno_codigo"),
@@ -206,3 +218,33 @@ class AlunoResponsavelFinanceiro(models.Model):
 
     def __str__(self):
         return f"{self.aluno_id} → {self.responsavel_id} ({self.parentesco})"
+
+
+class LinkPreMatricula(models.Model):
+    """Link público (por escola) do formulário de pré-matrícula online.
+
+    O endereço contém um código aleatório, que não permite descobrir outras escolas. A escola pode desativar o
+    link ou gerar um novo código (o endereço antigo deixa de funcionar).
+    """
+
+    instituicao = models.OneToOneField("core.Instituicao", on_delete=models.CASCADE, related_name="link_pre_matricula")
+    token = models.CharField("código do link", max_length=64, unique=True, editable=False)
+    ativo = models.BooleanField("link ativo", default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "link de pré-matrícula online"
+        verbose_name_plural = "links de pré-matrícula online"
+
+    def __str__(self):
+        return f"Link de pré-matrícula de {self.instituicao}"
+
+    @staticmethod
+    def novo_token():
+        return secrets.token_urlsafe(24)
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = self.novo_token()
+        super().save(*args, **kwargs)

@@ -38,6 +38,43 @@ def _validar_capacidade(turma):
             raise ValidationError("A turma atingiu a capacidade máxima de alunos.")
 
 
+TENTATIVAS_NUMERO = 50
+
+
+def _gravar_com_numero(instituicao, aluno, turma, oficial, pendente, data_ingresso, observacoes, usuario,
+                       matricula_anterior):
+    """Grava a matrícula. Se o número gerado já existir (contador atrasado em relação aos números já emitidos,
+    p.ex. após restaurar/importar dados), avança a sequência até achar um número livre, sem reaproveitar números."""
+    ultimo_numero = None
+    for _ in range(TENTATIVAS_NUMERO):
+        numero = gerar_numero_matricula(instituicao, turma=turma, aluno=aluno)
+        try:
+            with transaction.atomic():
+                return M.objects.create(
+                    instituicao=instituicao, aluno=aluno, turma=turma, tipo=turma.tipo,
+                    ano_letivo=turma.ano_letivo if oficial else None, numero=numero,
+                    status=M.Status.PENDENTE if pendente else M.Status.ATIVA,
+                    data_ingresso=data_ingresso, observacoes=observacoes, criado_por=usuario,
+                    matricula_anterior=matricula_anterior)
+        except IntegrityError as exc:
+            if numero is not None and M.objects.filter(instituicao=instituicao, numero=numero).exists():
+                ultimo_numero = numero  # número já usado: tenta o próximo da sequência
+                continue
+            raise ValidationError(_motivo_integridade(aluno, turma, oficial, exc)) from exc
+    raise ValidationError(
+        f"Não foi possível gerar um número de matrícula livre (último testado: {ultimo_numero}). "
+        "Revise o formato e o escopo em Configurações > Numeração.")
+
+
+def _motivo_integridade(aluno, turma, oficial, exc):
+    if M.objects.filter(aluno=aluno, turma=turma, status__in=M.STATUS_VIGENTES).exists():
+        return "O aluno já possui vínculo vigente com esta turma."
+    if oficial and M.objects.filter(aluno=aluno, ano_letivo=turma.ano_letivo, tipo="OFICIAL",
+                                    status__in=M.STATUS_VIGENTES).exists():
+        return f"O aluno já possui matrícula oficial vigente em {turma.ano_letivo.ano}."
+    return f"Não foi possível registrar o vínculo (restrição do banco de dados: {str(exc).splitlines()[0][:200]})."
+
+
 @transaction.atomic
 def criar_matricula(*, aluno, turma, usuario, data_ingresso=None, pendente=False, observacoes="",
                     matricula_anterior=None):
@@ -58,20 +95,15 @@ def criar_matricula(*, aluno, turma, usuario, data_ingresso=None, pendente=False
             "Use a transferência para trocar de turma.")
     _validar_capacidade(turma)
 
-    try:
-        with transaction.atomic():
-            m = M.objects.create(
-                instituicao=instituicao, aluno=aluno, turma=turma, tipo=turma.tipo,
-                ano_letivo=turma.ano_letivo if oficial else None,
-                numero=gerar_numero_matricula(instituicao, turma=turma, aluno=aluno),
-                status=M.Status.PENDENTE if pendente else M.Status.ATIVA,
-                data_ingresso=data_ingresso, observacoes=observacoes, criado_por=usuario,
-                matricula_anterior=matricula_anterior)
-    except IntegrityError as exc:
-        raise ValidationError(
-            "Não foi possível registrar o vínculo: o aluno já está matriculado ou o número gerado já existe "
-            "(revise o formato de numeração).") from exc
+    m = _gravar_com_numero(instituicao, aluno, turma, oficial, pendente, data_ingresso, observacoes, usuario,
+                           matricula_anterior)
     _audit(m, usuario, "MATRICULA_CRIADA", f"Vínculo criado na turma {turma.nome}")
+    if oficial and aluno.pre_matricula_online:  # a pré-matrícula online foi formalizada
+        aluno.pre_matricula_online = False
+        aluno.save(update_fields=["pre_matricula_online"])
+        registrar(instituicao=instituicao, usuario=usuario, acao="PRE_MATRICULA_FORMALIZADA", entidade="Aluno",
+                  entidade_id=aluno.pk, aluno_id=aluno.pk, descricao="Pré-matrícula online formalizada",
+                  dados={"matricula_id": m.pk})
     return m
 
 

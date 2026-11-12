@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Documentos da matrícula{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body text-center py-4">
+  <div class="display-5 text-success"><i class="bi bi-check-circle-fill"></i></div>
+  <h1 class="h4 mt-1">Matrícula concluída</h1>
+  <p class="mb-0"><strong>{{ aluno.nome }}</strong> · {{ matricula.turma.nome }}{% if matricula.numero %} · matrícula <code>{{ matricula.numero }}</code>{% endif %}</p>
+</div></div>
+
+<div class="card mb-3"><div class="card-header">Documentos para impressão</div>
+<ul class="list-group list-group-flush">
+  {% for m in modelos %}
+  <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div><strong>{{ m.nome }}</strong> <span class="badge text-bg-light border">{{ m.get_destinatario_display }}</span><div class="small text-muted">{{ m.get_tipo_display }}</div></div>
+    {% if m.destinatario == 'RESPONSAVEL' and not responsavel %}
+      <span class="small text-danger">Defina o responsável financeiro do aluno para emitir.</span>
+    {% else %}
+      <form method="post" class="m-0">{% csrf_token %}<input type="hidden" name="modelo" value="{{ m.pk }}"><button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-printer"></i> Gerar e imprimir</button></form>
+    {% endif %}
+  </li>
+  {% empty %}
+  <li class="list-group-item text-muted">Nenhum modelo está marcado com “Usar na matrícula” em Configurações &gt; Documentos.</li>
+  {% endfor %}
+</ul></div>
+<a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' aluno.pk %}?aba=matriculas">Ir para a ficha do aluno</a>
+{% endblock %}

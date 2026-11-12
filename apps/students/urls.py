@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, views_prematricula as pm
 
 app_name = "students"
 urlpatterns = [
@@ -12,4 +12,8 @@ urlpatterns = [
     path("responsaveis/<int:pk>/", views.ResponsavelDetailView.as_view(), name="responsavel_detalhe"),
     path("responsaveis/novo/", views.ResponsavelCreateView.as_view(), name="responsavel_novo"),
     path("responsaveis/<int:pk>/editar/", views.ResponsavelUpdateView.as_view(), name="responsavel_editar"),
+    path("configuracoes/pre-matricula/", pm.PreMatriculaConfigView.as_view(), name="pre_matricula_config"),
+    path("pre-matricula/<str:token>/", pm.PreMatriculaPublicaView.as_view(), name="pre_matricula_publica"),
+    path("pre-matricula/<str:token>/concluido/", pm.PreMatriculaConcluidaView.as_view(),
+         name="pre_matricula_concluida"),
 ]

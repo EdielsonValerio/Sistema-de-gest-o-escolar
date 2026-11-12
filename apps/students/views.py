@@ -31,6 +31,8 @@ class AlunoListView(PaginacaoMixin, InstituicaoQuerysetMixin, ListView):
         qs = filtrar_por_busca(qs, g.get("q"))
         if g.get("situacao") in ("ativo", "inativo"):
             qs = qs.filter(ativo=g["situacao"] == "ativo")
+        elif g.get("situacao") == "pre_matricula":
+            qs = qs.filter(pre_matricula_online=True)
 
         mat = {}
         if g.get("ano"):

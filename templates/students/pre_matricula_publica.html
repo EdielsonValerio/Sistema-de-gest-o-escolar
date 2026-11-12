@@ -1,0 +1,46 @@
+{% extends "base_publico.html" %}
+{% block content %}
+<h1 class="h4 page-title">Formulário de pré-matrícula</h1>
+<p class="page-sub">Preencha os dados do aluno e do responsável. Após o envio, a escola entrará em contato para formalizar a matrícula.</p>
+
+{% if cpf_duplicado %}
+<div class="alert alert-warning d-flex gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill"></i><div><strong>Atenção:</strong> o CPF do aluno já está cadastrado. Por favor, procure o colégio para formalização da matrícula do aluno.</div></div>
+{% endif %}
+
+{% if form.sem_vagas_abertas %}
+<div class="alert alert-info">No momento a escola não está recebendo pré-matrículas online. Por favor, procure o colégio.</div>
+{% else %}
+<form method="post" novalidate data-once>
+  {% csrf_token %}
+  <div class="d-none" aria-hidden="true"><label for="{{ form.contato_alternativo.id_for_label }}">Não preencha este campo</label>{{ form.contato_alternativo }}</div>
+  <div class="card"><div class="card-body">
+    {% include "components/form_fields.html" %}
+    <div class="mt-4 form-check">
+      {{ form.aceite }}
+      <label class="form-check-label" for="{{ form.aceite.id_for_label }}">{{ form.aceite.label }}</label>
+      {% for e in form.aceite.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+  </div>
+  <div class="card-footer bg-white d-flex justify-content-end">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Enviar pré-matrícula</button>
+  </div></div>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var tipo = document.querySelector("[name=resp_tipo]"); if (!tipo) return;
+  function bloco(n) { var e = document.querySelector("[name=" + n + "]"); return e ? e.closest("[class*=col-]") : null; }
+  var outros = ["resp_tipo_pessoa", "resp_nome", "resp_documento", "resp_email", "resp_telefone"];
+  function aplicar() {
+    var v = tipo.value;
+    outros.forEach(function (n) {
+      var b = bloco(n); if (!b) return;
+      b.style.display = (v === "OUTRO" || (n === "resp_email" && (v === "PROPRIO" || v === "PAI" || v === "MAE"))) ? "" : "none";
+    });
+  }
+  tipo.addEventListener("change", aplicar); aplicar();
+})();
+</script>
+{% endblock %}

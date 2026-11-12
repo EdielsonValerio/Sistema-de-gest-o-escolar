@@ -10,7 +10,7 @@
 <form class="card card-body mb-3" method="get">
   <div class="row g-2 align-items-end">
     <div class="col-lg-5"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Código, nome, CPF, matrícula, nome da mãe ou do responsável financeiro" autofocus></div>
-    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-s">Cadastro</label><select id="f-s" class="form-select" name="situacao"><option value="">Todos</option><option value="ativo" {% if filtros.situacao == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filtros.situacao == 'inativo' %}selected{% endif %}>Inativo</option></select></div>
+    <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-s">Cadastro</label><select id="f-s" class="form-select" name="situacao"><option value="">Todos</option><option value="ativo" {% if filtros.situacao == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filtros.situacao == 'inativo' %}selected{% endif %}>Inativo</option><option value="pre_matricula" {% if filtros.situacao == 'pre_matricula' %}selected{% endif %}>Pré-matrícula online</option></select></div>
     <div class="col-6 col-lg-2"><label class="form-label small mb-1" for="f-a">Ano letivo</label><select id="f-a" class="form-select" name="ano"><option value="">Todos</option>{% for a in anos %}<option value="{{ a.pk|unlocalize }}" {% if filtros.ano == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.ano }}</option>{% endfor %}</select></div>
     <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-se">Série</label><select id="f-se" class="form-select" name="serie"><option value="">Todas</option>{% for s in series %}<option value="{{ s.pk|unlocalize }}" {% if filtros.serie == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>{% endfor %}</select></div>
     <div class="col-6 col-lg-3"><label class="form-label small mb-1" for="f-t">Turma</label><select id="f-t" class="form-select" name="turma"><option value="">Todas</option>{% for t in turmas %}<option value="{{ t.pk|unlocalize }}" {% if filtros.turma == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}</select></div>
@@ -34,7 +34,7 @@
 {% for a in alunos %}
 <tr>
   <td><code>{{ a.codigo }}</code></td>
-  <td><a href="{% url 'students:aluno_ficha' a.pk %}"><strong>{{ a.nome }}</strong></a>{% if a.nome_social %}<div class="small text-muted">{{ a.nome_social }}</div>{% endif %}{% if not a.ativo %} <span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
+  <td><a href="{% url 'students:aluno_ficha' a.pk %}"><strong>{{ a.nome }}</strong></a>{% if a.nome_social %}<div class="small text-muted">{{ a.nome_social }}</div>{% endif %}{% if not a.ativo %} <span class="badge text-bg-secondary">Inativo</span>{% endif %}{% if a.pre_matricula_online %} <span class="badge text-bg-info">Pré-matrícula online</span>{% endif %}</td>
   <td class="text-nowrap">{{ a.data_nascimento|date:"d/m/Y" }}<div class="small text-muted">{{ a.idade }} anos</div></td>
   {% if a.mat_atual %}
     <td>{{ a.mat_atual.numero|default:"—" }}</td>
@@ -42,7 +42,7 @@
     <td>{{ a.mat_atual.turma.nome }}{% if a.qtd_nao_oficiais %} <span class="badge text-bg-info" title="Turmas não oficiais">+{{ a.qtd_nao_oficiais }}</span>{% endif %}</td>
     <td>{{ a.mat_atual.ano_letivo.ano }}</td><td>{% badge_matricula a.mat_atual %}</td>
   {% else %}
-    <td colspan="4" class="text-muted">{% if a.qtd_nao_oficiais %}Somente turma{{ a.qtd_nao_oficiais|pluralize }} não oficia{{ a.qtd_nao_oficiais|pluralize:"l,is" }}{% else %}Sem matrícula{% endif %}</td><td><span class="badge text-bg-warning">Sem matrícula</span></td>
+    <td colspan="4" class="text-muted">{% if a.qtd_nao_oficiais %}Somente turma{{ a.qtd_nao_oficiais|pluralize }} não oficia{{ a.qtd_nao_oficiais|pluralize:"l,is" }}{% else %}Sem matrícula{% endif %}</td><td>{% if a.pre_matricula_online %}<span class="badge text-bg-info">Pré-matrícula online</span>{% else %}<span class="badge text-bg-warning">Sem matrícula</span>{% endif %}</td>
   {% endif %}
   <td class="text-end text-nowrap">
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'students:aluno_ficha' a.pk %}" title="Ver ficha"><i class="bi bi-eye"></i></a>

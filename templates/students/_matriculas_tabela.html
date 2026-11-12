@@ -7,6 +7,7 @@
     <td>{{ m.data_ingresso|date:"d/m/Y" }}</td><td>{{ m.data_saida|date:"d/m/Y"|default:"—" }}</td><td>{% badge_matricula m %}</td>
     <td class="small">{% if m.matricula_anterior %}Transferido de {{ m.matricula_anterior.turma.nome }}{% else %}—{% endif %}</td>
     <td class="text-end text-nowrap">
+      {% if m.vigente and perms.documents.emitir_documento %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'enrollments:documentos' m.pk %}" title="Documentos da matrícula"><i class="bi bi-printer"></i></a>{% endif %}
       {% if m.status == 'PENDENTE' and perms.enrollments.change_matricula %}<a class="btn btn-sm btn-outline-success" href="{% url 'enrollments:acao' m.pk 'ativar' %}">Ativar</a>{% endif %}
       {% if m.status == 'ATIVA' %}
         {% if m.tipo == 'OFICIAL' and perms.enrollments.transferir_matricula %}<a class="btn btn-sm btn-outline-primary" href="{% url 'enrollments:acao' m.pk 'transferir' %}">Transferir</a>{% endif %}

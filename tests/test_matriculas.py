@@ -204,3 +204,31 @@ class ConcorrenciaTests(TransactionTestCase):
         resultados, erros = self._executar(matricular, n=6)
         self.assertEqual(erros, [])
         self.assertEqual(len(set(resultados)), 6)
+
+
+class ContadorAtrasadoTests(TestCase):
+    """Se já existem números emitidos além do contador (dados restaurados/importados), a matrícula avança."""
+
+    def setUp(self):
+        self.inst = criar_instituicao()
+        self.user = criar_usuario(self.inst, "Secretaria")
+        self.turma = criar_turma_oficial(self.inst, nome="5º Ano A")
+
+    def test_avanca_ate_achar_numero_livre(self):
+        for n, nome in ((1, "A"), (2, "B"), (3, "C")):  # números já existentes, sem passar pelo contador
+            Matricula.objects.create(
+                instituicao=self.inst, aluno=criar_aluno(self.inst, self.user, nome=f"Aluno {nome}"),
+                turma=self.turma, tipo="OFICIAL", ano_letivo=self.turma.ano_letivo,
+                numero=f"2027010{1}00{n}", status="ATIVA", data_ingresso=date(2027, 2, 1))
+        novo = criar_matricula(aluno=criar_aluno(self.inst, self.user), turma=self.turma, usuario=self.user)
+        self.assertEqual(novo.numero, "20270101004")
+        outro = criar_matricula(aluno=criar_aluno(self.inst, self.user), turma=self.turma, usuario=self.user)
+        self.assertEqual(outro.numero, "20270101005")
+
+    def test_motivo_real_quando_nao_e_o_numero(self):
+        from unittest import mock
+        from django.db import IntegrityError
+        aluno = criar_aluno(self.inst, self.user)
+        with mock.patch.object(Matricula.objects, "create", side_effect=IntegrityError("outra restrição")):
+            with self.assertRaisesMessage(ValidationError, "restrição do banco de dados: outra restrição"):
+                criar_matricula(aluno=aluno, turma=self.turma, usuario=self.user)

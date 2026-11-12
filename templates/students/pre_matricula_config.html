@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Pré-matrícula online{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Pré-matrícula online</h1>
+<p class="page-sub">Link do formulário público de cadastro do aluno. Divulgue aos responsáveis, no site ou na sede da escola.</p>
+<div class="card mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <strong>Link do formulário</strong>
+    <span class="badge text-bg-{% if link.ativo %}success{% else %}secondary{% endif %}">{% if link.ativo %}Ativo{% else %}Desativado{% endif %}</span>
+  </div>
+  <div class="input-group">
+    <input id="url-link" class="form-control" type="text" readonly value="{{ url }}" aria-label="Link do formulário">
+    <button class="btn btn-outline-primary" type="button" id="copiar"><i class="bi bi-clipboard"></i> Copiar</button>
+    <a class="btn btn-outline-secondary" href="{{ url }}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Abrir</a>
+  </div>
+  <div class="form-text">Quem acessa o link preenche o cadastro do aluno, que entra na lista de Alunos com a situação <strong>Pré-matrícula online</strong> ({{ total_pre }} aguardando). Depois, a secretaria formaliza a matrícula normalmente.</div>
+</div>
+<div class="card-footer bg-white d-flex flex-wrap gap-2">
+  <form method="post">{% csrf_token %}
+    {% if link.ativo %}<button class="btn btn-outline-danger" name="acao" value="desativar" data-confirm="Desativar o link? O formulário deixará de funcionar."><i class="bi bi-slash-circle"></i> Desativar link</button>
+    {% else %}<button class="btn btn-success" name="acao" value="ativar"><i class="bi bi-check2-circle"></i> Ativar link</button>{% endif %}
+  </form>
+  <form method="post">{% csrf_token %}<button class="btn btn-outline-secondary" name="acao" value="renovar" data-confirm="Gerar um novo link? O endereço atual deixará de funcionar."><i class="bi bi-arrow-repeat"></i> Gerar novo link</button></form>
+  {% if perms.students.view_aluno %}<a class="btn btn-link ms-auto" href="{% url 'students:aluno_lista' %}?situacao=pre_matricula"><i class="bi bi-people"></i> Ver pré-matrículas</a>{% endif %}
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("copiar").addEventListener("click", function () {
+  var i = document.getElementById("url-link"); i.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.resolve(document.execCommand("copy")))
+    .then(function () { var b = document.getElementById("copiar"); b.innerHTML = '<i class="bi bi-check2"></i> Copiado'; });
+});
+</script>
+{% endblock %}

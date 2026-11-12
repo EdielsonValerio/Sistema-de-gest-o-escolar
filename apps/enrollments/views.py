@@ -93,6 +93,9 @@ class VincularTurmaView(AcessoMixin, TemplateView):
             for t in turmas:
                 t.ja_vinculado = t.pk in vigentes
                 t.lotada = bool(t.capacidade and t.ocupacao >= t.capacidade)
+                t.sugerida = bool(aluno.pre_matricula_online and tipo == "OFICIAL" and aluno.serie_pretendida_id
+                                  and t.serie_ofertada.serie_referencia_id == aluno.serie_pretendida_id
+                                  and t.ano_letivo_id == aluno.ano_letivo_pretendido_id)
             ctx["turmas"] = turmas
             return ctx
         planos = list(PlanoFinanceiro.objects.filter(turma=turma, situacao="ATIVO").order_by("nome"))
@@ -141,7 +144,53 @@ class VincularTurmaView(AcessoMixin, TemplateView):
         if contrato:
             msg += f" {contrato.quantidade_parcelas} parcelas geradas."
         messages.success(request, msg)
+        if request.user.has_perm("documents.emitir_documento") and _modelos_da_matricula(self.instituicao).exists():
+            return redirect("enrollments:documentos", pk=matricula.pk)  # imprimir comprovante/contrato
         return redirect(f"{reverse('students:aluno_ficha', args=[aluno.pk])}?aba={'financeiro' if contrato else 'matriculas'}")
+
+
+def _modelos_da_matricula(instituicao):
+    from apps.documents.models import ModeloDocumento
+    return ModeloDocumento.objects.filter(instituicao=instituicao, ativo=True, usar_na_matricula=True).order_by("tipo", "nome")
+
+
+class MatriculaDocumentosView(AcessoMixin, TemplateView):
+    """Conclusão da matrícula: imprimir os documentos marcados como "usar na matrícula" (comprovante, contrato…)."""
+
+    permission_required = ("enrollments.view_matricula", "documents.emitir_documento")
+    template_name = "enrollments/documentos.html"
+
+    def get_matricula(self):
+        return get_object_or_404(Matricula.objects.select_related("aluno", "turma", "ano_letivo"),
+                                 pk=self.kwargs["pk"], instituicao=self.instituicao)
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        m = self.get_matricula()
+        ctx.update(matricula=m, aluno=m.aluno, modelos=_modelos_da_matricula(self.instituicao),
+                   responsavel=m.aluno.responsavel_financeiro_atual)
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        from urllib.parse import quote
+        from apps.documents.models import Destinatario, ModeloDocumento
+        from apps.documents.services import emitir_documento
+
+        m = self.get_matricula()
+        modelo = get_object_or_404(_modelos_da_matricula(self.instituicao), pk=request.POST.get("modelo"))
+        try:
+            if modelo.destinatario == Destinatario.RESPONSAVEL:
+                resp = m.aluno.responsavel_financeiro_atual
+                if resp is None:
+                    raise ValidationError("O aluno não tem responsável financeiro definido para este documento.")
+                doc = emitir_documento(modelo=modelo, usuario=request.user, aluno=m.aluno, responsavel=resp)
+            else:
+                doc = emitir_documento(modelo=modelo, usuario=request.user, aluno=m.aluno)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return redirect(request.path)
+        voltar = quote(reverse("enrollments:documentos", args=[m.pk]))
+        return redirect(f"{reverse('documents:documento', args=[doc.pk])}?voltar={voltar}")
 
 
 class GerarCobrancasView(AcessoMixin, TemplateView):

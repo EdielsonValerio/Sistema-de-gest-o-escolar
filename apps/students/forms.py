@@ -4,6 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from apps.academic.models import AnoLetivo, SerieOfertada, SerieReferencia
 from apps.core.mixins import BaseModelForm
 
 from .models import Aluno, AlunoResponsavelFinanceiro as Vinculo, Responsavel, UF
@@ -180,3 +181,62 @@ class ResponsavelForm(BaseModelForm):
         if qs.exists():
             raise ValidationError("Já existe um responsável com este documento.")
         return v
+
+
+class PreMatriculaForm(AlunoForm):
+    """Formulário público de pré-matrícula online: os mesmos dados da ficha do aluno, sem os campos internos."""
+
+    MSG_CPF_DUPLICADO = ("O CPF do aluno já está cadastrado. Por favor, procure o colégio para formalização "
+                         "da matrícula do aluno.")
+    CAMPOS_INTERNOS = ("foto", "ativo", "observacoes_internas", "pre_matricula_online", "resp_existente")
+
+    ano_letivo = forms.ModelChoiceField(label="Ano letivo desejado", queryset=AnoLetivo.objects.none(),
+                                        empty_label="— selecione —")
+    serie = forms.ModelChoiceField(label="Série desejada", queryset=SerieReferencia.objects.none(),
+                                   empty_label="— selecione —")
+    aceite = forms.BooleanField(
+        label="Declaro que as informações são verdadeiras e autorizo a escola a utilizá-las para a matrícula do aluno.",
+        error_messages={"required": "É necessário concordar com a declaração para enviar."})
+    contato_alternativo = forms.CharField(required=False)  # isca para robôs (oculta na tela)
+
+    SECOES = [
+        ("Matrícula desejada", ["ano_letivo", "serie"]),
+        *[(t, [c for c in campos]) for t, campos in AlunoForm.SECOES
+          if t not in ("Informações administrativas",)],
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nome in self.CAMPOS_INTERNOS:
+            self.fields.pop(nome, None)
+        ofertas = SerieOfertada.objects.filter(
+            ano_letivo__instituicao=self.instituicao, situacao=SerieOfertada.Situacao.ATIVA,
+            ano_letivo__situacao__in=[AnoLetivo.Situacao.PLANEJAMENTO, AnoLetivo.Situacao.ATIVO])
+        self.fields["ano_letivo"].queryset = AnoLetivo.objects.filter(
+            pk__in=ofertas.values("ano_letivo_id")).order_by("-ano")
+        self.fields["serie"].queryset = SerieReferencia.objects.filter(
+            pk__in=ofertas.values("serie_referencia_id"), ativa=True)
+        self.fields["resp_tipo"].required = True
+        self.fields["resp_tipo"].choices = [("", "— selecione —")] + list(Vinculo.Parentesco.choices)
+        self.fields["resp_tipo"].label = "Quem é o responsável financeiro?"
+        self.fields["contato_alternativo"].widget.attrs.update({"autocomplete": "off", "tabindex": "-1"})
+        self.fields["aceite"].widget.attrs.pop("class", None)
+        self.fields["aceite"].widget.attrs["class"] = "form-check-input"
+
+    @property
+    def sem_vagas_abertas(self):
+        return not self.fields["ano_letivo"].queryset.exists()
+
+    def clean_cpf(self):
+        cpf = _validar_cpf_opcional(self.cleaned_data.get("cpf"))
+        if cpf and Aluno.objects.filter(instituicao=self.instituicao, cpf=cpf).exists():
+            raise ValidationError(self.MSG_CPF_DUPLICADO)
+        return cpf
+
+    def clean(self):
+        d = super().clean()
+        ano, serie = d.get("ano_letivo"), d.get("serie")
+        if ano and serie and not SerieOfertada.objects.filter(
+                ano_letivo=ano, serie_referencia=serie, situacao=SerieOfertada.Situacao.ATIVA).exists():
+            self.add_error("serie", "Esta série não está disponível para o ano letivo escolhido.")
+        return d

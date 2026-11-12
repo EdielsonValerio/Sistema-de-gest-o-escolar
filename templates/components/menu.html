@@ -22,7 +22,7 @@
 
 {% if perms.students.view_aluno or perms.academic.view_turma or perms.enrollments.view_matricula %}
 <div class="nav-section">Secretaria</div>
-{% if perms.students.view_aluno %}<a class="nav-link {% if rm.app_name == 'students' and 'aluno' in rm.url_name %}active{% endif %}" href="{% url 'students:aluno_lista' %}"><i class="bi bi-people"></i> Alunos</a>{% endif %}
+{% if perms.students.view_aluno %}<a class="nav-link {% if rm.app_name == 'students' and 'aluno' in rm.url_name %}active{% endif %}" href="{% url 'students:aluno_lista' %}"><i class="bi bi-people"></i> Alunos{% if pre_matriculas_novas %} <span class="badge rounded-pill text-bg-info ms-1" title="Pré-matrículas online aguardando">{{ pre_matriculas_novas }}</span>{% endif %}</a>{% endif %}
 {% if perms.students.view_responsavel %}<a class="nav-link {% if rm.app_name == 'students' and 'responsavel' in rm.url_name %}active{% endif %}" href="{% url 'students:responsavel_lista' %}"><i class="bi bi-person-vcard"></i> Responsáveis</a>{% endif %}
 {% if perms.academic.view_serieofertada %}<a class="nav-link {% if rm.app_name == 'academic' and 'serie' in rm.url_name %}active{% endif %}" href="{% url 'academic:serie_lista' %}"><i class="bi bi-diagram-3"></i> Séries</a>{% endif %}
 {% if perms.academic.view_anoletivo %}<a class="nav-link {% if rm.app_name == 'academic' and 'ano' in rm.url_name %}active{% endif %}" href="{% url 'academic:ano_lista' %}"><i class="bi bi-calendar3"></i> Anos letivos</a>{% endif %}
@@ -45,10 +45,11 @@
 <a class="nav-link {% if rm.app_name == 'assistente' and rm.url_name != 'configuracao' %}active{% endif %}" href="{% url 'assistente:chat' %}"><i class="bi bi-stars"></i> Assistente de IA</a>
 {% endif %}
 
-{% if ia_menu.configurar or perms.billing.configurar_cobranca or perms.documents.view_modelodocumento or perms.core.change_configuracaonumeracao or perms.accounts.gerenciar_usuarios or perms.core.change_configuracaogeral or perms.audit.ver_auditoria %}
+{% if perms.students.change_linkprematricula or ia_menu.configurar or perms.billing.configurar_cobranca or perms.documents.view_modelodocumento or perms.core.change_configuracaonumeracao or perms.accounts.gerenciar_usuarios or perms.core.change_configuracaogeral or perms.audit.ver_auditoria %}
 <div class="nav-section">Configurações</div>
 {% if perms.core.view_configuracaonumeracao %}<a class="nav-link {% if rm.app_name == 'core' and 'numeracao' in rm.url_name %}active{% endif %}" href="{% url 'core:numeracao_lista' %}"><i class="bi bi-123"></i> Numeração</a>{% endif %}
 {% if perms.documents.view_modelodocumento %}<a class="nav-link {% if rm.app_name == 'documents' %}active{% endif %}" href="{% url 'documents:modelo_lista' %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
+{% if perms.students.change_linkprematricula %}<a class="nav-link {% if rm.url_name == 'pre_matricula_config' %}active{% endif %}" href="{% url 'students:pre_matricula_config' %}"><i class="bi bi-globe2"></i> Pré-matrícula online</a>{% endif %}
 {% if perms.accounts.gerenciar_usuarios %}<a class="nav-link {% if rm.app_name == 'accounts' %}active{% endif %}" href="{% url 'accounts:usuario_lista' %}"><i class="bi bi-shield-lock"></i> Usuários e permissões</a>{% endif %}
 {% if perms.core.change_configuracaogeral %}<a class="nav-link {% if rm.app_name == 'core' and rm.url_name == 'configuracoes' %}active{% endif %}" href="{% url 'core:configuracoes' %}"><i class="bi bi-gear"></i> Configurações gerais</a>{% endif %}
 {% if perms.billing.configurar_cobranca %}<a class="nav-link {% if rm.app_name == 'billing' and rm.url_name == 'configuracao' %}active{% endif %}" href="{% url 'billing:configuracao' %}"><i class="bi bi-bank"></i> Cobrança bancária</a>{% endif %}

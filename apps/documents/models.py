@@ -49,6 +49,9 @@ class ModeloDocumento(models.Model):
                                     default=Destinatario.ALUNO)
     conteudo = models.TextField("leiaute do documento")  # HTML sanitizado com [variaveis]
     usar_cabecalho = models.BooleanField("inserir cabeçalho padrão", default=True)
+    usar_na_matricula = models.BooleanField(
+        "usar na matrícula", default=False,
+        help_text="Aparece para impressão ao concluir a matrícula do aluno (ex.: comprovante e contrato).")
     ativo = models.BooleanField("ativo", default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

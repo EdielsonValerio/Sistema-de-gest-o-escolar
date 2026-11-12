@@ -15,7 +15,7 @@
   <thead><tr><th>Turma</th><th>{% if tipo == 'OFICIAL' %}Série · ano letivo{% else %}Período{% endif %}</th><th>Vagas</th><th></th></tr></thead>
   <tbody>
   {% for t in turmas %}
-  <tr><td><strong>{{ t.nome }}</strong><div class="small text-muted">{{ t.codigo }}</div></td>
+  <tr><td><strong>{{ t.nome }}</strong>{% if t.sugerida %} <span class="badge text-bg-info" title="Série e ano letivo escolhidos na pré-matrícula online">Desejada na pré-matrícula</span>{% endif %}<div class="small text-muted">{{ t.codigo }}</div></td>
     <td>{% if t.eh_oficial %}{{ t.serie_ofertada.serie_referencia.nome }} · {{ t.ano_letivo.ano }}{% else %}{{ t.data_inicio|date:"d/m/Y" }} a {{ t.data_fim|date:"d/m/Y" }}{% endif %}</td>
     <td>{{ t.ocupacao }}{% if t.capacidade %} / {{ t.capacidade }}{% endif %}</td>
     <td class="text-end">{% if t.ja_vinculado %}<span class="badge text-bg-secondary">Já vinculado</span>{% elif t.lotada %}<span class="badge text-bg-danger">Lotada</span>{% else %}<a class="btn btn-sm btn-primary" href="?tipo={{ tipo }}&turma={{ t.pk|unlocalize }}">Selecionar</a>{% endif %}</td></tr>

@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
@@ -214,4 +215,7 @@ class DocumentoView(InstituicaoQuerysetMixin, DetailView):
             ctx["voltar_url"] = reverse("documents:emitir_aluno", args=[d.aluno_id])
         else:
             ctx["voltar_url"] = reverse("documents:emitir_responsavel", args=[d.responsavel_id])
+        voltar = self.request.GET.get("voltar", "")
+        if voltar and url_has_allowed_host_and_scheme(voltar, allowed_hosts=None) and voltar.startswith("/"):
+            ctx["voltar_url"] = voltar
         return ctx

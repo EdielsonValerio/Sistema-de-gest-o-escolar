@@ -200,6 +200,9 @@ LOGGING = {
 # Endereço público (HTTPS) do sistema: usado para exibir a URL do webhook da cobrança bancária.
 SITE_URL = os.environ.get("DJANGO_SITE_URL", "").strip().rstrip("/")
 
+# Pré-matrícula online: com proxy reverso na frente, ligue para limitar envios por visitante (e não pelo proxy).
+PRE_MATRICULA_CONFIAR_PROXY = env_bool("DJANGO_CONFIAR_PROXY", False)
+
 
 # E-mail (boas-vindas de novos usuários). Sem EMAIL_HOST configurado, em desenvolvimento os e-mails vão para o console.
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "").strip()
