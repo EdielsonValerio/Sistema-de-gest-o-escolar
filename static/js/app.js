@@ -26,4 +26,24 @@
   document.querySelectorAll("[data-confirm]").forEach(function (el) {
     el.addEventListener("click", function (e) { if (!confirm(el.dataset.confirm)) e.preventDefault(); });
   });
+
+  // Ações que antes eram atributos inline (onclick/onsubmit/onchange): a CSP não permite scripts inline sem nonce.
+  document.querySelectorAll("[data-print]").forEach(function (el) {
+    el.addEventListener("click", function () { window.print(); });
+  });
+  document.querySelectorAll("form[data-confirmar]").forEach(function (f) {
+    f.addEventListener("submit", function (e) { if (!confirm(f.dataset.confirmar)) e.preventDefault(); });
+  });
+  document.querySelectorAll("[data-auto-submit]").forEach(function (el) {
+    el.addEventListener("change", function () { if (el.form) el.form.submit(); });
+  });
+  document.querySelectorAll("[data-copiar]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var alvo = document.getElementById(btn.dataset.copiar);
+      if (alvo && navigator.clipboard) navigator.clipboard.writeText(alvo.value).then(function () { btn.textContent = "Copiado!"; });
+    });
+  });
+  if (document.querySelector("[data-autoprint]")) {  // impressão automática do documento recém-emitido
+    window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });
+  }
 })();

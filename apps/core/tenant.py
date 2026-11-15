@@ -11,7 +11,9 @@ from django.db.models.signals import pre_save
 
 APPS_DE_NEGOCIO = {"core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente", "diario"}
 # Tabelas compartilhadas por todas as escolas (administradas somente pelo administrador do sistema).
-GLOBAIS = {"academic.seriereferencia", "core.instituicao", "billing.titulosimulado"}
+GLOBAIS = {"academic.seriereferencia", "core.instituicao", "billing.titulosimulado",
+           # Segurança de contas: pertencem ao usuário (o administrador do sistema não tem escola).
+           "accounts.tentativalogin", "accounts.tokenconta", "accounts.mfadispositivo", "audit.eventoseguranca"}
 
 
 class EscolaIncompativel(SuspiciousOperation):

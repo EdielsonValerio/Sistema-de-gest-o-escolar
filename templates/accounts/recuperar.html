@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Recuperar senha{% endblock %}
+{% block anon %}
+<div class="login-wrap"><div class="card login-card"><div class="card-body p-4">
+  <h1 class="h5 mb-1">Recuperar senha</h1>
+  <p class="text-muted small">Informe a escola e o seu usuário. Se houver e-mail cadastrado, enviaremos um link de uso único.</p>
+  {% for m in messages %}<div class="alert alert-{{ m.level_tag|default:'info' }} py-2">{{ m }}</div>{% endfor %}
+  <form method="post" novalidate data-once>{% csrf_token %}
+    {% for f in form %}<div class="mb-3"><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+    <button class="btn btn-primary w-100" type="submit">Enviar link</button>
+  </form>
+  <div class="text-center mt-3 small"><a href="{% url 'accounts:login' %}">Voltar ao login</a></div>
+</div></div></div>
+{% endblock %}

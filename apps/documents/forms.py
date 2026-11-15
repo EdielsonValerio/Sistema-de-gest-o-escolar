@@ -42,7 +42,6 @@ class CabecalhoDocumentoForm(BaseModelForm):
         widgets = {"linhas": forms.Textarea(attrs={"rows": 4})}
 
     def clean_logotipo(self):
-        arq = self.cleaned_data.get("logotipo")
-        if arq and hasattr(arq, "size") and arq.size > self.LIMITE:
-            raise forms.ValidationError("O logotipo deve ter no máximo 2 MB.")
-        return arq
+        from apps.core.uploads import processar_imagem
+        return processar_imagem(self.cleaned_data.get("logotipo"), max_bytes=self.LIMITE, lado_saida=800,
+                                rotulo="O logotipo")

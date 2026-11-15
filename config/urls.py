@@ -3,6 +3,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from django.shortcuts import redirect
+
+# O login do Django admin não tem limite de tentativas nem MFA: redireciona para o login do sistema.
+admin.site.login = lambda request, extra_context=None: redirect("/entrar/?sistema=1")
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("apps.accounts.urls")),
@@ -19,5 +24,11 @@ urlpatterns = [
     path("", include("apps.diario.urls")),
 ]
 
-if settings.DEBUG:  # fotos enviadas (somente desenvolvimento; em produção sirva MEDIA_ROOT pelo servidor web)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    # Desenvolvimento: só os logotipos são públicos (aparecem na tela de login). Fotos de alunos NÃO são servidas
+    # como arquivo: só pela tela autenticada (students:aluno_foto). Em produção, o nginx deve expor apenas /media/logotipos/.
+    from django.urls import re_path
+    from django.views.static import serve
+
+    urlpatterns += [re_path(r"^%s(?P<path>logotipos/.*)$" % settings.MEDIA_URL.lstrip("/"), serve,
+                            {"document_root": settings.MEDIA_ROOT})]

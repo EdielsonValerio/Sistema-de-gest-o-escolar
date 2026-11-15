@@ -16,7 +16,7 @@
 {% if externos %}<div class="card mb-3"><div class="card-header">Anos cursados em outras escolas</div><ul class="list-group list-group-flush">
 {% for e in externos %}<li class="list-group-item d-flex justify-content-between align-items-center"><span>{{ e.ano }} — {{ e.serie }} ({{ e.escola }})</span>
  {% if perms.diario.gerenciar_historico_externo %}<span class="d-flex gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:historico_externo_editar' aluno.pk e.pk %}">Editar</a>
- <form method="post" action="{% url 'diario:historico_externo_excluir' aluno.pk e.pk %}" onsubmit="return confirm('Remover este registro?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form></span>{% endif %}</li>{% endfor %}
+ <form method="post" action="{% url 'diario:historico_externo_excluir' aluno.pk e.pk %}" data-confirmar="Remover este registro?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form></span>{% endif %}</li>{% endfor %}
 </ul></div>{% endif %}
 {% if not pode_gerar %}<div class="alert alert-warning">O histórico poderá ser gerado quando houver ao menos um ano concluído (ou de outra escola) para exibir.</div>{% endif %}
 <form method="post" data-once class="d-flex flex-wrap gap-2">{% csrf_token %}

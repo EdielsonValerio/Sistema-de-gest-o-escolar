@@ -148,7 +148,8 @@ class Aluno(models.Model):
         verbose_name = "aluno"
         verbose_name_plural = "alunos"
         ordering = ["nome"]
-        permissions = [("ver_cpf_completo", "Pode ver o CPF completo")]
+        permissions = [("ver_cpf_completo", "Pode ver o CPF completo"),
+                       ("exportar_dados_titular", "Pode exportar os dados pessoais de um titular (LGPD)")]
         indexes = [
             models.Index(fields=["instituicao", "nome"]),
             models.Index(fields=["instituicao", "cpf"]),

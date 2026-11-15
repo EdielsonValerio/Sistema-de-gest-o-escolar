@@ -193,9 +193,12 @@ class ImprimirTests(BoletimBase):
         self.assertContains(c.get(url), "Imprimir / salvar em PDF")
         r = c.post(url, {"matricula": self.mat[0].pk, "imprimir": "1"})
         self.assertIn("imprimir=1", r["Location"])
-        self.assertContains(c.get(r["Location"]), "window.print()", count=2)  # botão + disparo automático
+        pagina = c.get(r["Location"])
+        self.assertContains(pagina, "data-print")      # botão de imprimir (CSP: sem JavaScript inline)
+        self.assertContains(pagina, "data-autoprint")  # abre a impressão sozinho
         r2 = c.post(url, {"matricula": self.mat[0].pk})
         self.assertNotIn("imprimir=1", r2["Location"])
+        self.assertNotContains(c.get(r2["Location"]), "data-autoprint")
 
 
 class BotoesSempreVisiveisTests(BoletimBase):

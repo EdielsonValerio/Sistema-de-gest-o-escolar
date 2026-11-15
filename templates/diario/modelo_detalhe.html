@@ -37,11 +37,11 @@
   <div class="small">Nota da fase: {% if f.componentes.all %}<code>{{ f.formula|default:"soma dos componentes" }}</code>{% else %}<span class="text-muted">sem composição — média ponderada das avaliações do professor</span>{% endif %}</div></div>
   <div class="d-flex gap-1 align-items-start">{% if not travada %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'diario:componente_novo' m.pk f.pk %}">+ Componente</a>{% endif %}
   <a class="btn btn-sm btn-outline-primary" href="{% url 'diario:fase_editar' m.pk f.pk %}">Editar</a>
-  {% if not travada %}<form method="post" action="{% url 'diario:fase_excluir' m.pk f.pk %}" class="m-0" onsubmit="return confirm('Remover a fase e seus componentes?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</div></div>
+  {% if not travada %}<form method="post" action="{% url 'diario:fase_excluir' m.pk f.pk %}" class="m-0" data-confirmar="Remover a fase e seus componentes?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</div></div>
  {% if f.componentes.all %}<table class="table table-sm mt-2 mb-0"><thead><tr><th>Componente</th><th>Sigla</th><th class="text-end">Vale até</th><th>Agrupamento</th><th></th></tr></thead><tbody>
  {% for c in f.componentes.all %}<tr><td>{{ c.nome }}</td><td><code>{{ c.sigla }}</code></td><td class="text-end">{{ c.valor_maximo }}</td><td>{{ c.get_agregacao_display }}</td>
  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:componente_editar' m.pk f.pk c.pk %}">Editar</a>
- {% if not travada %}<form method="post" action="{% url 'diario:componente_excluir' m.pk f.pk c.pk %}" class="d-inline" onsubmit="return confirm('Remover o componente?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table>{% endif %}
+ {% if not travada %}<form method="post" action="{% url 'diario:componente_excluir' m.pk f.pk c.pk %}" class="d-inline" data-confirmar="Remover o componente?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table>{% endif %}
 </div></div>
 {% empty %}<div class="card"><div class="card-body text-center text-muted">Nenhuma fase ainda. Use "Gerar fases" para criar automaticamente conforme o tipo escolhido.</div></div>{% endfor %}
 

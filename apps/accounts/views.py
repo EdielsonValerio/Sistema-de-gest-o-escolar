@@ -14,9 +14,11 @@ from apps.core.mixins import AcessoMixin
 from apps.core.models import Instituicao
 from apps.core.tenancy import SESSAO_ESCOLA
 
-from . import emails, services
+MFA_PENDENTE = "mfa_pendente"
+
+from . import emails, seguranca, services
 from .forms import LoginForm, SenhaTrocarForm, UsuarioForm
-from .models import PerfilUsuario
+from .models import PerfilUsuario, TokenConta
 
 
 class LoginView(FormView):
@@ -55,14 +57,23 @@ class LoginView(FormView):
 
     def form_valid(self, form):
         user = form.user
-        auth_login(self.request, user)
+        auth_login(self.request, user)  # troca a chave de sessão (evita session fixation)
         escola = form.cleaned_data.get("escola")
         self.request.session[SESSAO_ESCOLA] = 0 if self.modo_sistema else escola.pk
         destino = self.request.POST.get("next", "")
         if destino and url_has_allowed_host_and_scheme(destino, allowed_hosts={self.request.get_host()},
                                                        require_https=self.request.is_secure()):
-            return redirect(destino)
-        return redirect(self.destino_padrao(user))
+            self.request.session["login_destino"] = destino
+        else:
+            self.request.session.pop("login_destino", None)
+        # Segundo fator: a sessão fica "pendente" e o middleware só libera as telas de MFA até concluir.
+        if seguranca.tem_mfa(user):
+            self.request.session[MFA_PENDENTE] = "verificar"
+            return redirect("accounts:mfa_verificar")
+        if seguranca.mfa_obrigatoria(user):
+            self.request.session[MFA_PENDENTE] = "configurar"
+            return redirect("accounts:mfa_configurar")
+        return redirect(self.request.session.pop("login_destino", None) or self.destino_padrao(user))
 
 
 class SenhaTrocarView(LoginRequiredMixin, FormView):
@@ -161,6 +172,8 @@ class UsuarioFormView(AcessoMixin, TemplateView):
         usuario.is_active = d["is_active"]
         if d["senha1"]:
             usuario.set_password(d["senha1"])
+        elif novo:
+            usuario.set_unusable_password()  # entra somente depois de ativar a conta pelo link
         usuario.save()
         if novo:
             PerfilUsuario.objects.create(user=usuario, instituicao=self.instituicao, login=d["username"])
@@ -176,13 +189,17 @@ class UsuarioFormView(AcessoMixin, TemplateView):
                   descricao=f"Usuário {d['username']}",
                   dados={"perfil_anterior": antes, "perfil_novo": d["perfil"].name, "ativo": usuario.is_active,
                          "senha_alterada": bool(d["senha1"])})
-        if d["enviar_email"]:
-            ok = emails.enviar_boas_vindas(usuario=usuario, senha_provisoria=d["senha1"], escola=self.instituicao,
-                                           request=request, redefinicao=not novo)
-            (messages.success if ok else messages.warning)(
-                request, "Usuário salvo e acesso enviado por e-mail." if ok else
-                "Usuário salvo, mas o e-mail não pôde ser enviado (verifique a configuração de e-mail). "
-                "Informe a senha provisória à pessoa por outro meio.")
+        sem_senha_utilizavel = novo and not d["senha1"]
+        if d["enviar_email"] or sem_senha_utilizavel:
+            token = seguranca.gerar_token(usuario, TokenConta.Finalidade.ATIVACAO)
+            ok = d["enviar_email"] and emails.enviar_ativacao(usuario=usuario, token=token, escola=self.instituicao,
+                                                              request=request, redefinicao=not novo)
+            if ok:
+                messages.success(request, "Usuário salvo e link de ativação enviado por e-mail (vale por 3 dias).")
+            else:
+                messages.warning(request, "Usuário salvo. Entregue este link à pessoa por um canal seguro, para que "
+                                          "ela crie a própria senha (vale por 3 dias, uso único): "
+                                          f"{emails.url_ativacao(token, request)}")
         else:
             messages.success(request, "Usuário salvo.")
         return redirect("accounts:usuario_lista")

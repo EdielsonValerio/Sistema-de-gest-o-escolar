@@ -148,7 +148,7 @@ def responder(*, conversa, usuario, pergunta, cliente=None):
     if len(pergunta) > MAX_PERGUNTA:
         raise ValidationError(f"A pergunta deve ter até {MAX_PERGUNTA} caracteres.")
     _checar_limite(cfg)
-    limpa, removeu = lgpd.redigir(pergunta)
+    limpa, removeu = lgpd.redigir(pergunta, nomes=lgpd.nomes_da_escola(escola))
     dispo = ferramentas.disponiveis(usuario)
     defs = ferramentas.definicoes(usuario)
     cliente = cliente or cliente_para(cfg)

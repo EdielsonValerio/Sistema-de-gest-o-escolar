@@ -33,11 +33,12 @@
       <button class="btn btn-primary w-100" type="submit">Entrar</button>
     </form>
     <div class="text-center mt-3 small">
+      {% if not sistema %}<a href="{% url 'accounts:recuperar' %}">Esqueci a minha senha</a><br>{% endif %}
       {% if sistema %}<a href="{% url 'accounts:login' %}">Entrar em uma escola</a>{% else %}<a class="text-muted" href="{% url 'accounts:login' %}?sistema=1">Sou administrador do sistema</a>{% endif %}
     </div>
   </div></div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   var sel = document.getElementById("id_escola"), img = document.getElementById("login-logo"), box = document.getElementById("login-escola");
   if (!sel) return;

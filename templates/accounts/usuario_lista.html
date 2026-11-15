@@ -14,7 +14,8 @@
       <td>{{ u.perfil.login }}</td><td>{{ u.get_full_name|default:"—" }}</td>
       <td>{% for g in u.groups.all %}<span class="badge text-bg-primary">{{ g.name }}</span> {% empty %}<span class="text-muted">—</span>{% endfor %}</td>
       <td><span class="badge text-bg-{% if u.is_active %}success{% else %}secondary{% endif %}">{% if u.is_active %}Ativo{% else %}Inativo{% endif %}</span></td>
-      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:usuario_editar' u.pk %}">Editar</a></td>
+      <td class="text-end d-flex gap-1 justify-content-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:usuario_editar' u.pk %}">Editar</a>
+        {% if u.mfa.confirmado %}<form method="post" action="{% url 'accounts:mfa_redefinir' u.pk %}" data-confirmar="Remover a autenticação em duas etapas deste usuário?">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" title="Remove a MFA (perdeu o aparelho)">Redefinir MFA</button></form>{% endif %}</td>
     </tr>
   {% empty %}
     <tr><td colspan="5"><div class="empty-state"><i class="bi bi-people"></i>Nenhum usuário cadastrado.</div></td></tr>

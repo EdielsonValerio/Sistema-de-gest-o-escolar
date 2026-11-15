@@ -43,7 +43,7 @@ class Asaas(Provedor):
         req = urllib.request.Request(url, data=dados, method=metodo, headers={
             "access_token": self.config.api_key, "Content-Type": "application/json", "User-Agent": USER_AGENT})
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (URL fixa, https)
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310  # nosec B310 (URL fixa https)
                 texto = resp.read().decode() or "{}"
         except urllib.error.HTTPError as exc:
             raise ErroProvedor(self._mensagem_http(exc)) from None

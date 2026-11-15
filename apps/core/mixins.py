@@ -30,12 +30,30 @@ class AcessoMixin(LoginRequiredMixin, PermissionRequiredMixin):
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:
+            self._registrar_acesso_negado()
             raise PermissionDenied
         return super().handle_no_permission()
 
     @cached_property
     def instituicao(self):
         return instituicao_da_requisicao(self.request)
+
+    def _registrar_acesso_negado(self):
+        """Grava o 403 como evento de segurança (só o caminho, nunca parâmetros). No máximo 20 por usuário/hora,
+        para a trilha não virar vetor de enchimento do banco."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.accounts import seguranca
+        from apps.audit.models import EventoSeguranca
+        u = self.request.user
+        recentes = EventoSeguranca.objects.filter(tipo="ACESSO_NEGADO", usuario=u,
+                                                  criado_em__gte=timezone.now() - timedelta(hours=1)).count()
+        if recentes < 20:
+            perfil = getattr(u, "perfil", None)
+            seguranca.evento("ACESSO_NEGADO", self.request, escola=getattr(perfil, "instituicao", None), usuario=u,
+                             detalhe=f"{self.request.method} {self.request.path}")
 
 
 class PaginacaoMixin:

@@ -1,0 +1,41 @@
+name: seguranca
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # toda segunda: dependências ganham CVEs mesmo sem commit
+permissions:
+  contents: read
+jobs:
+  verificacoes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # histórico inteiro para o gitleaks
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - name: Testes (inclui suíte de segurança e isolamento entre escolas)
+        env: { DJANGO_DEBUG: "True" }
+        run: python manage.py test
+      - name: Migrações em dia
+        env: { DJANGO_DEBUG: "True" }
+        run: python manage.py makemigrations --check --dry-run
+      - name: Configuração de produção (check --deploy)
+        env:
+          DJANGO_DEBUG: "False"
+          DJANGO_SECRET_KEY: ${{ secrets.CI_SECRET_KEY_DE_TESTE }}
+          DJANGO_ALLOWED_HOSTS: escola.exemplo.com
+          DJANGO_SSL_REDIRECT: "True"
+          DJANGO_HSTS_SEGUNDOS: "31536000"
+          DJANGO_PROXY_HTTPS: "True"
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Bandit (análise estática)
+        run: bandit -q -r apps config -c .bandit --severity-level medium
+      - name: pip-audit (dependências vulneráveis)
+        run: pip-audit -r requirements.txt
+      - name: Gitleaks (segredos no histórico)
+        uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Semgrep (regras Django/Python)
+        run: pip install semgrep && semgrep --config p/django --config p/python --error --quiet apps config

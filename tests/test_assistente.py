@@ -233,6 +233,20 @@ class ServicosTests(Base):
         self.assertIn("removidos", msg.aviso)
         self.assertNotIn("529.982", Mensagem.objects.filter(papel="USUARIO").first().texto)
 
+    def test_nome_de_pessoa_da_escola_na_pergunta_e_removido_antes_do_envio(self):
+        from .helpers import criar_aluno
+        self.pronta()
+        criar_aluno(self.inst, self.adm, nome="Joaquim Albuquerque Prado")
+        falso = Falso(texto("ok"))
+        msg = servicos.responder(conversa=self.conversa(), usuario=self.adm,
+                                 pergunta="quanto o aluno joaquim albuquerque deve?", cliente=falso)
+        enviado = json.dumps(falso.chamadas[0]["mensagens"], ensure_ascii=False)
+        self.assertNotIn("Albuquerque", enviado.title())
+        self.assertNotIn("albuquerque", enviado.lower())
+        self.assertIn("[nome removido]", enviado)
+        self.assertIn("removidos", msg.aviso)
+        self.assertNotIn("albuquerque", Mensagem.objects.filter(papel="USUARIO").first().texto.lower())
+
     def test_auditoria_nao_guarda_o_texto_da_pergunta(self):
         self.pronta()
         servicos.responder(conversa=self.conversa(), usuario=self.adm, pergunta="pergunta muito confidencial xyz",

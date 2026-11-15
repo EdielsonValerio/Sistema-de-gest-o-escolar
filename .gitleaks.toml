@@ -1,0 +1,6 @@
+title = "EduNex - verificação de segredos"
+[extend]
+useDefault = true
+[allowlist]
+description = "Exemplos e dados fictícios de testes"
+paths = ['''\.env\.example$''', '''tests/''']

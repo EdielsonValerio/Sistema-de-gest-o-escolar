@@ -24,4 +24,4 @@
   <button class="btn btn-primary" type="submit" name="acao" value="finalizar"><i class="bi bi-check2"></i> Finalizar aula</button>{% endif %}
 </div></form>
 {% endblock %}
-{% block scripts %}<script>document.getElementById("todos-presentes").addEventListener("click",function(){document.querySelectorAll('input[type=radio][value=P]').forEach(function(r){r.checked=true;});});</script>{% endblock %}
+{% block scripts %}<script nonce="{{ csp_nonce }}">document.getElementById("todos-presentes").addEventListener("click",function(){document.querySelectorAll('input[type=radio][value=P]').forEach(function(r){r.checked=true;});});</script>{% endblock %}

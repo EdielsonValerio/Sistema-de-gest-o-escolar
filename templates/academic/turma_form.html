@@ -1,6 +1,6 @@
 {% extends "generic/form.html" %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   var tipo = document.querySelector("[name=tipo]");
   if (!tipo) return;

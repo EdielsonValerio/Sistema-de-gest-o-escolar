@@ -1,6 +1,6 @@
 """Exportação em PDF dos relatórios (reportlab)."""
 from io import BytesIO
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape  # nosec B406 (só escapa texto; não faz parsing de XML)
 
 from django.utils import timezone
 from reportlab.lib import colors

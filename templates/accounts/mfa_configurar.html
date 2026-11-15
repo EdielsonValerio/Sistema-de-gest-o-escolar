@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Autenticação em duas etapas{% endblock %}
+{% block content %}
+<div class="mb-3"><h1 class="h4 page-title">Autenticação em duas etapas</h1>
+<p class="page-sub">{% if pendente %}O seu perfil exige este segundo fator para continuar.{% else %}Proteja a sua conta com um aplicativo autenticador.{% endif %}</p></div>
+<div class="card" style="max-width:640px"><div class="card-body">
+{% if ja_ativa %}
+  <p class="mb-0">A autenticação em duas etapas já está ativa na sua conta. Para trocar de aparelho, peça ao administrador para redefinir a MFA.</p>
+{% elif concluida %}
+  <div class="alert alert-success">MFA ativada. Guarde os códigos de recuperação abaixo em local seguro: <strong>eles não serão mostrados novamente</strong>. Cada código vale uma vez.</div>
+  <ul class="list-unstyled font-monospace">{% for c in codigos %}<li>{{ c }}</li>{% endfor %}</ul>
+  <a class="btn btn-primary" href="{% url 'core:dashboard' %}">Continuar</a>
+{% else %}
+  <ol class="small">
+    <li>Instale um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, Authy...).</li>
+    <li>Leia o QR code abaixo ou digite a chave manualmente.</li>
+    <li>Informe o código de 6 dígitos que o aplicativo mostrar.</li>
+  </ol>
+  <div class="text-center my-3" style="max-width:240px;margin-inline:auto">{{ qr }}</div>
+  <p class="small text-muted text-center">Chave: <code>{{ segredo }}</code></p>
+  {% if erro %}<div class="alert alert-danger py-2">{{ erro }}</div>{% endif %}
+  <form method="post" novalidate data-once>{% csrf_token %}
+    <label class="form-label" for="id_codigo">Código</label>
+    <input class="form-control mb-3" id="id_codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="8" autofocus required>
+    <button class="btn btn-primary" type="submit">Ativar</button>
+  </form>
+{% endif %}
+</div></div>
+{% endblock %}

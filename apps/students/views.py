@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http import FileResponse, Http404
 from django.db import transaction
 from django.db.models import Prefetch, Q, Sum
 from django.shortcuts import get_object_or_404, redirect
@@ -136,6 +137,47 @@ class AlunoUpdateView(AcessoMixin, TemplateView):
                   dados={"campos_alterados": campos})
         messages.success(request, "Cadastro atualizado.")
         return redirect("students:aluno_ficha", pk=aluno.pk)
+
+
+class AlunoExportarDadosView(InstituicaoQuerysetMixin, DetailView):
+    """Baixa um JSON com os dados pessoais do aluno (LGPD). Restrito por permissão e sempre auditado."""
+
+    model = Aluno
+    permission_required = "students.exportar_dados_titular"
+
+    def get(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+
+        from . import lgpd
+        aluno = self.get_object()
+        registrar(instituicao=self.instituicao, usuario=request.user, aluno_id=aluno.pk, acao="DADOS_TITULAR_EXPORTADOS",
+                  entidade="Aluno", entidade_id=aluno.pk, descricao="Exportação de dados pessoais do titular (LGPD)")
+        resp = HttpResponse(lgpd.para_json(lgpd.dados_do_titular(aluno)), content_type="application/json; charset=utf-8")
+        resp["Content-Disposition"] = f'attachment; filename="dados-titular-{aluno.codigo}.json"'
+        resp["Cache-Control"] = "no-store"
+        return resp
+
+
+class AlunoFotoView(InstituicaoQuerysetMixin, DetailView):
+    """Entrega a foto do aluno somente a usuários autenticados com permissão, da MESMA escola (404 para outra escola).
+    Nunca é servida como arquivo público; a resposta não é guardada em cache compartilhado."""
+
+    model = Aluno
+    permission_required = "students.view_aluno"
+
+    def get(self, request, *args, **kwargs):
+        aluno = self.get_object()
+        if not aluno.foto:
+            raise Http404
+        try:
+            arq = aluno.foto.open("rb")
+        except (FileNotFoundError, ValueError):
+            raise Http404 from None
+        resp = FileResponse(arq, content_type="image/jpeg")
+        resp["Cache-Control"] = "private, no-store"
+        resp["Content-Disposition"] = 'inline; filename="foto.jpg"'
+        resp["X-Content-Type-Options"] = "nosniff"
+        return resp
 
 
 class AlunoFichaView(InstituicaoQuerysetMixin, DetailView):

@@ -47,7 +47,7 @@ class BoletimAlunoView(_AlunoMixin, TemplateView):
         mats, m = self._matricula()
         d = b.dados_boletim(m) if m else None
         ctx.update(aluno=self.aluno, matriculas=mats, matricula=m, d=d,
-                   tabela=mark_safe(b.tabela_boletim_html(d)) if d and d["linhas"] else "",
+                   tabela=mark_safe(b.tabela_boletim_html(d)) if d and d["linhas"] else "",  # nosec B308 B703: HTML montado com escape()
                    pode_gerar=bool(d and d["linhas"] and d["liberadas"]))
         return ctx
 
@@ -71,7 +71,8 @@ class HistoricoAlunoView(_AlunoMixin, TemplateView):
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
         d = b.dados_historico(self.aluno)
-        ctx.update(aluno=self.aluno, d=d, tabela=mark_safe(b.tabela_historico_html(d)), pode_gerar=bool(d["blocos"]),
+        ctx.update(aluno=self.aluno, d=d, tabela=mark_safe(b.tabela_historico_html(d)),  # nosec B308 B703: HTML montado com escape()
+                   pode_gerar=bool(d["blocos"]),
                    externos=HistoricoExterno.objects.filter(aluno=self.aluno))
         return ctx
 

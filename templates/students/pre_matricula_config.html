@@ -25,7 +25,7 @@
 </div></div>
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.getElementById("copiar").addEventListener("click", function () {
   var i = document.getElementById("url-link"); i.select();
   (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.resolve(document.execCommand("copy")))

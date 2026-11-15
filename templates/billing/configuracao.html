@@ -90,7 +90,7 @@
         {% if pode_gerar and sem_boleto %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="lote"><button class="btn btn-primary" type="submit"><i class="bi bi-lightning-charge"></i> Gerar boletos das parcelas em aberto (até 100 por vez)</button></form>{% endif %}
         {% if pode_gerar and com_erro %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="lote"><input type="hidden" name="incluir_erros" value="1"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-arrow-clockwise"></i> Tentar de novo os que deram erro</button></form>{% endif %}
         <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="conciliar"><button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i> Conciliar com o banco agora</button></form>
-        <form method="post" onsubmit="return confirm('Suspender? Parcelas novas deixarão de gerar boleto.')">{% csrf_token %}<input type="hidden" name="acao" value="suspender"><button class="btn btn-outline-danger" type="submit"><i class="bi bi-pause-circle"></i> Suspender</button></form>
+        <form method="post" data-confirmar="Suspender? Parcelas novas deixarão de gerar boleto.">{% csrf_token %}<input type="hidden" name="acao" value="suspender"><button class="btn btn-outline-danger" type="submit"><i class="bi bi-pause-circle"></i> Suspender</button></form>
       </div>
       {% if com_erro %}<p class="small mt-2 mb-0">Veja o motivo de cada erro em <a href="{% url 'billing:cobranca_lista' %}?situacao=ERRO">Cobranças</a>. O erro mais comum é responsável sem CPF/CNPJ válido.</p>{% endif %}
     {% else %}
@@ -111,7 +111,7 @@
     <input id="wh-tok" class="form-control form-control-sm mb-2" readonly value="{{ webhook_token }}">
     <p class="mb-2">Eventos: <code>PAYMENT_RECEIVED</code>, <code>PAYMENT_CONFIRMED</code>, <code>PAYMENT_DELETED</code>, <code>PAYMENT_REFUNDED</code>.</p>
     {% if not webhook_url|slice:":5" == "https" %}<div class="alert alert-warning py-2">A URL precisa ser pública e acessível pelo banco (use o endereço HTTPS do sistema; defina <code>DJANGO_SITE_URL</code> no .env).</div>{% endif %}
-    <form method="post" onsubmit="return confirm('Gerar novo token? O webhook cadastrado no banco precisará ser atualizado.')">{% csrf_token %}<input type="hidden" name="acao" value="novo_token"><button class="btn btn-outline-secondary btn-sm" type="submit">Gerar novo token</button></form>
+    <form method="post" data-confirmar="Gerar novo token? O webhook cadastrado no banco precisará ser atualizado.">{% csrf_token %}<input type="hidden" name="acao" value="novo_token"><button class="btn btn-outline-secondary btn-sm" type="submit">Gerar novo token</button></form>
   </div></div>
   {% endif %}
   <div class="card"><div class="card-header">Como funciona</div><div class="card-body small">

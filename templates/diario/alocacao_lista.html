@@ -16,6 +16,6 @@
 <td>{{ a.professor.get_full_name|default:a.professor.perfil.login }}{% if not a.professor.is_active %} <span class="badge text-bg-secondary">usuário inativo</span>{% endif %}</td>
 <td>{% if a.situacao == 'ATIVA' %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Encerrada em {{ a.data_fim|date:"d/m/Y" }}</span>{% endif %}</td>
 <td class="text-end text-nowrap">{% if a.situacao == 'ATIVA' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'diario:alocacao_trocar' a.pk %}">Trocar professor</a>
-<form class="d-inline" method="post" action="{% url 'diario:alocacao_encerrar' a.pk %}" onsubmit="return confirm('Encerrar esta alocação? O histórico é preservado.')">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Encerrar</button></form>{% endif %}</td></tr>
+<form class="d-inline" method="post" action="{% url 'diario:alocacao_encerrar' a.pk %}" data-confirmar="Encerrar esta alocação? O histórico é preservado.">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Encerrar</button></form>{% endif %}</td></tr>
 {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhuma alocação encontrada. Antes, cadastre disciplinas e usuários com perfil Professor.</td></tr>{% endfor %}
 {% endblock %}

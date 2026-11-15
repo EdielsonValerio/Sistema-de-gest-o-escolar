@@ -27,7 +27,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   var f = document.getElementById("form-numeracao");
   var formato = f.querySelector("[name=formato]"), sep = f.querySelector("[name=separador]"), tam = f.querySelector("[name=tamanho_sequencial]");

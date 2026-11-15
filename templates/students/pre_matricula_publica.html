@@ -28,7 +28,7 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   var tipo = document.querySelector("[name=resp_tipo]"); if (!tipo) return;
   function bloco(n) { var e = document.querySelector("[name=" + n + "]"); return e ? e.closest("[class*=col-]") : null; }

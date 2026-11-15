@@ -36,7 +36,8 @@ def fator_vencimento(vencimento):
 
 def montar_barras(*, banco, valor_centavos, vencimento, campo_livre):
     """Código de barras de 44 dígitos (banco, moeda 9, DV, fator, valor e campo livre de 25 dígitos)."""
-    assert len(campo_livre) == 25 and len(banco) == 3
+    if not (len(campo_livre) == 25 and len(banco) == 3):
+        raise ValueError("Campo livre deve ter 25 dígitos e o banco 3.")
     sem_dv = f"{banco}9{fator_vencimento(vencimento):04d}{valor_centavos:010d}{campo_livre}"
     return f"{sem_dv[:4]}{_mod11_barras(sem_dv)}{sem_dv[4:]}"
 
@@ -84,7 +85,8 @@ def barras_svg(codigo, altura=50):
         if barra:
             retangulos.append(f'<rect x="{x}" y="0" width="{largura}" height="{altura}"/>')
         x += largura
-    return mark_safe(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {x} {altura}" width="100%" '
+    # SVG montado só com números calculados pelo sistema (nenhum texto do usuário).
+    return mark_safe(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {x} {altura}" width="100%" '  # nosec B308 B703
                      f'height="{altura}" preserveAspectRatio="none" role="img" aria-label="Código de barras" '
                      f'fill="#000">{"".join(retangulos)}</svg>')
 

@@ -14,7 +14,7 @@
     <div class="list-group">
       {% for c in conversas %}<div class="list-group-item d-flex justify-content-between align-items-center {% if atual and atual.pk == c.pk %}active{% endif %}">
         <a class="text-reset text-decoration-none text-truncate me-2" href="?c={{ c.pk|unlocalize }}">{{ c.titulo }}</a>
-        <form method="post" action="{% url 'assistente:conversa_excluir' c.pk %}" onsubmit="return confirm('Excluir esta conversa?')">{% csrf_token %}<button class="btn btn-sm btn-link text-reset p-0" title="Excluir"><i class="bi bi-trash"></i></button></form></div>
+        <form method="post" action="{% url 'assistente:conversa_excluir' c.pk %}" data-confirmar="Excluir esta conversa?">{% csrf_token %}<button class="btn btn-sm btn-link text-reset p-0" title="Excluir"><i class="bi bi-trash"></i></button></form></div>
       {% empty %}<div class="list-group-item text-muted small">Nenhuma conversa ainda.</div>{% endfor %}
     </div>
   </div>
@@ -33,7 +33,7 @@
 {% endblock %}
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   var conversa = {% if atual %}{{ atual.pk|unlocalize }}{% else %}null{% endif %};
   var box = document.getElementById("ia-msgs"), form = document.getElementById("ia-form"),

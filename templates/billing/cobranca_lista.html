@@ -28,7 +28,7 @@
   <td class="text-end text-nowrap">
     {% if c.status == 'PENDENTE' or c.status == 'PAGA' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'billing:boleto' c.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer"></i> Boleto</a>{% endif %}
     {% if c.status == 'PENDENTE' %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_consultar' c.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" title="Consultar no banco"><i class="bi bi-arrow-repeat"></i></button></form>
-      {% if pode_cancelar %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_cancelar' c.pk %}" onsubmit="return confirm('Cancelar este boleto no banco?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Cancelar boleto"><i class="bi bi-x-circle"></i></button></form>{% endif %}{% endif %}
+      {% if pode_cancelar %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_cancelar' c.pk %}" data-confirmar="Cancelar este boleto no banco?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Cancelar boleto"><i class="bi bi-x-circle"></i></button></form>{% endif %}{% endif %}
     {% if c.status == 'ERRO' and pode_gerar %}<form class="d-inline" method="post" action="{% url 'billing:cobranca_gerar' c.parcela_id %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-primary"><i class="bi bi-arrow-clockwise"></i> Tentar de novo</button></form>{% endif %}
   </td>
 </tr>

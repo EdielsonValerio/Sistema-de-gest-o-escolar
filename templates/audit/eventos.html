@@ -1,0 +1,20 @@
+{% extends "generic/lista.html" %}
+{% block title %}Eventos de segurança{% endblock %}
+{% block content %}
+{% with titulo="Eventos de segurança" subtitulo="Bloqueios de login, falhas de MFA e de webhook, acessos negados. Não contêm senhas, tokens nem dados pessoais." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block filtros %}
+<div class="card card-body mb-3">
+  <div class="fw-semibold mb-2">Últimas 24 horas</div>
+  {% if resumo %}<div class="d-flex flex-wrap gap-2">{% for r, n in resumo %}<span class="badge text-bg-warning">{{ r }}: {{ n }}</span>{% endfor %}</div>{% else %}<span class="text-muted">Nenhum evento nas últimas 24 horas.</span>{% endif %}
+  <form method="get" class="row g-2 align-items-end mt-2"><div class="col-md-4"><label class="form-label small mb-1" for="f-t">Tipo</label>
+    <select id="f-t" class="form-select" name="tipo"><option value="">Todos</option>{% for v, l in tipos %}<option value="{{ v }}" {% if filtro_tipo == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button class="btn btn-outline-primary" type="submit">Filtrar</button></div></form>
+</div>
+{% endblock %}
+{% block thead %}<tr><th>Quando</th><th>Evento</th>{% if global_ %}<th>Escola</th>{% endif %}<th>Usuário</th><th>IP</th><th>Detalhe</th></tr>{% endblock %}
+{% block tbody %}
+{% for e in object_list %}
+<tr><td class="text-nowrap">{{ e.criado_em|date:"d/m/Y H:i:s" }}</td><td>{{ e.get_tipo_display }}</td>{% if global_ %}<td>{{ e.instituicao|default:"—" }}</td>{% endif %}<td>{{ e.usuario.username|default:"—" }}</td><td>{{ e.ip|default:"—" }}</td><td>{{ e.detalhe }}</td></tr>
+{% empty %}{% include "components/vazio.html" with colspan=6 icone="shield-check" msg="Nenhum evento de segurança registrado." %}{% endfor %}
+{% endblock %}

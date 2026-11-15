@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{% if ativacao %}Ativar acesso{% else %}Redefinir senha{% endif %}{% endblock %}
+{% block anon %}
+<div class="login-wrap"><div class="card login-card"><div class="card-body p-4">
+  {% if invalido %}
+  <h1 class="h5 mb-2">Link inválido ou expirado</h1>
+  <p class="text-muted small">Este link já foi usado, venceu ou não existe. {% if ativacao %}Peça ao administrador da escola um novo link de ativação.{% else %}Solicite uma nova redefinição.{% endif %}</p>
+  <a class="btn btn-primary w-100" href="{% if ativacao %}{% url 'accounts:login' %}{% else %}{% url 'accounts:recuperar' %}{% endif %}">{% if ativacao %}Ir para o login{% else %}Recuperar senha{% endif %}</a>
+  {% else %}
+  <h1 class="h5 mb-1">{% if ativacao %}Crie a sua senha{% else %}Nova senha{% endif %}</h1>
+  <p class="text-muted small">Use ao menos 12 caracteres, sem ser uma senha comum ou só números.</p>
+  <form method="post" novalidate data-once>{% csrf_token %}
+    {% for f in form %}<div class="mb-3"><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+    <button class="btn btn-primary w-100" type="submit">Salvar senha</button>
+  </form>
+  {% endif %}
+</div></div></div>
+{% endblock %}

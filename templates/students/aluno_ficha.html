@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div class="d-flex gap-3 align-items-center">
-    {% if aluno.foto %}<img src="{{ aluno.foto.url }}" alt="Foto de {{ aluno.nome }}" class="rounded" style="width:64px;height:64px;object-fit:cover">{% else %}<div class="kpi"><div class="icon" style="width:64px;height:64px"><i class="bi bi-person"></i></div></div>{% endif %}
+    {% if aluno.foto %}<img src="{% url 'students:aluno_foto' aluno.pk %}" alt="Foto de {{ aluno.nome }}" class="rounded" style="width:64px;height:64px;object-fit:cover">{% else %}<div class="kpi"><div class="icon" style="width:64px;height:64px"><i class="bi bi-person"></i></div></div>{% endif %}
     <div><h1 class="h4 page-title mb-0">{{ aluno.nome }}</h1>
       <div class="text-muted">Código <code>{{ aluno.codigo }}</code> · {{ aluno.idade }} anos · <span class="badge text-bg-{% if aluno.ativo %}success{% else %}secondary{% endif %}">Cadastro {% if aluno.ativo %}ativo{% else %}inativo{% endif %}</span>{% if aluno.pre_matricula_online %} <span class="badge text-bg-info">Pré-matrícula online</span>{% endif %}</div></div>
   </div>
@@ -14,6 +14,7 @@
     {% if perms.enrollments.add_matricula %}<a class="btn btn-primary" href="{% url 'enrollments:vincular' aluno.pk %}"><i class="bi bi-link-45deg"></i> Vincular a turma</a>{% endif %}
     {% if mostrar_financeiro %}<a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}?aluno={{ aluno.pk|unlocalize }}&situacao=todas"><i class="bi bi-receipt"></i> Parcelas</a>{% endif %}
     {% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_aluno' aluno.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
+    {% if perms.students.exportar_dados_titular %}<a class="btn btn-outline-secondary" href="{% url 'students:aluno_exportar_dados' aluno.pk %}" title="Baixar os dados pessoais deste titular (LGPD)"><i class="bi bi-download"></i> Dados do titular</a>{% endif %}
     {% if perms.diario.emitir_boletim %}<a class="btn btn-outline-secondary" href="{% url 'diario:boletim_aluno' aluno.pk %}"><i class="bi bi-card-checklist"></i> Boletim</a>{% endif %}
     {% if perms.diario.emitir_historico %}<a class="btn btn-outline-secondary" href="{% url 'diario:historico_aluno' aluno.pk %}"><i class="bi bi-journal-text"></i> Histórico</a>{% endif %}
     {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' aluno.pk %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}

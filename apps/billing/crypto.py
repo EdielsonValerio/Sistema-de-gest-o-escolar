@@ -8,7 +8,7 @@ import base64
 import hashlib
 import os
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from django.conf import settings
 
 
@@ -17,9 +17,11 @@ class SegredoIlegivel(Exception):
 
 
 def _fernet():
-    chave = os.environ.get("BILLING_CRYPTO_KEY", "").strip()
-    if chave:
-        return Fernet(chave.encode())
+    """BILLING_CRYPTO_KEY aceita VÁRIAS chaves separadas por vírgula: a primeira cifra e todas decifram. Isso permite
+    rotacionar: acrescente a nova chave no início, rode `python manage.py rotacionar_segredos` e depois remova a antiga."""
+    chaves = [c.strip() for c in os.environ.get("BILLING_CRYPTO_KEY", "").split(",") if c.strip()]
+    if chaves:
+        return MultiFernet([Fernet(c.encode()) for c in chaves])
     derivada = hashlib.sha256(("billing-cofre:" + settings.SECRET_KEY).encode()).digest()
     return Fernet(base64.urlsafe_b64encode(derivada))
 
@@ -42,3 +44,8 @@ def mascarar(texto):
     if not texto:
         return ""
     return texto[:6] + "••••••••" + texto[-4:] if len(texto) > 14 else "••••••••"
+
+
+def recifrar(token):
+    """Regrava o segredo com a chave mais recente (primeira da lista). Usado na rotação de chaves."""
+    return _fernet().rotate(token.encode()).decode() if token else ""

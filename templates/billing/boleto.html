@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-start mb-3 no-print">
     <h1 class="h4 page-title">Boleto {% if cob.eh_teste %}de teste{% endif %}</h1>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-primary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+      <button class="btn btn-outline-primary" type="button" data-print><i class="bi bi-printer"></i> Imprimir</button>
       {% if cob.url_boleto %}<a class="btn btn-outline-secondary" href="{{ cob.url_boleto }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> PDF do banco</a>{% endif %}
     </div>
   </div>
@@ -36,7 +36,7 @@
       <div class="col"><div class="fw-semibold"><i class="bi bi-qr-code"></i> Pague também com Pix</div>
         <div class="small text-muted mb-1">Aponte a câmera do aplicativo do seu banco para o QR Code ou use o Pix copia e cola:</div>
         <textarea id="pix-cc" class="form-control form-control-sm" rows="3" readonly>{{ cob.pix_copia_cola }}</textarea>
-        <button class="btn btn-sm btn-outline-secondary mt-1 no-print" type="button" onclick="navigator.clipboard.writeText(document.getElementById('pix-cc').value).then(function(){this.textContent='Copiado!'}.bind(this))"><i class="bi bi-clipboard"></i> Copiar</button></div>
+        <button class="btn btn-sm btn-outline-secondary mt-1 no-print" type="button" data-copiar="pix-cc"><i class="bi bi-clipboard"></i> Copiar</button></div>
     </div>
     {% else %}<p class="small text-muted border-top pt-3 mb-0">Este boleto não trouxe QR Code Pix (a conta no banco precisa ter uma chave Pix cadastrada).</p>{% endif %}
   </div></div>

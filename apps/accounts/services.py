@@ -27,4 +27,6 @@ def trocar_senha_propria(request, usuario, nova_senha):
                   acao="SENHA_INICIAL_SUBSTITUIDA" if era_provisoria else "SENHA_ALTERADA_PELO_USUARIO",
                   entidade="User", entidade_id=usuario.pk, descricao=f"Senha trocada pelo usuário {perfil.login}")
     update_session_auth_hash(request, usuario)
+    from . import emails
+    emails.avisar_senha_alterada(usuario=usuario, request=request)
     return era_provisoria

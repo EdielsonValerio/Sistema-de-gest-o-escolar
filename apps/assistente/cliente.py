@@ -25,7 +25,7 @@ class ClienteClaude:
         req = urllib.request.Request(URL, data=json.dumps(corpo).encode(), method="POST", headers={
             "x-api-key": self.api_key, "anthropic-version": VERSAO_API, "content-type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (URL fixa, https)
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310  # nosec B310 (URL fixa https)
                 return json.loads(resp.read().decode() or "{}")
         except urllib.error.HTTPError as exc:
             raise ErroIA(self._mensagem_http(exc)) from None

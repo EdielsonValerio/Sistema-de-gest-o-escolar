@@ -9,7 +9,7 @@
   {% csrf_token %}
   <div class="card" style="max-width:640px"><div class="card-body">
     {% include "components/form_fields.html" %}
-    <div class="form-text mt-2">Use ao menos 8 caracteres, sem ser só números nem uma senha comum, e diferente da senha atual.</div>
+    <div class="form-text mt-2">Use ao menos 12 caracteres, sem ser só números nem uma senha comum, e diferente da senha atual.</div>
   </div>
   <div class="card-footer bg-white d-flex gap-2 justify-content-end">
     {% if obrigatoria %}

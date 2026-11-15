@@ -9,10 +9,13 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, TemplateView
 
+from apps.accounts import seguranca
+from apps.accounts.models import TentativaLogin
 from apps.core.mixins import AcessoMixin, InstituicaoQuerysetMixin, PaginacaoMixin
 from apps.finance.models import Parcela
 
@@ -21,6 +24,16 @@ from .forms import BoletoTesteForm, ConfiguracaoBancariaForm
 from .models import Cobranca, ConfiguracaoBancaria, Provedor
 from .providers import ErroProvedor
 from .providers.simulado import Simulado
+
+
+Tipo = TentativaLogin.Tipo
+MAX_FALHAS_WEBHOOK = 10  # tokens errados por IP (janela de 15 min, bloqueio progressivo)
+
+
+def _destino_seguro(request, destino):
+    """Só caminhos do próprio site (barra invertida, `//` e esquemas externos são recusados)."""
+    return bool(destino) and destino.startswith("/") and url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure())
 
 
 def _erro(request, exc):
@@ -199,8 +212,7 @@ class _AcaoPost(AcessoMixin, View):
         except (ValidationError, ErroProvedor) as exc:
             _erro(request, exc)
         destino = request.POST.get("next", "")
-        return redirect(destino) if destino.startswith("/") and not destino.startswith("//") \
-            else redirect("billing:cobranca_lista")
+        return redirect(destino) if _destino_seguro(request, destino) else redirect("billing:cobranca_lista")
 
 
 class CobrancaConsultarView(_AcaoPost):
@@ -233,8 +245,7 @@ class CobrancaGerarParcelaView(AcessoMixin, View):
         except ValidationError as exc:
             _erro(request, exc)
         destino = request.POST.get("next", "")
-        return redirect(destino) if destino.startswith("/") and not destino.startswith("//") \
-            else redirect("finance:parcela_detalhe", pk=pk)
+        return redirect(destino) if _destino_seguro(request, destino) else redirect("finance:parcela_detalhe", pk=pk)
 
 
 # --------------------------------------------------------------------------- aviso do banco (webhook)
@@ -253,8 +264,14 @@ class WebhookView(View):
             token = cfg.webhook_token
         except crypto.SegredoIlegivel:
             return HttpResponse(status=500)
+        chave = seguranca.chave_ip(seguranca.ip_do_pedido(request))
+        if seguranca.bloqueado(Tipo.WEBHOOK_IP, chave, Tipo.WEBHOOK_IP, None, limite_conta=MAX_FALHAS_WEBHOOK):
+            return HttpResponse(status=429)
         if not token or not hmac.compare_digest(request.headers.get("asaas-access-token", "").encode(), token.encode()):
+            seguranca.registrar_falha(Tipo.WEBHOOK_IP, chave)
+            seguranca.evento("WEBHOOK_FALHA", request, escola=cfg.instituicao, detalhe="Token do webhook incorreto")
             return HttpResponse(status=401)
+        seguranca.limpar_falhas(Tipo.WEBHOOK_IP, chave)
         if len(request.body) > self.LIMITE_BYTES:
             return HttpResponse(status=413)
         try:

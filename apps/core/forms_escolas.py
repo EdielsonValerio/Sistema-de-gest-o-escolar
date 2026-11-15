@@ -50,12 +50,9 @@ class EscolaForm(BootstrapFormMixin, SecoesMixin, forms.ModelForm):
         return formatar_cnpj(so_digitos(v))
 
     def clean_logotipo(self):
-        arq = self.cleaned_data.get("logotipo")
-        if arq and hasattr(arq, "size") and arq.size > LIMITE_LOGOTIPO:
-            raise ValidationError("O logotipo deve ter no máximo 2 MB.")
-        if arq and hasattr(arq, "image") and arq.image.format not in ("PNG", "JPEG", "WEBP"):
-            raise ValidationError("Use uma imagem PNG, JPG ou WebP.")
-        return arq
+        from .uploads import processar_imagem
+        return processar_imagem(self.cleaned_data.get("logotipo"), max_bytes=LIMITE_LOGOTIPO, lado_saida=800,
+                                rotulo="O logotipo")
 
 
 class AdministradorForm(BootstrapFormMixin, SecoesMixin, forms.Form):
@@ -67,8 +64,8 @@ class AdministradorForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     senha1 = forms.CharField(label="Senha", strip=False, widget=forms.PasswordInput(render_value=False))
     senha2 = forms.CharField(label="Confirmar senha", strip=False, widget=forms.PasswordInput(render_value=False))
     enviar_email = forms.BooleanField(
-        label="Enviar acesso por e-mail (link, usuário e senha provisória)", required=False,
-        help_text="Requer e-mail preenchido e o envio de e-mail configurado no servidor.")
+        label="Enviar link de ativação por e-mail", required=False,
+        help_text="Requer e-mail preenchido e o envio de e-mail configurado. A senha nunca é enviada por e-mail.")
 
     SECOES = [("Administrador da escola", ["nome", "sobrenome", "email", "login"]),
               ("Senha provisória (será trocada no primeiro acesso)", ["senha1", "senha2", "enviar_email"])]
@@ -96,7 +93,8 @@ class AdministradorForm(BootstrapFormMixin, SecoesMixin, forms.Form):
 class NovaSenhaForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     senha1 = forms.CharField(label="Nova senha", strip=False, widget=forms.PasswordInput(render_value=False))
     senha2 = forms.CharField(label="Confirmar nova senha", strip=False, widget=forms.PasswordInput(render_value=False))
-    enviar_email = forms.BooleanField(label="Enviar a senha provisória por e-mail", required=False)
+    enviar_email = forms.BooleanField(label="Enviar link de redefinição por e-mail", required=False,
+                                      help_text="A senha nunca é enviada por e-mail: a pessoa recebe um link de uso único.")
 
     def __init__(self, *args, usuario=None, **kwargs):
         self.usuario = usuario

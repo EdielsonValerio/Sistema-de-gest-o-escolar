@@ -1,4 +1,5 @@
 """Configurações do projeto. Valores sensíveis vêm de variáveis de ambiente (.env)."""
+import sys
 import os
 from pathlib import Path
 
@@ -37,6 +38,16 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
+if not DEBUG:
+    # Produção: não aceita silenciosamente configuração de desenvolvimento.
+    _erros = []
+    if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("dev-only"):
+        _erros.append("DJANGO_SECRET_KEY deve ter ao menos 50 caracteres aleatórios e exclusivos deste ambiente")
+    if not os.environ.get("DJANGO_ALLOWED_HOSTS", "").strip() or "*" in ALLOWED_HOSTS:
+        _erros.append("DJANGO_ALLOWED_HOSTS deve listar os domínios do sistema (sem '*')")
+    if _erros:
+        raise ImproperlyConfigured("Configuração insegura para produção: " + "; ".join(_erros) + ".")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -66,6 +77,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.LimiteTaxaMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.core.middleware.EscolaMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -84,6 +96,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.instituicao",
+                "apps.core.context_processors.csp",
                 "apps.payables.context_processors.notificacoes_contas_pagar",
                 "apps.assistente.context_processors.assistente",
             ],
@@ -124,9 +137,23 @@ def _database():
 
 DATABASES = {"default": _database()}
 
+# Argon2 (vencedor do Password Hashing Competition) como algoritmo principal; os demais ficam só para ler hashes
+# antigos, que são regravados em Argon2 no próximo login.
+try:
+    import argon2  # noqa: F401
+except ImportError:  # falha cedo e com instrução clara, em vez de um erro obscuro no primeiro login
+    raise ImproperlyConfigured(
+        "Dependência ausente: argon2-cffi (hash de senhas). Rode: pip install -r requirements.txt") from None
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -153,6 +180,10 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
+# Limites de requisição (proteção contra corpos gigantes): 5 MB de campos de texto; arquivos têm limite próprio.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 3000  # formulários de notas/frequência têm muitos campos
+FILE_UPLOAD_PERMISSIONS = 0o640
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -160,6 +191,15 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 SECURE_REFERRER_POLICY = "same-origin"
+# MFA (TOTP): obrigatória para o administrador do sistema e os perfis abaixo. Em produção vem ligada por padrão.
+MFA_OBRIGATORIA = env_bool("DJANGO_MFA_OBRIGATORIA", not DEBUG)
+MFA_PERFIS_OBRIGATORIOS = ("Administrador", "Financeiro")
+# Limites de tentativas de login (por conta e por IP), janela em minutos.
+LOGIN_MAX_FALHAS_CONTA = int(os.environ.get("DJANGO_LOGIN_MAX_FALHAS_CONTA", 5))
+LOGIN_MAX_FALHAS_IP = int(os.environ.get("DJANGO_LOGIN_MAX_FALHAS_IP", 30))
+LOGIN_JANELA_MINUTOS = 15
+# Sessão: expira por inatividade e ao fechar o navegador não é obrigatório (12 h no máximo).
+SESSION_SAVE_EVERY_REQUEST = False
 SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_SEGUNDOS", 60 * 60 * 12))  # 12 h
 
 if not DEBUG:
@@ -173,12 +213,16 @@ if not DEBUG:
     if env_bool("DJANGO_PROXY_HTTPS", False):  # atrás de Nginx/ALB que repassa X-Forwarded-Proto
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# Content-Security-Policy. As telas usam Bootstrap/Chart.js do jsDelivr e pequenos scripts/estilos embutidos,
-# por isso 'unsafe-inline' (endurecer com nonce é uma evolução futura). O restante fica restrito.
+# Content-Security-Policy com NONCE por requisição: scripts inline só executam com o nonce gerado pelo servidor
+# (sem 'unsafe-inline' em script-src). Elementos <style> também exigem nonce; apenas atributos style="" ficam
+# permitidos (style-src-attr), pois o layout usa larguras/alturas inline e não executam código.
+# "{nonce}" é substituído a cada resposta pelo SegurancaMiddleware.
 CONTENT_SECURITY_POLICY = os.environ.get("DJANGO_CSP") or "; ".join([
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+    "script-src-attr 'none'",
+    "style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+    "style-src-attr 'unsafe-inline'",
     "font-src 'self' https://cdn.jsdelivr.net data:",
     "img-src 'self' data: blob:",
     "connect-src 'self'",
@@ -186,7 +230,7 @@ CONTENT_SECURITY_POLICY = os.environ.get("DJANGO_CSP") or "; ".join([
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-])
+] + ([] if DEBUG else ["upgrade-insecure-requests"]))
 CSP_REPORT_ONLY = env_bool("DJANGO_CSP_SOMENTE_RELATAR", False)
 
 # Evita registrar dados pessoais em logs: nenhum log de formulário/POST é configurado.
@@ -215,3 +259,15 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "EduNex <nao-responda@localhost>")
 EMAIL_CONFIGURADO = bool(EMAIL_HOST)
+
+# HSTS com includeSubDomains/preload é decisão consciente (afeta TODOS os subdomínios, irreversível por meses):
+# só ligue via DJANGO_HSTS_SUBDOMINIOS / DJANGO_HSTS_PRELOAD depois de auditar os subdomínios.
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
+
+
+# --- Limite de requisições por minuto (middleware LimiteTaxaMiddleware) ---
+# Desligado só ao rodar a suíte de testes (que faz centenas de requisições seguidas); os testes do limitador o ligam.
+LIMITE_TAXA_ATIVO = env_bool("DJANGO_LIMITE_TAXA", True) and "test" not in sys.argv
+LIMITE_REQ_USUARIO_MIN = int(os.environ.get("DJANGO_LIMITE_REQ_USUARIO_MIN", 300))
+LIMITE_POST_USUARIO_MIN = int(os.environ.get("DJANGO_LIMITE_POST_USUARIO_MIN", 90))
+LIMITE_REQ_ANONIMO_MIN = int(os.environ.get("DJANGO_LIMITE_REQ_ANONIMO_MIN", 300))

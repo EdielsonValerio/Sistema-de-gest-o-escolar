@@ -26,12 +26,16 @@ PREFIXO_ADMIN = "admin"
 def _avisar_email(request, dados, usuario, escola, senha=None, redefinicao=False):
     if not dados.get("enviar_email"):
         return
-    ok = emails.enviar_boas_vindas(usuario=usuario, senha_provisoria=senha or dados["senha1"], escola=escola,
-                                   request=request, redefinicao=redefinicao)
-    (messages.success if ok else messages.warning)(
-        request, "Acesso enviado por e-mail." if ok else
-        "O e-mail não pôde ser enviado (verifique a configuração de e-mail do servidor). "
-        "Informe a senha provisória por outro meio.")
+    from apps.accounts import seguranca
+    from apps.accounts.models import TokenConta
+    token = seguranca.gerar_token(usuario, TokenConta.Finalidade.ATIVACAO)
+    ok = emails.enviar_ativacao(usuario=usuario, token=token, escola=escola, request=request, redefinicao=redefinicao)
+    if ok:
+        messages.success(request, "Link de ativação enviado por e-mail (vale por 3 dias).")
+    else:
+        messages.warning(request, "O e-mail não pôde ser enviado (verifique o e-mail do usuário e a configuração do "
+                                  "servidor). Entregue este link à pessoa por um canal seguro (vale por 3 dias, uso "
+                                  f"único): {emails.url_ativacao(token, request)}")
 
 
 class SistemaMixin(LoginRequiredMixin, UserPassesTestMixin):

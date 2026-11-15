@@ -20,6 +20,20 @@ def _validar_cpf_opcional(valor, rotulo="CPF"):
     return formatar_cpf(valor)
 
 
+class FotoInput(forms.ClearableFileInput):
+    """Não exibe o link público do arquivo: a foto do aluno só é entregue por tela autenticada (ver AlunoFotoView)."""
+
+    def render(self, name, value, attrs=None, renderer=None):
+        from django.utils.html import format_html
+        campo = forms.FileInput(attrs=self.attrs).render(name, None, attrs, renderer)
+        if value and getattr(value, "name", None):
+            remover = (format_html('<label class="ms-2"><input type="checkbox" name="{}-clear" id="{}-clear_id"> Remover</label>',
+                                   name, name) if not self.is_required else "")
+            return format_html('<div class="small text-muted mb-1">Há uma foto cadastrada.{}</div><div class="small">Trocar por:</div>{}',
+                               remover, campo)
+        return campo
+
+
 class AlunoForm(BaseModelForm):
     # --- responsável financeiro (não persistido diretamente no aluno)
     resp_tipo = forms.ChoiceField(
@@ -75,7 +89,8 @@ class AlunoForm(BaseModelForm):
                               ("telefone", "tel"), ("celular", "tel"), ("telefone_mae", "tel"),
                               ("telefone_pai", "tel"), ("telefone_responsavel_legal", "tel"), ("resp_telefone", "tel")):
             self.fields[nome].widget.attrs["data-mask"] = mascara
-        self.fields["foto"].widget.attrs["accept"] = "image/*"
+        self.fields["foto"].widget = FotoInput(attrs={"accept": "image/png,image/jpeg,image/webp"})
+        self.fields["foto"].help_text = "PNG, JPG ou WebP, até 5 MB. A foto é redimensionada e os metadados (EXIF/GPS) são removidos."
         if self.instance.pk:
             vig = self.instance.responsaveis_financeiros.filter(fim__isnull=True).select_related("responsavel").first()
             if vig:
@@ -84,6 +99,11 @@ class AlunoForm(BaseModelForm):
         self.fields["resp_existente"].help_text += " Para alterar dados de um responsável, use Responsáveis no menu."
 
     # --- validações
+    def clean_foto(self):
+        from apps.core.uploads import processar_imagem
+        return processar_imagem(self.cleaned_data.get("foto"), max_bytes=5 * 1024 * 1024, lado_saida=1000,
+                                formato_saida="JPEG", rotulo="A foto")
+
     def clean_data_nascimento(self):
         d = self.cleaned_data["data_nascimento"]
         if d > timezone.localdate():

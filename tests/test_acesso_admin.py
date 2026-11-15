@@ -158,8 +158,9 @@ class EmailTests(Base):
         self.assertEqual(len(mail.outbox), 1)
         m = mail.outbox[0]
         self.assertEqual(m.to, ["ana@x.com"])
-        for trecho in ("https://escola.exemplo.com.br/entrar/", "Escola A", "ana", PROVISORIA, "primeiro acesso"):
+        for trecho in ("https://escola.exemplo.com.br/entrar/", "Escola A", "ana", "/ativar-conta/", "uma vez"):
             self.assertIn(trecho, m.body)
+        self.assertNotIn(PROVISORIA, m.body)  # a senha nunca vai por e-mail
         self.assertFalse(any(PROVISORIA in str(r.dados) for r in RegistroAuditoria.objects.all()))
 
     def test_sem_marcar_nao_envia(self):
@@ -189,7 +190,8 @@ class EmailTests(Base):
                    {"senha1": "Nova#Prov2026x", "senha2": "Nova#Prov2026x", "enviar_email": "on"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("redefinida", mail.outbox[0].body)
+        self.assertIn("nova senha", mail.outbox[0].body)
+        self.assertNotIn("Nova#Prov2026x", mail.outbox[0].body)
 
     def test_cadastro_de_escola_com_envio(self):
         c = self.cliente_sistema()

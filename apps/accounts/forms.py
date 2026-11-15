@@ -11,6 +11,8 @@ from apps.core.models import Instituicao
 from .models import PerfilUsuario
 
 from .permissions import PERFIS
+from . import seguranca
+from .models import TentativaLogin
 
 
 LOGIN_RE = re.compile(r"^[\w.@+-]{3,100}$")
@@ -65,6 +67,12 @@ class LoginForm(BootstrapFormMixin, forms.Form):
         if self.errors:
             return d
         escola, login, senha = d.get("escola"), d["usuario"], d["senha"]
+        T = TentativaLogin.Tipo
+        k_conta = seguranca.chave_conta(None if self.sistema else escola.pk, login)
+        k_ip = seguranca.chave_ip(seguranca.ip_do_pedido(self.request)) if self.request is not None else None
+        if seguranca.bloqueado(T.LOGIN_CONTA, k_conta, T.LOGIN_IP, k_ip):
+            seguranca.evento("LOGIN_BLOQUEADO", self.request, escola=escola, detalhe="Tentativa durante bloqueio temporário")
+            raise ValidationError("Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente.")
         if self.sistema:
             user = authenticate(self.request, username=login, password=senha)
             if user is not None and not (user.is_superuser and user.is_active):
@@ -72,7 +80,12 @@ class LoginForm(BootstrapFormMixin, forms.Form):
         else:
             user = authenticate(self.request, escola=escola, login=login, password=senha)
         if user is None:
+            seguranca.registrar_falha(T.LOGIN_CONTA, k_conta)
+            if k_ip:
+                seguranca.registrar_falha(T.LOGIN_IP, k_ip)
+            seguranca.evento("LOGIN_FALHA", self.request, escola=escola, detalhe="Credenciais incorretas")
             raise ValidationError(ERRO_LOGIN)  # mesma mensagem para qualquer falha (não revela o que existe)
+        seguranca.limpar_falhas(T.LOGIN_CONTA, k_conta)
         self.user = user
         return d
 
@@ -90,13 +103,13 @@ class UsuarioForm(BootstrapFormMixin, SecoesMixin, forms.Form):
     senha2 = forms.CharField(label="Confirmar senha", widget=forms.PasswordInput(render_value=False), required=False,
                              strip=False)
     enviar_email = forms.BooleanField(
-        label="Enviar acesso por e-mail (link, usuário e senha provisória)", required=False,
-        help_text="A senha informada é provisória: no primeiro acesso a pessoa cria a própria senha.")
+        label="Enviar link de ativação por e-mail", required=False,
+        help_text="A pessoa recebe um link (uso único, 3 dias) para criar a própria senha. A senha nunca vai por e-mail.")
 
     SECOES = [
         ("Identificação", ["username", "first_name", "last_name", "email"]),
         ("Acesso", ["perfil", "is_active"]),
-        ("Senha provisória", ["senha1", "senha2", "enviar_email"]),
+        ("Acesso e senha", ["senha1", "senha2", "enviar_email"]),
     ]
 
     def __init__(self, *args, instituicao=None, usuario_editado=None, usuario_logado=None, **kwargs):
@@ -106,8 +119,9 @@ class UsuarioForm(BootstrapFormMixin, SecoesMixin, forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["perfil"].queryset = Group.objects.filter(name__in=PERFIS).order_by("name")
         if usuario_editado is None:
-            self.fields["senha1"].required = True
-            self.fields["senha2"].required = True
+            self.fields["senha1"].help_text = ("Opcional. Em branco, a pessoa cria a senha pelo link de ativação "
+                                               "(recomendado). Se definir uma, ela é provisória e deve ser entregue "
+                                               "fora do e-mail; a pessoa terá de trocá-la no primeiro acesso.")
         else:
             self.fields["senha1"].help_text = ("Deixe em branco para manter a senha atual. Se definir outra, "
                                                "a pessoa terá de criar uma nova senha no próximo acesso.")
@@ -122,8 +136,6 @@ class UsuarioForm(BootstrapFormMixin, SecoesMixin, forms.Form):
         validar_senha_confirmada(self, d, tmp)
         if d.get("enviar_email") and not d.get("email"):
             self.add_error("email", "Informe o e-mail para enviar o acesso.")
-        if d.get("enviar_email") and not d.get("senha1"):
-            self.add_error("enviar_email", "Defina a senha provisória para enviar por e-mail.")
         if self.usuario_editado and self.usuario_logado and self.usuario_editado.pk == self.usuario_logado.pk:
             if not d.get("is_active"):
                 self.add_error("is_active", "Você não pode desativar o próprio usuário.")

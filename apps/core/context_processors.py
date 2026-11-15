@@ -13,3 +13,8 @@ def instituicao(request):
     return {"instituicao_atual": escola, "login_exibicao": login_do_usuario(user), "pre_matriculas_novas": pre,
             "modo_suporte": em_modo_suporte(user, request),
             "troca_obrigatoria": bool(getattr(getattr(user, "perfil", None), "deve_trocar_senha", False))}
+
+
+def csp(request):
+    """Nonce da Content-Security-Policy desta requisição (usado em <script nonce="{{ csp_nonce }}">)."""
+    return {"csp_nonce": getattr(request, "csp_nonce", "")}

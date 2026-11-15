@@ -9,7 +9,7 @@
   <div class="col-lg-8"><div class="card"><div class="card-header">Períodos letivos</div><div class="table-responsive"><table class="table mb-0 align-middle">
     <tbody>{% for x in periodos %}<tr><td>{{ x.p.nome }}<div class="small text-muted">{{ x.p.data_inicio|date:"d/m/Y" }} a {{ x.p.data_fim|date:"d/m/Y" }}</div></td>
       <td>{% if x.fechado %}<span class="badge text-bg-secondary">Fechado</span>{% else %}<span class="badge text-bg-success">Aberto</span>{% endif %}</td>
-      <td class="text-end">{% if not x.fechado and alocacao.situacao == 'ATIVA' %}<form method="post" action="{% url 'diario:fechar_periodo' alocacao.pk x.p.pk %}" onsubmit="return confirm('Fechar o diário deste período? Aulas, frequência e notas ficam somente leitura.')">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Fechar período</button></form>{% endif %}</td></tr>
+      <td class="text-end">{% if not x.fechado and alocacao.situacao == 'ATIVA' %}<form method="post" action="{% url 'diario:fechar_periodo' alocacao.pk x.p.pk %}" data-confirmar="Fechar o diário deste período? Aulas, frequência e notas ficam somente leitura.">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Fechar período</button></form>{% endif %}</td></tr>
     {% empty %}<tr><td class="text-muted py-3">A coordenação ainda não cadastrou os períodos letivos deste ano.</td></tr>{% endfor %}</tbody></table></div></div></div>
 </div>
 {% endblock %}
