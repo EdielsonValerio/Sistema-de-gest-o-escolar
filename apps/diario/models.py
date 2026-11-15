@@ -17,6 +17,9 @@ class Disciplina(models.Model):
     instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="disciplinas")
     nome = models.CharField("nome", max_length=80)
     sigla = models.CharField("sigla", max_length=12, blank=True)
+    carga_horaria = models.PositiveSmallIntegerField(
+        "carga horária anual (horas)", null=True, blank=True, validators=[MaxValueValidator(2000)],
+        help_text="Opcional. Aparece no histórico escolar.")
     ativa = models.BooleanField("ativa", default=True)
 
     class Meta:
@@ -308,3 +311,87 @@ class FechamentoDiario(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["alocacao", "periodo"], name="uniq_fechamento")]
+
+
+class ResultadoFase(models.Model):
+    """Nota de uma fase liberada ao boletim. Gravada pela rotina `sincronizar_boletim` quando o professor fecha o
+    diário da fase; apagada se o diário for reaberto."""
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+")
+    matricula = models.ForeignKey("enrollments.Matricula", on_delete=models.PROTECT, related_name="resultados_fase")
+    alocacao = models.ForeignKey(AlocacaoProfessor, on_delete=models.PROTECT, related_name="resultados_fase")
+    periodo = models.ForeignKey(PeriodoLetivo, on_delete=models.PROTECT, related_name="resultados")
+    nota = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    frequencia = models.DecimalField("frequência acumulada (%)", max_digits=5, decimal_places=2, null=True, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["matricula", "alocacao", "periodo"], name="uniq_resultado_fase")]
+
+
+class ResultadoFinal(models.Model):
+    """Resultado do aluno na disciplina, gravado quando todas as fases estão fechadas (base do histórico)."""
+
+    class Resultado(models.TextChoices):
+        APROVADO = "APROVADO", "Aprovado"
+        REPROVADO = "REPROVADO", "Reprovado"
+        PENDENTE = "PENDENTE", "Pendente"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+")
+    matricula = models.ForeignKey("enrollments.Matricula", on_delete=models.PROTECT, related_name="resultados_finais")
+    alocacao = models.ForeignKey(AlocacaoProfessor, on_delete=models.PROTECT, related_name="resultados_finais")
+    media_final = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    frequencia = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    aulas = models.PositiveIntegerField(default=0)
+    faltas = models.PositiveIntegerField(default=0)
+    situacao = models.CharField(max_length=40)
+    resultado = models.CharField(max_length=10, choices=Resultado.choices, default=Resultado.PENDENTE)
+    carga_horaria = models.PositiveSmallIntegerField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["matricula", "alocacao"], name="uniq_resultado_final")]
+        permissions = [("emitir_boletim", "Pode emitir o boletim escolar"),
+                       ("emitir_historico", "Pode emitir o histórico escolar"),
+                       ("gerenciar_historico_externo", "Pode cadastrar o histórico de outras escolas")]
+
+
+class HistoricoExterno(models.Model):
+    """Ano cursado em outra escola, cadastrado manualmente para compor o histórico escolar."""
+
+    class Resultado(models.TextChoices):
+        APROVADO = "APROVADO", "Aprovado"
+        REPROVADO = "REPROVADO", "Reprovado"
+        TRANSFERIDO = "TRANSFERIDO", "Transferido"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+")
+    aluno = models.ForeignKey("students.Aluno", on_delete=models.PROTECT, related_name="historicos_externos")
+    ano = models.PositiveSmallIntegerField("ano", validators=[MinValueValidator(1950), MaxValueValidator(2100)])
+    serie = models.CharField("série/etapa", max_length=60)
+    escola = models.CharField("escola de origem", max_length=120)
+    cidade_uf = models.CharField("cidade/UF", max_length=60, blank=True)
+    resultado = models.CharField("resultado", max_length=12, choices=Resultado.choices, default=Resultado.APROVADO)
+    observacoes = models.CharField("observações", max_length=255, blank=True)
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name="+")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["ano", "id"]
+
+    def __str__(self):
+        return f"{self.serie} — {self.escola} ({self.ano})"
+
+
+class HistoricoExternoDisciplina(models.Model):
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+")
+    historico = models.ForeignKey(HistoricoExterno, on_delete=models.CASCADE, related_name="disciplinas")
+    nome = models.CharField("disciplina", max_length=80)
+    media = models.CharField("média/conceito", max_length=12, blank=True)
+    carga_horaria = models.PositiveSmallIntegerField("carga horária", null=True, blank=True,
+                                                     validators=[MaxValueValidator(2000)])
+    frequencia = models.DecimalField("frequência (%)", max_digits=5, decimal_places=2, null=True, blank=True,
+                                     validators=[MinValueValidator(0), MaxValueValidator(100)])
+
+    class Meta:
+        ordering = ["id"]

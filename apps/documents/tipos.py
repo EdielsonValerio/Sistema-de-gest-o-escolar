@@ -74,3 +74,7 @@ TIPOS_DOCUMENTO = [
 
 CHOICES_TIPO = TIPOS_DOCUMENTO
 ROTULO_TIPO = dict(TIPOS_DOCUMENTO)
+
+
+# Emitidos somente pelos botões da ficha do aluno (Boletim e Histórico), nunca pela emissão comum de documentos.
+TIPOS_SOMENTE_FICHA = ("BOLETIM_ESCOLAR", "HISTORICO_ESCOLAR")

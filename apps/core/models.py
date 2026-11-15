@@ -46,6 +46,12 @@ class ConfiguracaoGeral(models.Model):
         help_text="Se desmarcado, não é possível liquidar uma conta a pagar maior que o saldo disponível "
                   "(total recebido menos o total já pago).",
     )
+    historico_parcial = models.BooleanField(
+        "permitir histórico escolar parcial",
+        default=False,
+        help_text="Se marcado, o histórico escolar pode ser gerado ao fim de cada fase avaliativa (com a indicação "
+                  "de parcial). Se desmarcado, só depois que todas as fases do ano letivo estiverem concluídas.",
+    )
     dias_aviso_contas_pagar = models.PositiveSmallIntegerField(
         "avisar contas a pagar com antecedência de (dias)",
         default=5,

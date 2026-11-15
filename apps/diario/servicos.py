@@ -142,6 +142,8 @@ def fechar_diario(alocacao, periodo, por):
     f.fechado, f.fechado_em, f.fechado_por, f.motivo_reabertura = True, timezone.now(), por, ""
     f.save()
     _audit(alocacao.instituicao, por, "DIARIO_FECHADO", "FechamentoDiario", f.pk, f"Diário fechado: {alocacao} — {periodo}")
+    from .boletim import sincronizar_alocacao  # libera a nota da fase ao boletim
+    sincronizar_alocacao(alocacao)
     return f
 
 
@@ -153,6 +155,8 @@ def reabrir_diario(fechamento, motivo, por):
     fechamento.save()
     _audit(fechamento.instituicao, por, "DIARIO_REABERTO", "FechamentoDiario", fechamento.pk,
            f"Diário reaberto: {fechamento.alocacao} — {fechamento.periodo}")
+    from .boletim import sincronizar_alocacao  # retira a fase do boletim até novo fechamento
+    sincronizar_alocacao(fechamento.alocacao)
 
 
 # --------------------------------------------------------------------------- aulas e frequência

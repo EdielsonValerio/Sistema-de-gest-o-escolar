@@ -6,6 +6,7 @@ from django.utils.html import escape, format_html
 from apps.audit.services import registrar
 
 from .models import CabecalhoDocumento, Destinatario, DocumentoEmitido, ModeloDocumento
+from .tipos import TIPOS_SOMENTE_FICHA
 from .variaveis import EXEMPLOS, montar_contexto, renderizar, sanitizar_html
 
 
@@ -38,8 +39,12 @@ def previa_html(*, conteudo, usar_cabecalho, instituicao):
 
 
 @transaction.atomic
-def emitir_documento(*, modelo, usuario, aluno=None, responsavel=None):
+def emitir_documento(*, modelo, usuario, aluno=None, responsavel=None, extra=None, via_ficha=False):
+    """`extra`: valores adicionais das variáveis (boletim/histórico). `via_ficha`: emissão feita pelos botões
+    Boletim/Histórico da ficha do aluno — os únicos caminhos permitidos para esses tipos."""
     inst = modelo.instituicao
+    if modelo.tipo in TIPOS_SOMENTE_FICHA and not via_ficha:
+        raise ValidationError("Este documento é emitido pelos botões Boletim e Histórico na ficha do aluno.")
     if not modelo.ativo:
         raise ValidationError("O modelo está inativo e não pode gerar documentos.")
     if modelo.destinatario == Destinatario.ALUNO and aluno is None:
@@ -56,6 +61,7 @@ def emitir_documento(*, modelo, usuario, aluno=None, responsavel=None):
             raise ValidationError("Registro de outra instituição.")
 
     valores = montar_contexto(instituicao=inst, usuario=usuario, aluno=aluno, responsavel=responsavel)
+    valores.update(extra or {})
     doc = DocumentoEmitido.objects.create(
         instituicao=inst, modelo=modelo, tipo=modelo.tipo, titulo=modelo.nome, destinatario=modelo.destinatario,
         aluno=aluno, responsavel=responsavel if modelo.destinatario == Destinatario.RESPONSAVEL else None,

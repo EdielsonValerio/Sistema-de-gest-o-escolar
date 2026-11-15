@@ -12,7 +12,7 @@ from .models import Aula, Avaliacao, ComponenteNota, ConfiguracaoDiario, Discipl
 class DisciplinaForm(BaseModelForm):
     class Meta:
         model = Disciplina
-        fields = ["nome", "sigla", "ativa"]
+        fields = ["nome", "sigla", "carga_horaria", "ativa"]
 
 
 class PeriodoForm(BaseModelForm):

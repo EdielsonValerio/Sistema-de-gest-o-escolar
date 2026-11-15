@@ -52,6 +52,7 @@ def permissoes_por_perfil():
         + ver("core", "configuracaonumeracao")
         + _codes("students", "ver_cpf_completo")
         + ver("documents", "modelodocumento", "documentoemitido") + _codes("documents", "emitir_documento")
+        + _codes("diario", "emitir_boletim", "emitir_historico", "gerenciar_historico_externo")
         + _codes("assistente", "usar_assistente")
     )
 
@@ -75,7 +76,7 @@ def permissoes_por_perfil():
     professor = _codes("diario", "usar_diario_professor")
     # Coordenador: acompanhamento pedagógico e alocação de professores; consulta turmas e alunos, sem CPF completo.
     coordenador = (
-        _codes("diario", "coordenar_diario", "gerenciar_alocacoes")
+        _codes("diario", "coordenar_diario", "gerenciar_alocacoes", "emitir_boletim", "emitir_historico")
         + ver("students", "aluno") + ver("academic", "anoletivo", "serieofertada", "turma")
         + ver("enrollments", "matricula")
     )

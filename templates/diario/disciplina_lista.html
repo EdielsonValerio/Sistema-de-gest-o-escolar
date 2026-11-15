@@ -1,6 +1,6 @@
 {% extends "generic/lista.html" %}
 {% block title %}Disciplinas{% endblock %}
 {% block acoes %}<a class="btn btn-primary" href="{% url 'diario:disciplina_nova' %}"><i class="bi bi-plus-lg"></i> Nova disciplina</a>{% endblock %}
-{% block thead %}<tr><th>Disciplina</th><th>Sigla</th><th>Situação</th><th></th></tr>{% endblock %}
-{% block tbody %}{% for d in object_list %}<tr><td>{{ d.nome }}</td><td>{{ d.sigla|default:"—" }}</td><td>{% if d.ativa %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:disciplina_editar' d.pk %}">Editar</a></td></tr>
-{% empty %}<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma disciplina cadastrada.</td></tr>{% endfor %}{% endblock %}
+{% block thead %}<tr><th>Disciplina</th><th>Sigla</th><th>Carga horária</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}{% for d in object_list %}<tr><td>{{ d.nome }}</td><td>{{ d.sigla|default:"—" }}</td><td>{% if d.carga_horaria %}{{ d.carga_horaria }} h{% else %}—{% endif %}</td><td>{% if d.ativa %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:disciplina_editar' d.pk %}">Editar</a></td></tr>
+{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma disciplina cadastrada.</td></tr>{% endfor %}{% endblock %}

@@ -151,7 +151,9 @@ class VincularTurmaView(AcessoMixin, TemplateView):
 
 def _modelos_da_matricula(instituicao):
     from apps.documents.models import ModeloDocumento
-    return ModeloDocumento.objects.filter(instituicao=instituicao, ativo=True, usar_na_matricula=True).order_by("tipo", "nome")
+    from apps.documents.tipos import TIPOS_SOMENTE_FICHA
+    return (ModeloDocumento.objects.filter(instituicao=instituicao, ativo=True, usar_na_matricula=True)
+            .exclude(tipo__in=TIPOS_SOMENTE_FICHA).order_by("tipo", "nome"))
 
 
 class MatriculaDocumentosView(AcessoMixin, TemplateView):

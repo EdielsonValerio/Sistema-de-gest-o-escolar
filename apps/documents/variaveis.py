@@ -14,6 +14,22 @@ from apps.core.tenancy import login_do_usuario
 MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro",
          "novembro", "dezembro"]
 
+class HtmlSeguro(str):
+    """Valor já montado (e escapado) pelo sistema, inserido sem novo escape — só o código do sistema cria isto."""
+
+
+_TABELA_BOLETIM = HtmlSeguro(
+    '<table class="doc-tabela"><thead><tr><th>Disciplina</th><th class="c">1ª fase</th><th class="c">2ª fase</th>'
+    '<th class="c">Média final</th><th class="c">Frequência</th><th>Situação</th></tr></thead><tbody>'
+    '<tr><td>Língua Portuguesa</td><td class="c">8,50</td><td class="c">7,00</td><td class="c">7,75</td>'
+    '<td class="c">96,0%</td><td>Aprovado</td></tr></tbody></table>')
+_TABELA_HISTORICO = HtmlSeguro(
+    '<div class="doc-tabela-titulo">2026 — 5º ano do Ensino Fundamental — Escola Modelo</div>'
+    '<table class="doc-tabela"><thead><tr><th>Disciplina</th><th class="c">Média final</th>'
+    '<th class="c">Carga horária</th><th class="c">Frequência</th></tr></thead><tbody>'
+    '<tr><td>Língua Portuguesa</td><td class="c">7,75</td><td class="c">200</td><td class="c">96,0%</td></tr></tbody>'
+    '</table><div class="doc-resultado">Resultado: <strong>Aprovado</strong></div>')
+
 # (grupo, [(chave, descrição, exemplo)])
 CATALOGO = [
     ("Instituição", [
@@ -74,6 +90,20 @@ CATALOGO = [
         ("qtdParcelasAbertas", "Quantidade de parcelas em aberto", "9"),
         ("qtdParcelasVencidas", "Quantidade de parcelas vencidas", "0"),
     ]),
+    ("Boletim e histórico escolar", [
+        ("tabelaBoletim", "Tabela do boletim (disciplinas × fases, média final, frequência e situação)", "(tabela)"),
+        ("resultadoFinal", "Resultado final do ano (Aprovado, Reprovado, Pendente ou Em andamento)", "Aprovado"),
+        ("mediaGeral", "Média geral do ano (só com o ano concluído)", "7,75"),
+        ("frequenciaGeral", "Frequência geral do ano", "96,0%"),
+        ("fasesLiberadas", "Fases já concluídas pelos professores", "2 de 4"),
+        ("anoLetivoBoletim", "Ano letivo do boletim", "2026"),
+        ("serieBoletim", "Série do boletim", "5º ano do Ensino Fundamental"),
+        ("turmaBoletim", "Turma do boletim", "5º Ano A"),
+        ("tabelaHistorico", "Tabelas do histórico (um bloco por ano cursado, desta escola e de outras)", "(tabelas)"),
+        ("situacaoHistorico", "Situação do histórico (Completo ou Parcial)", "Completo"),
+        ("cargaHorariaTotal", "Soma da carga horária das disciplinas do histórico", "800 horas"),
+        ("periodoHistorico", "Primeiro e último ano do histórico", "2022 a 2026"),
+    ]),
     ("Emissão", [
         ("dataAtual", "Data de emissão (dd/mm/aaaa)", "13/10/2026"),
         ("dataExtenso", "Data de emissão por extenso", "13 de outubro de 2026"),
@@ -84,6 +114,7 @@ CATALOGO = [
 
 CHAVES = {c.lower(): c for _, itens in CATALOGO for c, _, _ in itens}
 EXEMPLOS = {c: ex for _, itens in CATALOGO for c, _, ex in itens}
+EXEMPLOS.update(tabelaBoletim=_TABELA_BOLETIM, tabelaHistorico=_TABELA_HISTORICO)
 _RE_VAR = re.compile(r"\[([A-Za-z][A-Za-z0-9_]*)\]")
 VAZIO = "—"
 
@@ -183,7 +214,9 @@ def renderizar(html, valores):
 
     def troca(m):
         v = mapa.get(m.group(1).lower())
-        return m.group(0) if v is None else escape(str(v))
+        if v is None:
+            return m.group(0)
+        return str(v) if isinstance(v, HtmlSeguro) else escape(str(v))
 
     return _RE_VAR.sub(troca, html or "")
 

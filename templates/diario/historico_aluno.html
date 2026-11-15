@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Histórico — {{ aluno.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0">Histórico escolar — {{ aluno.nome_exibicao }}</h1>
+  <div class="d-flex gap-2">
+    {% if perms.diario.gerenciar_historico_externo %}<a class="btn btn-outline-primary" href="{% url 'diario:historico_externo_novo' aluno.pk %}"><i class="bi bi-plus-lg"></i> Ano de outra escola</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' aluno.pk %}"><i class="bi bi-arrow-left"></i> Voltar à ficha</a>
+  </div>
+</div>
+{% if d.parcial_permitido %}<div class="alert alert-info">Histórico parcial habilitado: o ano em andamento aparece com as fases já concluídas.</div>
+{% else %}<div class="alert alert-secondary small">O ano letivo em andamento só entra no histórico depois de concluído. (Ajuste em Configurações gerais &gt; histórico parcial.)</div>{% endif %}
+<div class="card mb-3"><div class="card-body">
+  {% if d.blocos %}<div class="table-responsive">{{ tabela }}</div>{% else %}<p class="text-muted mb-0">Ainda não há anos concluídos para compor o histórico.</p>{% endif %}
+</div></div>
+{% if externos %}<div class="card mb-3"><div class="card-header">Anos cursados em outras escolas</div><ul class="list-group list-group-flush">
+{% for e in externos %}<li class="list-group-item d-flex justify-content-between align-items-center"><span>{{ e.ano }} — {{ e.serie }} ({{ e.escola }})</span>
+ {% if perms.diario.gerenciar_historico_externo %}<span class="d-flex gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'diario:historico_externo_editar' aluno.pk e.pk %}">Editar</a>
+ <form method="post" action="{% url 'diario:historico_externo_excluir' aluno.pk e.pk %}" onsubmit="return confirm('Remover este registro?')">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remover</button></form></span>{% endif %}</li>{% endfor %}
+</ul></div>{% endif %}
+{% if not pode_gerar %}<div class="alert alert-warning">O histórico poderá ser gerado quando houver ao menos um ano concluído (ou de outra escola) para exibir.</div>{% endif %}
+<form method="post" data-once class="d-flex flex-wrap gap-2">{% csrf_token %}
+  <button class="btn btn-primary" {% if not pode_gerar %}disabled{% endif %}><i class="bi bi-file-earmark-text"></i> Gerar histórico</button>
+  <button class="btn btn-outline-primary" name="imprimir" value="1" {% if not pode_gerar %}disabled{% endif %}><i class="bi bi-printer"></i> Imprimir / salvar em PDF</button></form>
+{% endblock %}

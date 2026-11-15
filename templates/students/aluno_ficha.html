@@ -14,6 +14,8 @@
     {% if perms.enrollments.add_matricula %}<a class="btn btn-primary" href="{% url 'enrollments:vincular' aluno.pk %}"><i class="bi bi-link-45deg"></i> Vincular a turma</a>{% endif %}
     {% if mostrar_financeiro %}<a class="btn btn-outline-secondary" href="{% url 'finance:parcela_lista' %}?aluno={{ aluno.pk|unlocalize }}&situacao=todas"><i class="bi bi-receipt"></i> Parcelas</a>{% endif %}
     {% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_aluno' aluno.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}
+    {% if perms.diario.emitir_boletim %}<a class="btn btn-outline-secondary" href="{% url 'diario:boletim_aluno' aluno.pk %}"><i class="bi bi-card-checklist"></i> Boletim</a>{% endif %}
+    {% if perms.diario.emitir_historico %}<a class="btn btn-outline-secondary" href="{% url 'diario:historico_aluno' aluno.pk %}"><i class="bi bi-journal-text"></i> Histórico</a>{% endif %}
     {% if perms.finance.registrar_recebimento %}<a class="btn btn-success" href="{% url 'finance:caixa_aluno' aluno.pk %}"><i class="bi bi-cash-coin"></i> Receber</a>{% endif %}
   </div>
 </div>

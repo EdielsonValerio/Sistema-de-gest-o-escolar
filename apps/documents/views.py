@@ -15,7 +15,7 @@ from apps.students.models import Aluno, Responsavel
 from .forms import CabecalhoDocumentoForm, ModeloDocumentoForm
 from .models import CabecalhoDocumento, Destinatario, DocumentoEmitido, ModeloDocumento
 from .services import emitir_documento, previa_html
-from .tipos import ROTULO_TIPO, TIPOS_DOCUMENTO
+from .tipos import ROTULO_TIPO, TIPOS_DOCUMENTO, TIPOS_SOMENTE_FICHA
 from .variaveis import CATALOGO, variaveis_desconhecidas
 
 
@@ -59,7 +59,8 @@ class _ModeloFormBase(FormKwargsInstituicaoMixin, ObjetoFormView):
     subtitulo = "Escreva o leiaute no editor e insira variáveis do cadastro (ex.: [nomeAluno])."
 
     def get_extra_context(self):
-        return {"catalogo": CATALOGO, "tipos_rotulos": ROTULO_TIPO, "previa_url": reverse("documents:previa")}
+        return {"catalogo": CATALOGO, "tipos_rotulos": ROTULO_TIPO, "previa_url": reverse("documents:previa"),
+                "tipos_ficha": TIPOS_SOMENTE_FICHA}
 
     def apos_salvar(self, obj, form, novo):
         registrar(instituicao=self.instituicao, usuario=self.request.user,
@@ -130,13 +131,15 @@ class _EmitirBase(AcessoMixin, TemplateView):
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
-        modelos = ModeloDocumento.objects.filter(instituicao=self.instituicao, ativo=True,
-                                                 destinatario=self.destinatario).order_by("tipo", "nome")
+        modelos = (ModeloDocumento.objects.filter(instituicao=self.instituicao, ativo=True,
+                                                  destinatario=self.destinatario)
+                   .exclude(tipo__in=TIPOS_SOMENTE_FICHA).order_by("tipo", "nome"))
         ctx.update(modelos=modelos, rotulos=ROTULO_TIPO, destinatario=self.destinatario, **self.contexto_alvo())
         return ctx
 
     def post(self, request, *args, **kwargs):
-        modelo = get_object_or_404(ModeloDocumento, pk=request.POST.get("modelo"), instituicao=self.instituicao,
+        modelo = get_object_or_404(ModeloDocumento.objects.exclude(tipo__in=TIPOS_SOMENTE_FICHA),
+                                   pk=request.POST.get("modelo"), instituicao=self.instituicao,
                                    destinatario=self.destinatario)
         try:
             doc = emitir_documento(modelo=modelo, usuario=request.user, **self.argumentos_emissao())
@@ -207,6 +210,17 @@ class DocumentoView(InstituicaoQuerysetMixin, DetailView):
     permission_required = "documents.view_documentoemitido"
     template_name = "documents/documento.html"
     context_object_name = "doc"
+
+    def has_permission(self):
+        if super().has_permission():
+            return True
+        u = self.request.user
+        if not u.is_authenticated:
+            return False
+        tipo = (DocumentoEmitido.objects.filter(pk=self.kwargs["pk"], instituicao=self.instituicao)
+                .values_list("tipo", flat=True).first())
+        return (tipo == "BOLETIM_ESCOLAR" and u.has_perm("diario.emitir_boletim")) or (
+            tipo == "HISTORICO_ESCOLAR" and u.has_perm("diario.emitir_historico"))
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)

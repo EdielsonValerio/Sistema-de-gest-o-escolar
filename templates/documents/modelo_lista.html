@@ -20,7 +20,7 @@
 {% for m in modelos %}
 <tr>
   <td><strong>{{ m.nome }}</strong></td>
-  <td>{{ m.get_tipo_display }}</td>
+  <td>{{ m.get_tipo_display }}{% if m.tipo == "BOLETIM_ESCOLAR" or m.tipo == "HISTORICO_ESCOLAR" %} <span class="badge text-bg-warning">Somente pela ficha do aluno</span>{% endif %}</td>
   <td><span class="badge text-bg-light border">{{ m.get_destinatario_display }}</span></td>
   <td>{{ m.usar_cabecalho|yesno:"Sim,Não" }}</td>
   <td>{% if m.usar_na_matricula %}<span class="badge text-bg-primary">Sim</span>{% else %}—{% endif %}</td>

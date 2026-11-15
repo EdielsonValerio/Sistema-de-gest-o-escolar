@@ -69,3 +69,9 @@ aside.sidebar, .sidebar { width: 250px; background-color: var(--brand) !importan
 /* ---- Contas a pagar: sino de notificações ---- */
 .sino-badge { position: absolute; top: -.35rem; right: -.35rem; font-size: .65rem; padding: .2rem .4rem; }
 .sino-menu { width: 22rem; max-width: 92vw; }
+.doc-tabela th { background: #f0f0f0; } .doc-tabela .c { text-align: center; }
+.doc-tabela-titulo { font-weight: 700; margin: 1rem 0 .3rem; } .doc-resultado { margin: .4rem 0 .8rem; } .doc-obs { font-size: .85em; font-style: italic; }
+
+/* Tabelas de boletim/histórico também fora da folha (telas de pré-visualização) */
+.doc-tabela { border-collapse: collapse; width: 100%; }
+.doc-tabela td, .doc-tabela th { border: 1px solid #c9ced6; padding: .35rem .6rem; }

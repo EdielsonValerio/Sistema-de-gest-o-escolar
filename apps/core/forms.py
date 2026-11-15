@@ -47,7 +47,7 @@ class ConfiguracaoGeralForm(BaseModelForm):
     class Meta:
         model = ConfiguracaoGeral
         fields = ["exigir_plano_na_matricula", "itens_por_pagina", "permitir_saldo_negativo",
-                  "dias_aviso_contas_pagar"]
+                  "dias_aviso_contas_pagar", "historico_parcial"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views_coord as c
+from . import views_doc as d
 from . import views_prof as p
 from . import views_rel as r
 from . import views_sistema as s
@@ -62,4 +63,11 @@ urlpatterns = [
     path("diario/relatorios/", r.RelatoriosView.as_view(), name="relatorios"),
     path("diario/relatorios/<slug:codigo>/", r.RelatorioView.as_view(), name="relatorio"),
     path("diario/boletim/<int:matricula_pk>/", r.BoletimView.as_view(), name="boletim"),
+    path("alunos/<int:pk>/boletim/", d.BoletimAlunoView.as_view(), name="boletim_aluno"),
+    path("alunos/<int:pk>/historico/", d.HistoricoAlunoView.as_view(), name="historico_aluno"),
+    path("alunos/<int:pk>/historico/externo/novo/", d.HistoricoExternoView.as_view(), name="historico_externo_novo"),
+    path("alunos/<int:pk>/historico/externo/<int:ext_pk>/", d.HistoricoExternoView.as_view(),
+         name="historico_externo_editar"),
+    path("alunos/<int:pk>/historico/externo/<int:ext_pk>/excluir/", d.HistoricoExternoExcluirView.as_view(),
+         name="historico_externo_excluir"),
 ]

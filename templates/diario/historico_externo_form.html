@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Ano de outra escola{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">{% if obj %}Editar{% else %}Novo{% endif %} ano cursado em outra escola — {{ aluno.nome_exibicao }}</h1>
+<form method="post" novalidate data-once>{% csrf_token %}
+<div class="card mb-3"><div class="card-body row g-3">
+  {% for f in form %}<div class="col-md-{% if f.name == 'observacoes' %}12{% else %}4{% endif %}"><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+</div></div>
+<div class="card mb-3"><div class="card-header">Disciplinas</div><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+<thead><tr><th>Disciplina</th><th>Média</th><th>Carga horária</th><th>Frequência (%)</th><th>Excluir</th></tr></thead><tbody>
+{{ formset.management_form }}
+{% for f in formset %}<tr>{{ f.id }}<td>{{ f.nome }}{% for e in f.nome.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</td><td>{{ f.media }}</td><td>{{ f.carga_horaria }}</td><td>{{ f.frequencia }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+<button class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="{% url 'diario:historico_aluno' aluno.pk %}">Cancelar</a>
+</form>
+{% endblock %}

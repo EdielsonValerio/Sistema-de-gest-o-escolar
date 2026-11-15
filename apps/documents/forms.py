@@ -2,7 +2,8 @@ from django import forms
 
 from apps.core.mixins import BaseModelForm
 
-from .models import CabecalhoDocumento, ModeloDocumento
+from .models import CabecalhoDocumento, Destinatario, ModeloDocumento
+from .tipos import TIPOS_SOMENTE_FICHA
 from .variaveis import sanitizar_html, texto_puro, variaveis_desconhecidas
 
 
@@ -11,6 +12,14 @@ class ModeloDocumentoForm(BaseModelForm):
         model = ModeloDocumento
         fields = ["nome", "tipo", "destinatario", "usar_cabecalho", "usar_na_matricula", "ativo", "conteudo"]
         widgets = {"conteudo": forms.Textarea(attrs={"rows": 14})}
+
+    def clean(self):
+        d = super().clean()
+        if d.get("tipo") in TIPOS_SOMENTE_FICHA and d.get("destinatario") != Destinatario.ALUNO:
+            self.add_error("destinatario", "Boletim e histórico escolar são sempre emitidos para o aluno.")
+        if d.get("tipo") in TIPOS_SOMENTE_FICHA and d.get("usar_na_matricula"):
+            self.add_error("usar_na_matricula", "Boletim e histórico são emitidos pelos botões da ficha do aluno.")
+        return d
 
     def clean_conteudo(self):
         html = sanitizar_html(self.cleaned_data["conteudo"])
