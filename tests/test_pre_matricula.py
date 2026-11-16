@@ -327,3 +327,63 @@ class LimiteAtrasDeProxyTests(Base):
             self.assertEqual(r.status_code, 429)  # mesmo visitante (último endereço, visto pelo proxy): limite atingido
             r = self.anon.post(self.url, self.dados(nome="C"), HTTP_X_FORWARDED_FOR="1.1.1.1, 10.0.0.2")
             self.assertEqual(r.status_code, 302)  # outro visitante (outro último endereço): livre
+
+
+class MensagemFinalTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.c = Client()
+        self.c.force_login(self.admin)
+        self.cfg = reverse("students:pre_matricula_config")
+        self.fim = reverse("students:pre_matricula_concluida", args=[self.link.token])
+
+    def enviar(self, **kw):
+        self.anon.post(self.url, self.dados(cpf=CPF_A, **kw))
+        return self.anon.get(self.fim)
+
+    def test_sem_configurar_mostra_o_texto_padrao(self):
+        r = self.enviar()
+        self.assertContains(r, "Pré-matrícula enviada!")
+        self.assertContains(r, "A escola entrará em contato")
+
+    def test_escola_define_titulo_e_mensagem_com_variaveis(self):
+        r = self.c.post(self.cfg, {"acao": "mensagem", "titulo_conclusao": "Obrigado!",
+                                   "mensagem_conclusao": "Recebemos a pré-matrícula de [nomeAluno] ([codigoReferencia]).\nLeve os documentos."})
+        self.assertEqual(r.status_code, 302)
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.titulo_conclusao, "Obrigado!")
+        r = self.enviar()
+        self.assertContains(r, "Obrigado!")
+        self.assertContains(r, "Recebemos a pré-matrícula de Pedro Souza (")
+        self.assertContains(r, "Leve os documentos.")
+        self.assertContains(r, "<br>")  # quebra de linha mantida
+        self.assertNotContains(r, "A escola entrará em contato")
+        self.assertTrue(RegistroAuditoria.objects.filter(acao="PRE_MATRICULA_MENSAGEM_ALTERADA").exists())
+
+    def test_html_nao_e_interpretado_nem_pelo_texto_da_escola_nem_pelo_nome_digitado(self):
+        self.c.post(self.cfg, {"acao": "mensagem", "mensagem_conclusao": "<script>alert(1)</script> [nomeAluno]"})
+        r = self.enviar(nome="<b>Zé</b>")
+        corpo = r.content.decode()
+        self.assertNotIn("<script>alert(1)", corpo)
+        self.assertNotIn("<b>Zé</b>", corpo)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", corpo)
+
+    def test_campos_vazios_restauram_o_padrao_e_limites_sao_validados(self):
+        self.c.post(self.cfg, {"acao": "mensagem", "titulo_conclusao": "X", "mensagem_conclusao": "Y"})
+        self.c.post(self.cfg, {"acao": "mensagem", "titulo_conclusao": "", "mensagem_conclusao": ""})
+        self.assertContains(self.enviar(), "A escola entrará em contato")
+        self.c.post(self.cfg, {"acao": "mensagem", "titulo_conclusao": "T", "mensagem_conclusao": "a" * 1001})
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.titulo_conclusao, "")  # recusado: nada foi gravado
+
+    def test_mensagem_de_uma_escola_nao_aparece_na_outra_e_exige_permissao(self):
+        outra = criar_instituicao("Colégio B")
+        link_b = LinkPreMatricula.objects.create(instituicao=outra, mensagem_conclusao="Mensagem do B")
+        self.c.post(self.cfg, {"acao": "mensagem", "mensagem_conclusao": "Mensagem do A"})
+        link_b.refresh_from_db()
+        self.assertEqual(link_b.mensagem_conclusao, "Mensagem do B")
+        cons = Client()
+        cons.force_login(criar_usuario(self.inst, "Consulta"))
+        self.assertEqual(cons.post(self.cfg, {"acao": "mensagem", "mensagem_conclusao": "hack"}).status_code, 403)
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.mensagem_conclusao, "Mensagem do A")

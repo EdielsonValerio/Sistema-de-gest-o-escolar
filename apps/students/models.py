@@ -231,8 +231,26 @@ class LinkPreMatricula(models.Model):
     instituicao = models.OneToOneField("core.Instituicao", on_delete=models.CASCADE, related_name="link_pre_matricula")
     token = models.CharField("código do link", max_length=64, unique=True, editable=False)
     ativo = models.BooleanField("link ativo", default=True)
+    titulo_conclusao = models.CharField(
+        "título da tela final", max_length=80, blank=True,
+        help_text="Vazio = \"Pré-matrícula enviada!\".")
+    mensagem_conclusao = models.TextField(
+        "mensagem da tela final", max_length=1000, blank=True,
+        help_text="Texto mostrado ao responsável depois de enviar o cadastro. Vazio = mensagem padrão do sistema. "
+                  "Pode usar [nomeAluno] e [codigoReferencia].")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+
+    TITULO_PADRAO = "Pré-matrícula enviada!"
+    MENSAGEM_PADRAO = "Recebemos as informações. A escola entrará em contato para formalizar a matrícula."
+
+    def textos_conclusao(self, dados=None):
+        """(título, mensagem) da tela final, com [nomeAluno]/[codigoReferencia] preenchidos. Texto puro: quem
+        exibe escapa (sem HTML), então nada digitado pelo responsável ou pela escola vira marcação."""
+        msg = self.mensagem_conclusao.strip() or self.MENSAGEM_PADRAO
+        dados = dados or {}
+        msg = msg.replace("[nomeAluno]", dados.get("nome", "")).replace("[codigoReferencia]", dados.get("codigo", ""))
+        return (self.titulo_conclusao.strip() or self.TITULO_PADRAO), msg
 
     class Meta:
         verbose_name = "link de pré-matrícula online"

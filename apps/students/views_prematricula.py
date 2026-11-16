@@ -39,7 +39,8 @@ class PreMatriculaConfigView(AcessoMixin, TemplateView):
         ctx = super().get_context_data(**kw)
         link = self._link()
         from .models import Aluno
-        ctx.update(link=link, url=url_publica(self.request, link),
+        ctx.update(link=link, url=url_publica(self.request, link), titulo_padrao=LinkPreMatricula.TITULO_PADRAO,
+                   mensagem_padrao=LinkPreMatricula.MENSAGEM_PADRAO,
                    total_pre=Aluno.objects.filter(instituicao=self.instituicao, pre_matricula_online=True).count())
         return ctx
 
@@ -51,6 +52,17 @@ class PreMatriculaConfigView(AcessoMixin, TemplateView):
             link.save(update_fields=["ativo", "atualizado_em"])
             texto = "Link ativado." if link.ativo else "Link desativado: o formulário público deixou de funcionar."
             audit = "PRE_MATRICULA_LINK_ATIVADO" if link.ativo else "PRE_MATRICULA_LINK_DESATIVADO"
+        elif acao == "mensagem":
+            titulo = " ".join(request.POST.get("titulo_conclusao", "").split())
+            mensagem = request.POST.get("mensagem_conclusao", "").replace("\r\n", "\n").strip()
+            if len(titulo) > 80 or len(mensagem) > 1000:
+                messages.error(request, "Título (até 80 caracteres) ou mensagem (até 1000) acima do limite.")
+                return redirect("students:pre_matricula_config")
+            link.titulo_conclusao, link.mensagem_conclusao = titulo, mensagem
+            link.save(update_fields=["titulo_conclusao", "mensagem_conclusao", "atualizado_em"])
+            texto = "Mensagem final da pré-matrícula salva." if (titulo or mensagem) else \
+                "Mensagem final restaurada para o texto padrão."
+            audit = "PRE_MATRICULA_MENSAGEM_ALTERADA"
         elif acao == "renovar":
             link.token = LinkPreMatricula.novo_token()
             link.save(update_fields=["token", "atualizado_em"])
@@ -127,7 +139,9 @@ class PreMatriculaConcluidaView(View):
     def get(self, request, token):
         link = _link_publico(token)
         dados = request.session.pop(SESSAO_CONCLUIDA, None)
-        resp = render(request, "students/pre_matricula_concluida.html", {"escola": link.instituicao, "dados": dados})
+        titulo, mensagem = link.textos_conclusao(dados)
+        resp = render(request, "students/pre_matricula_concluida.html",
+                      {"escola": link.instituicao, "dados": dados, "titulo": titulo, "mensagem": mensagem})
         resp["Cache-Control"] = "no-store"
         resp["X-Robots-Tag"] = "noindex, nofollow"
         return resp

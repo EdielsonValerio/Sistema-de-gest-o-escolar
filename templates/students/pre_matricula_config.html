@@ -23,6 +23,17 @@
   <form method="post">{% csrf_token %}<button class="btn btn-outline-secondary" name="acao" value="renovar" data-confirm="Gerar um novo link? O endereço atual deixará de funcionar."><i class="bi bi-arrow-repeat"></i> Gerar novo link</button></form>
   {% if perms.students.view_aluno %}<a class="btn btn-link ms-auto" href="{% url 'students:aluno_lista' %}?situacao=pre_matricula"><i class="bi bi-people"></i> Ver pré-matrículas</a>{% endif %}
 </div></div>
+<div class="card mb-3"><div class="card-header">Mensagem da tela final</div>
+<form method="post">{% csrf_token %}<input type="hidden" name="acao" value="mensagem">
+<div class="card-body">
+  <p class="text-muted small">Aparece para o responsável depois que ele envia o cadastro. Deixe os campos vazios para usar o texto padrão.</p>
+  <div class="mb-3"><label class="form-label" for="id_titulo_conclusao">Título</label>
+    <input class="form-control" id="id_titulo_conclusao" name="titulo_conclusao" maxlength="80" value="{{ link.titulo_conclusao }}" placeholder="{{ titulo_padrao }}"></div>
+  <div class="mb-1"><label class="form-label" for="id_mensagem_conclusao">Mensagem</label>
+    <textarea class="form-control" id="id_mensagem_conclusao" name="mensagem_conclusao" rows="6" maxlength="1000" placeholder="{{ mensagem_padrao }}">{{ link.mensagem_conclusao }}</textarea></div>
+  <div class="form-text">Até 1000 caracteres, texto simples (quebras de linha são mantidas; HTML não é aceito). Variáveis: <code>[nomeAluno]</code> e <code>[codigoReferencia]</code>. Ex.: "Recebemos a pré-matrícula de [nomeAluno]. Leve os documentos à secretaria (Rua X, 100), de segunda a sexta, das 8h às 17h."</div>
+</div>
+<div class="card-footer bg-white"><button class="btn btn-primary"><i class="bi bi-check2"></i> Salvar mensagem</button></div></form></div>
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ csp_nonce }}">
