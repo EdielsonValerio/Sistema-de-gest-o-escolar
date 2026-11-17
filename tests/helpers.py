@@ -16,7 +16,8 @@ _n = count(1)
 
 
 def criar_instituicao(nome="Escola Teste"):
-    return Instituicao.objects.create(nome=nome)
+    from apps.core.modulos import TODOS
+    return Instituicao.objects.create(nome=nome, modulos=list(TODOS))  # testes parte de "todos os módulos contratados"
 
 
 def criar_usuario(inst, grupo=None, username=None, superuser=False):

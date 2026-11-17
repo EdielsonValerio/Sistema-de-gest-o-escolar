@@ -45,7 +45,8 @@ class PortalView(View):
         return _sem_cache(super().dispatch(request, *args, **kwargs))
 
     def pagina(self, request, template, **ctx):
-        return render(request, template, {"escola": self.escola, "acesso": self.acesso, **ctx})
+        return render(request, template, {"escola": self.escola, "acesso": self.acesso,
+                                          "mods": set(self.escola.modulos or []), **ctx})
 
     def aluno(self, pk, **flags):
         """Aluno do responsável, ou 404 (nunca 403: não revela se o ID existe)."""
@@ -60,7 +61,7 @@ class LoginForm(forms.Form):
 
 def _config_publica(slug):
     cfg = ConfiguracaoPortal.objects.select_related("instituicao").filter(slug=slug).first()
-    if cfg is None or not cfg.ativo or not cfg.instituicao.ativa:
+    if cfg is None or not cfg.ativo or not cfg.instituicao.ativa or "portal" not in (cfg.instituicao.modulos or []):
         raise Http404
     return cfg
 
@@ -106,8 +107,8 @@ class ConviteView(View):
 
     def _acesso(self, token):
         a = AcessoResponsavel.por_convite(token)
-        if a is None or not a.liberado or not ConfiguracaoPortal.objects.filter(
-                instituicao=a.instituicao, ativo=True).exists():
+        if a is None or not a.liberado or "portal" not in (a.instituicao.modulos or []) or \
+                not ConfiguracaoPortal.objects.filter(instituicao=a.instituicao, ativo=True).exists():
             return None
         return a
 
@@ -181,7 +182,8 @@ class FinanceiroView(PortalView):
         aluno = self.aluno(pk, financeiro=True)
         parcelas = list(self._parcelas(aluno).order_by("vencimento", "numero"))
         boletos = {c.parcela_id: c for c in Cobranca.objects.filter(
-            instituicao=self.escola, parcela__in=parcelas, status=Cobranca.Status.PENDENTE, eh_teste=False)}
+            instituicao=self.escola, parcela__in=parcelas, status=Cobranca.Status.PENDENTE, eh_teste=False)
+        } if "cobranca" in (self.escola.modulos or []) else {}
         hoje = timezone.localdate()
         linhas = [{"p": p, "cobranca": boletos.get(p.pk),
                    "atrasada": p.status in ("ABERTA", "PARCIAL") and p.vencimento < hoje} for p in parcelas]
@@ -196,6 +198,8 @@ class FinanceiroView(PortalView):
 class BoletoView(PortalView):
     def get(self, request, pk, parcela_pk):
         aluno = self.aluno(pk, financeiro=True)
+        if "cobranca" not in (self.escola.modulos or []):
+            raise Http404
         parcela = get_object_or_404(Parcela.objects.filter(instituicao=self.escola, aluno=aluno,
                                                            responsavel=self.acesso.responsavel)
                                     .exclude(status="CANCELADA"), pk=parcela_pk)

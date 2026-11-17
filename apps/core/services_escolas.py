@@ -29,6 +29,10 @@ def cadastrar_escola(form_escola, dados_admin, criado_por):
     ConfiguracaoGeral.objects.get_or_create(instituicao=escola)
     registrar(instituicao=escola, usuario=criado_por, acao="ESCOLA_CADASTRADA", entidade="Instituicao",
               entidade_id=escola.pk, descricao=f"Escola cadastrada: {escola.nome}", dados={"ativa": escola.ativa})
+    if escola.modulos:
+        registrar(instituicao=escola, usuario=criado_por, acao="MODULOS_ALTERADOS", entidade="Instituicao",
+                  entidade_id=escola.pk, descricao="Módulos contratados definidos no cadastro da escola",
+                  dados={"antes": [], "depois": list(escola.modulos)})
     if form_escola.cleaned_data.get("ia_habilitada"):
         from apps.assistente.servicos import habilitar_pelo_sistema
         habilitar_pelo_sistema(escola, True, criado_por)

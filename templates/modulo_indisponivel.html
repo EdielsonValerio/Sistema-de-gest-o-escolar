@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Módulo não contratado{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width:560px"><div class="card-body text-center py-5">
+  <i class="bi bi-lock fs-1 text-secondary"></i>
+  <h1 class="h5 mt-3">Módulo não contratado</h1>
+  <p class="text-muted mb-1"><strong>{{ modulo.nome }}</strong> não está habilitado para esta escola.</p>
+  <p class="small text-muted mb-0">Para contratar, fale com o suporte da plataforma. Os dados são preservados e voltam assim que o módulo for habilitado.</p>
+  <a class="btn btn-outline-primary mt-3" href="{% url 'core:dashboard' %}">Voltar ao início</a>
+</div></div>
+{% endblock %}

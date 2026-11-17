@@ -7,8 +7,8 @@
   <div><div class="fw-bold fs-5">{{ a.nome_exibicao }}</div><div class="small text-muted">Código {{ a.codigo }}</div></div>
   <div class="d-flex flex-wrap gap-2">
     <a class="btn btn-outline-primary" href="{% url 'portal:aluno' a.pk %}"><i class="bi bi-person"></i> Dados</a>
-    {% if f.pedagogico %}<a class="btn btn-outline-primary" href="{% url 'portal:boletim' a.pk %}"><i class="bi bi-card-checklist"></i> Boletim</a>{% endif %}
-    {% if f.financeiro %}<a class="btn btn-primary" href="{% url 'portal:financeiro' a.pk %}"><i class="bi bi-cash-coin"></i> Financeiro</a>{% endif %}
+    {% if f.pedagogico and 'diario' in mods %}<a class="btn btn-outline-primary" href="{% url 'portal:boletim' a.pk %}"><i class="bi bi-card-checklist"></i> Boletim</a>{% endif %}
+    {% if f.financeiro and 'financeiro' in mods %}<a class="btn btn-primary" href="{% url 'portal:financeiro' a.pk %}"><i class="bi bi-cash-coin"></i> Financeiro</a>{% endif %}
   </div>
 </div></div>
 {% empty %}<div class="alert alert-info">Nenhum aluno está liberado para o seu acesso. Fale com a secretaria da escola.</div>{% endfor %}

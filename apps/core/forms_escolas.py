@@ -6,6 +6,7 @@ from apps.accounts.forms import LOGIN_RE, validar_login_da_escola, validar_senha
 from apps.students.utils import cnpj_valido, formatar_cnpj, so_digitos
 
 from .mixins import BootstrapFormMixin, SecoesMixin
+from . import modulos
 from .models import Instituicao
 
 LIMITE_LOGOTIPO = 2 * 1024 * 1024
@@ -23,14 +24,34 @@ class EscolaForm(BootstrapFormMixin, SecoesMixin, forms.ModelForm):
         help_texts = {"logotipo": "PNG, JPG ou WebP, até 2 MB. Aparece no menu do sistema e nos documentos."}
 
     SECOES = [("Dados da escola", ["nome", "cnpj", "logotipo", "ativa"]),
-              ("Módulos contratados", ["ia_habilitada"])]
+              ("Módulos contratados", [f"mod_{c}" for c in modulos.TODOS] + ["ia_habilitada"])]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        atuais = set(self.instance.modulos or []) if self.instance.pk else set()
+        for cod, m in modulos.MODULOS.items():
+            ajuda = m.descricao + (f" Exige: {', '.join(modulos.MODULOS[e].nome for e in m.exige)}." if m.exige else "")
+            self.fields[f"mod_{cod}"] = forms.BooleanField(label=m.nome, required=False, initial=cod in atuais,
+                                                           help_text=ajuda)
+            self.fields[f"mod_{cod}"].widget.attrs["class"] = "form-check-input"
         if self.instance.pk:
             from apps.assistente.models import ConfiguracaoIA
             self.fields["ia_habilitada"].initial = ConfiguracaoIA.objects.filter(
                 instituicao=self.instance, habilitada=True).exists()
+
+    def modulos_escolhidos(self):
+        return modulos.normalizar([c for c in modulos.TODOS if self.cleaned_data.get(f"mod_{c}")])
+
+    def clean(self):
+        d = super().clean()
+        for mod, exigido in modulos.dependencias_faltando(self.modulos_escolhidos()):
+            self.add_error(f"mod_{mod}", f"Para habilitar “{modulos.MODULOS[mod].nome}” habilite também "
+                                         f"“{modulos.MODULOS[exigido].nome}”.")
+        return d
+
+    def save(self, commit=True):
+        self.instance.modulos = self.modulos_escolhidos()
+        return super().save(commit=commit)
 
     def clean_nome(self):
         nome = " ".join(self.cleaned_data["nome"].split())

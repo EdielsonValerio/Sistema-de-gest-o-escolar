@@ -32,7 +32,8 @@ class Command(BaseCommand):
         if Instituicao.objects.filter(nome=NOME_INST).exists():
             raise CommandError("Os dados de demonstração já existem (instituição já criada).")
         carregar_series_padrao()
-        inst = Instituicao.objects.create(nome=NOME_INST)
+        from apps.core.modulos import TODOS
+        inst = Instituicao.objects.create(nome=NOME_INST, modulos=list(TODOS))
         ConfiguracaoGeral.objects.create(instituicao=inst)
 
         user, _ = User.objects.get_or_create(username="demo")

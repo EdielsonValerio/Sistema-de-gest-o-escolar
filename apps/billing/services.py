@@ -127,6 +127,8 @@ def suspender_cobranca(cfg, usuario):
 
 def cobranca_ativa(instituicao):
     """Configuração, se (e somente se) a escola está habilitada a registrar boletos; senão None."""
+    if "cobranca" not in (getattr(instituicao, "modulos", None) or []):
+        return None  # módulo de cobrança bancária não contratado
     cfg = ConfiguracaoBancaria.objects.filter(instituicao=instituicao,
                                               status=ConfiguracaoBancaria.Status.ATIVA).first()
     return cfg if cfg is not None and teste_confirmado(cfg) else None

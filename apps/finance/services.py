@@ -158,6 +158,8 @@ def matricular_com_cobranca(*, aluno, turma, usuario, plano=None, responsavel=No
     from apps.core.models import ConfiguracaoGeral
 
     planos = PlanoFinanceiro.objects.filter(turma=turma, situacao=PlanoFinanceiro.Situacao.ATIVO)
+    if "financeiro" not in (turma.instituicao.modulos or []):
+        planos = planos.none()  # escola sem o módulo financeiro matricula sem planos
     if plano is None and planos.exists():
         exigir = ConfiguracaoGeral.objects.filter(instituicao=turma.instituicao_id,
                                                   exigir_plano_na_matricula=True).exists()

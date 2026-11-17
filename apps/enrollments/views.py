@@ -98,7 +98,8 @@ class VincularTurmaView(AcessoMixin, TemplateView):
                                   and t.ano_letivo_id == aluno.ano_letivo_pretendido_id)
             ctx["turmas"] = turmas
             return ctx
-        planos = list(PlanoFinanceiro.objects.filter(turma=turma, situacao="ATIVO").order_by("nome"))
+        planos = (list(PlanoFinanceiro.objects.filter(turma=turma, situacao="ATIVO").order_by("nome"))
+                  if "financeiro" in (self.instituicao.modulos or []) else [])  # sem módulo financeiro: matrícula sem planos
         plano_sel = next((p for p in planos if str(p.pk) == (kw.get("plano_id") or g.get("plano"))), None)
         form = kw.get("form") or VinculoForm(instituicao=self.instituicao, turma=turma, aluno=aluno,
                                              initial={"plano": plano_sel.pk if plano_sel else None})
@@ -120,7 +121,8 @@ class VincularTurmaView(AcessoMixin, TemplateView):
             return self.render_to_response(self.get_context_data(form=form, turma=turma, plano_id=plano_id))
         d = form.cleaned_data
         plano, resp = d["plano"], d["responsavel"]
-        tem_planos = PlanoFinanceiro.objects.filter(turma=turma, situacao="ATIVO").exists()
+        tem_planos = ("financeiro" in (self.instituicao.modulos or [])
+                      and PlanoFinanceiro.objects.filter(turma=turma, situacao="ATIVO").exists())
         if plano and not request.user.has_perm("finance.gerar_cobrancas"):
             raise PermissionDenied
         if tem_planos and not plano and not request.user.has_perm("finance.matricular_sem_cobranca"):

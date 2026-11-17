@@ -44,6 +44,8 @@ def _token(cfg):
 
 def criar_comunicado(*, instituicao, usuario, alvo, mensagem, responsavel=None, turmas=(), excluidos=()):
     cfg = ConfiguracaoWhatsApp.obter(instituicao)
+    if not instituicao.tem_modulo("comunicados"):
+        raise ValidationError("O módulo de comunicados não está contratado.")
     if not (cfg.ativo and cfg.completa):
         raise ValidationError("O WhatsApp da escola não está ativo. Configure e ative em Configurações > WhatsApp.")
     mensagem = wa.limpar_parametro(mensagem)
@@ -73,6 +75,8 @@ def criar_comunicado(*, instituicao, usuario, alvo, mensagem, responsavel=None, 
 def processar(comunicado, limite=LOTE):
     """Envia até `limite` pendentes. Devolve quantos foram tentados. Falha de um não interrompe os demais."""
     cfg = ConfiguracaoWhatsApp.obter(comunicado.instituicao)
+    if not comunicado.instituicao.tem_modulo("comunicados"):
+        raise ValidationError("O módulo de comunicados não está contratado.")
     if not (cfg.ativo and cfg.completa):
         raise ValidationError("O WhatsApp da escola está desativado ou incompleto.")
     token = _token(cfg)

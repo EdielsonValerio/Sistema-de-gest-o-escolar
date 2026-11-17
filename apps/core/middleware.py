@@ -61,6 +61,31 @@ class EscolaMiddleware:
         return p in (reverse("accounts:senha_trocar"), reverse("accounts:logout")) or p.startswith(settings.STATIC_URL if settings.STATIC_URL.startswith("/") else "/" + settings.STATIC_URL)
 
 
+class ModulosMiddleware:
+    """Bloqueia as telas de módulos que a escola da requisição não contratou (mesmo se a URL for digitada).
+
+    Roda depois do `EscolaMiddleware`. Sem escola na requisição (login, telas do sistema, páginas públicas) não faz
+    nada: as páginas públicas (portal, pré-matrícula) conferem o módulo por conta própria."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        escola = getattr(request, "instituicao", None)
+        rm = getattr(request, "resolver_match", None)
+        if escola is None or rm is None:
+            return None
+        from . import modulos
+        cod = modulos.modulo_da_rota(rm.app_name, rm.url_name)
+        if cod is None or cod in (escola.modulos or []):
+            return None
+        from django.shortcuts import render
+        return render(request, "modulo_indisponivel.html", {"modulo": modulos.MODULOS[cod]}, status=403)
+
+
 class SegurancaMiddleware:
     """Endurecimento HTTP: bloqueia TRACE/TRACK e acrescenta a Content-Security-Policy e demais cabeçalhos.
 

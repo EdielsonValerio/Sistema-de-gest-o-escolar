@@ -82,6 +82,7 @@ MIDDLEWARE = [
     "apps.core.middleware.LimiteTaxaMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.core.middleware.EscolaMiddleware",
+    "apps.core.middleware.ModulosMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -176,7 +177,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTHENTICATION_BACKENDS = [
     "apps.accounts.backends.EscolaBackend",  # escola + login + senha (usuários das escolas)
-    "django.contrib.auth.backends.ModelBackend",  # username global: somente administrador do sistema/admin do Django
+    "apps.accounts.backends.GlobalBackend",  # username global: somente administrador do sistema/admin do Django
 ]
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"

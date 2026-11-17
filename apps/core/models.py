@@ -21,6 +21,8 @@ class Instituicao(models.Model):
     ativa = models.BooleanField("ativa", default=True,
                                 help_text="Escolas inativas não aparecem no login e seus usuários perdem o acesso.")
     criada_em = models.DateTimeField("cadastrada em", default=timezone.now, editable=False)
+    modulos = models.JSONField("módulos contratados", default=list, blank=True,
+                               help_text="Além da Secretaria (base). Só o administrador do sistema altera.")
 
     class Meta:
         verbose_name = "instituição"
@@ -30,6 +32,10 @@ class Instituicao(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def tem_modulo(self, codigo):
+        from .modulos import tem_modulo
+        return tem_modulo(self, codigo)
 
 
 class ConfiguracaoGeral(models.Model):

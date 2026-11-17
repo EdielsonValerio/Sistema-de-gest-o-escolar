@@ -108,11 +108,16 @@ class EscolaUpdateView(SistemaMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         escola = self.escola
+        antes = list(escola.modulos or [])
         form = EscolaForm(request.POST, request.FILES, instance=escola)
         if not form.is_valid():
             return self.render_to_response(self.get_context_data(form=form))
         with transaction.atomic():
             escola = form.save()
+            if sorted(antes) != sorted(escola.modulos):
+                registrar(instituicao=escola, usuario=request.user, acao="MODULOS_ALTERADOS", entidade="Instituicao",
+                          entidade_id=escola.pk, descricao="Módulos contratados alterados pelo administrador do sistema",
+                          dados={"antes": antes, "depois": list(escola.modulos)})
             from apps.assistente.servicos import habilitar_pelo_sistema
             habilitar_pelo_sistema(escola, form.cleaned_data["ia_habilitada"], request.user)
             registrar(instituicao=escola, usuario=request.user, acao="ESCOLA_ALTERADA", entidade="Instituicao",

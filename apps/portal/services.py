@@ -123,7 +123,8 @@ def pode_entrar(acesso):
     if acesso is None or not acesso.liberado or not acesso.tem_senha:
         return False
     cfg = ConfiguracaoPortal.objects.filter(instituicao_id=acesso.instituicao_id).first()
-    return bool(cfg and cfg.ativo and acesso.instituicao.ativa and acesso.responsavel.ativo)
+    return bool(cfg and cfg.ativo and acesso.instituicao.ativa and acesso.responsavel.ativo
+                and "portal" in (acesso.instituicao.modulos or []))
 
 
 def entrar(request, acesso, slug):
@@ -160,11 +161,14 @@ def alunos_do_acesso(acesso, *, financeiro=False, pedagogico=False):
     """Alunos que o responsável pode ver. Sem filtro de flag = qualquer um dos dois. Todas as telas do portal
     obtêm o aluno por aqui; nenhum ID vindo do navegador é aceito sem passar por este filtro."""
     qs = AcessoAluno.objects.filter(acesso=acesso, instituicao=acesso.instituicao, aluno__instituicao=acesso.instituicao)
+    mods = acesso.instituicao.modulos or []
+    if (financeiro and "financeiro" not in mods) or (pedagogico and "diario" not in mods):
+        return Aluno.objects.none()  # a seção depende de um módulo que a escola não contratou
     if financeiro:
         qs = qs.filter(financeiro=True)
     if pedagogico:
         qs = qs.filter(pedagogico=True)
     if not financeiro and not pedagogico:
         from django.db.models import Q
-        qs = qs.filter(Q(financeiro=True) | Q(pedagogico=True))
+        qs = qs.filter(Q(pedagogico=True) | (Q(financeiro=True) if "financeiro" in mods else Q(pk__in=[])))
     return Aluno.objects.filter(pk__in=qs.values("aluno_id"), instituicao=acesso.instituicao).order_by("nome")
