@@ -52,6 +52,9 @@ class ModeloDocumento(models.Model):
     usar_na_matricula = models.BooleanField(
         "usar na matrícula", default=False,
         help_text="Aparece para impressão ao concluir a matrícula do aluno (ex.: comprovante e contrato).")
+    disponivel_portal = models.BooleanField(
+        "disponibilizar no portal", default=False,
+        help_text="O responsável com acesso ao portal pode gerar este documento sozinho, sem pedir à escola.")
     ativo = models.BooleanField("ativo", default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

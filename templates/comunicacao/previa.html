@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Conferir destinatários{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Conferir antes de enviar</h1>
+<div class="card mb-3"><div class="card-body"><div class="small text-muted mb-1">Mensagem</div><div>{{ mensagem }}</div></div></div>
+<form method="post">{% csrf_token %}<input type="hidden" name="confirmar" value="1">
+  <input type="hidden" name="alvo" value="{{ form.alvo.value }}"><input type="hidden" name="responsavel" value="{{ form.responsavel.value|default:'' }}">
+  {% for t in form.turmas.value|default:'' %}<input type="hidden" name="turmas" value="{{ t }}">{% endfor %}
+  <input type="hidden" name="mensagem" value="{{ mensagem }}">
+  <div class="alert alert-info">{{ validos }} responsável(is) com WhatsApp válido{% if sem %} · {{ sem }} sem celular válido (não receberão){% endif %}. Marque “Não enviar” em quem deve ficar de fora.</div>
+  <div class="card mb-3"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Não enviar</th><th>Responsável</th><th>Celular</th></tr></thead><tbody>
+  {% for r, e in linhas %}<tr><td>{% if e %}<input class="form-check-input" type="checkbox" name="excluir" value="{{ r.pk }}" id="x{{ r.pk }}" aria-label="Não enviar para {{ r.nome }}">{% else %}<span class="text-muted">—</span>{% endif %}</td>
+  <td>{{ r.nome }}</td><td>{% if e %}{{ e|slice:"2:4" }} ••••{{ e|slice:"-4:" }}{% else %}<span class="badge text-bg-warning">sem celular válido</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="3" class="text-center text-muted py-3">Nenhum responsável encontrado.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <button class="btn btn-success" {% if not validos %}disabled{% endif %} data-once>Criar comunicado e enviar</button>
+  <a class="btn btn-outline-secondary" href="{% url 'comunicacao:novo' %}">Voltar</a>
+</form>
+{% endblock %}

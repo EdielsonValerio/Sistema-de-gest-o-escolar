@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Comunicados{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2 mb-2"><div><h1 class="h4 page-title">Comunicados</h1><p class="page-sub">Mensagens enviadas ao WhatsApp dos responsáveis.</p></div>
+<a class="btn btn-primary align-self-start {% if not cfg.ativo %}disabled{% endif %}" href="{% url 'comunicacao:novo' %}"><i class="bi bi-plus-lg"></i> Novo comunicado</a></div>
+{% if not cfg.ativo %}<div class="alert alert-warning">O envio por WhatsApp não está ativo nesta escola. Peça ao administrador para configurar em Configurações &gt; WhatsApp (API).</div>{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Data</th><th>Para</th><th>Mensagem</th><th class="text-center">Enviados</th><th class="text-center">Na fila</th><th class="text-center">Falhas/sem WhatsApp</th><th></th></tr></thead><tbody>
+{% for c in comunicados %}<tr><td>{{ c.criado_em|date:"d/m/Y H:i" }}</td><td>{{ c.get_alvo_display }}</td><td>{{ c.mensagem|truncatechars:70 }}</td>
+<td class="text-center">{{ c.res.ENVIADO }}</td><td class="text-center">{{ c.res.PENDENTE }}</td><td class="text-center">{{ c.res.FALHA }} / {{ c.res.SEM_WHATSAPP }}</td>
+<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'comunicacao:detalhe' c.pk %}">Abrir</a></td></tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhum comunicado ainda.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

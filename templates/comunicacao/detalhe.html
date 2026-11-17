@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Comunicado{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2"><div><h1 class="h4 page-title">Comunicado de {{ c.criado_em|date:"d/m/Y H:i" }}</h1><p class="page-sub">Para: {{ c.get_alvo_display }} · por {{ c.criado_por|default:"—" }}</p></div>
+<a class="btn btn-outline-secondary align-self-start" href="{% url 'comunicacao:lista' %}">Voltar</a></div>
+<div class="card mb-3"><div class="card-body">{{ c.mensagem }}</div></div>
+<div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+  <span class="badge text-bg-success">Enviados: {{ res.ENVIADO }}</span><span class="badge text-bg-secondary">Na fila: {{ res.PENDENTE }}</span>
+  <span class="badge text-bg-danger">Falhas: {{ res.FALHA }}</span><span class="badge text-bg-warning">Sem WhatsApp: {{ res.SEM_WHATSAPP }}</span>
+  {% if res.PENDENTE %}<form method="post" class="ms-auto">{% csrf_token %}<button class="btn btn-primary" data-once>Enviar próximos (até 25)</button></form>{% endif %}
+</div>
+{% if res.PENDENTE %}<div class="alert alert-info small">Os envios saem em lotes de 25. Clique novamente até a fila zerar, ou deixe o agendador do servidor rodar <code>manage.py enviar_comunicados</code>.</div>{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Responsável</th><th>Celular</th><th>Situação</th><th>Detalhe</th></tr></thead><tbody>
+{% for e in envios %}<tr><td>{{ e.responsavel.nome }}</td><td>{{ e.telefone_mascarado }}</td><td>{{ e.get_status_display }}</td><td class="small text-muted">{{ e.erro }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

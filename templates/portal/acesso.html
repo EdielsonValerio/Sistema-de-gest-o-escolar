@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Acesso ao portal — {{ responsavel.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2"><div><h1 class="h4 page-title">Acesso ao portal</h1><p class="page-sub">{{ responsavel.nome }} · login (CPF): {{ responsavel.documento_mascarado|default:"sem CPF" }}</p></div>
+<a class="btn btn-outline-secondary align-self-start" href="{% url 'students:responsavel_detalhe' responsavel.pk %}">Voltar</a></div>
+{% if not cfg.ativo %}<div class="alert alert-warning">O portal desta escola está <strong>desativado</strong>. Ninguém consegue entrar até ativá-lo em Configurações &gt; Portal do responsável.</div>{% endif %}
+{% if not acesso %}
+<div class="card"><div class="card-body">
+  <p>Este responsável ainda não tem acesso ao portal.</p>
+  {% if not cpf_ok %}<div class="alert alert-warning">Cadastre um CPF válido no cadastro do responsável: o CPF é o login do portal.</div>{% endif %}
+  <form method="post">{% csrf_token %}<button class="btn btn-primary" name="acao" value="criar" {% if not cpf_ok %}disabled{% endif %}>Criar acesso</button></form>
+</div></div>
+{% else %}
+<div class="card mb-3"><div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+  <div>
+    <div>Autorização da escola: {% if acesso.liberado %}<span class="badge text-bg-success">Liberado</span>{% else %}<span class="badge text-bg-danger">Não liberado{% if acesso.revogado_em %} (revogado em {{ acesso.revogado_em|date:"d/m/Y H:i" }}){% endif %}</span>{% endif %}</div>
+    <div class="small text-muted mt-1">Senha: {% if acesso.tem_senha %}criada pelo responsável{% else %}ainda não criada{% endif %}{% if convite_pendente %} · convite pendente (vence {{ acesso.convite_expira|date:"d/m/Y H:i" }}){% endif %} · Último acesso: {{ acesso.ultimo_acesso|date:"d/m/Y H:i"|default:"nunca" }}</div>
+  </div>
+  <form method="post" class="d-flex flex-wrap gap-2">{% csrf_token %}
+    {% if acesso.liberado %}
+      <button class="btn btn-outline-primary" name="acao" value="convite"><i class="bi bi-envelope"></i> Enviar convite</button>
+      <button class="btn btn-outline-secondary" name="acao" value="redefinir" data-confirm="Apagar a senha atual e gerar novo convite? O responsável será desconectado."><i class="bi bi-key"></i> Redefinir senha</button>
+      <button class="btn btn-outline-danger" name="acao" value="revogar" data-confirm="Revogar o acesso? O responsável é desconectado imediatamente."><i class="bi bi-slash-circle"></i> Revogar acesso</button>
+    {% else %}<button class="btn btn-success" name="acao" value="liberar"><i class="bi bi-check2-circle"></i> Liberar acesso</button>{% endif %}
+  </form></div></div>
+<div class="card mb-3"><div class="card-header">O que o responsável pode ver, por aluno</div>
+<form method="post">{% csrf_token %}<input type="hidden" name="acao" value="alunos">
+<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Aluno</th><th class="text-center">Financeiro</th><th class="text-center">Pedagógico</th><th></th></tr></thead><tbody>
+{% for v in vinculos %}<tr><td>{{ v.aluno.nome }} <small class="text-muted">{{ v.aluno.codigo }}</small></td>
+<td class="text-center"><input class="form-check-input" type="checkbox" name="fin_{{ v.pk }}" {% if v.financeiro %}checked{% endif %} aria-label="Financeiro de {{ v.aluno.nome }}"></td>
+<td class="text-center"><input class="form-check-input" type="checkbox" name="ped_{{ v.pk }}" {% if v.pedagogico %}checked{% endif %} aria-label="Pedagógico de {{ v.aluno.nome }}"></td>
+<td class="text-end"><button class="btn btn-sm btn-outline-danger" form="rm{{ v.pk }}" data-confirm="Remover este aluno do acesso?">Remover</button></td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Nenhum aluno. Inclua um aluno pelo código abaixo.</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="card-footer bg-white small text-muted"><strong>Financeiro:</strong> parcelas, boletos e Pix das cobranças em nome do responsável. <strong>Pedagógico:</strong> dados do aluno e boletim (só fases já concluídas pelo professor). <button class="btn btn-primary btn-sm float-end">Salvar permissões</button></div></form></div>
+{% for v in vinculos %}<form id="rm{{ v.pk }}" method="post">{% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="vinculo" value="{{ v.pk }}"></form>{% endfor %}
+<div class="card"><div class="card-body"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="acao" value="adicionar">
+  <div class="col-sm-6 col-md-4"><label class="form-label small mb-1" for="codigo">Incluir outro aluno pelo código</label><input class="form-control" id="codigo" name="codigo" placeholder="Código do aluno"></div>
+  <div class="col-auto"><button class="btn btn-outline-primary">Incluir</button></div></form></div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}
+{% load ui %}
+{% block title %}Financeiro{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h4 mb-0">Financeiro — {{ aluno.nome_exibicao }}</h1><a class="btn btn-outline-secondary" href="{% url 'portal:aluno' aluno.pk %}">Voltar</a></div>
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+<thead><tr><th>Parcela</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Pago</th><th>Situação</th><th></th></tr></thead><tbody>
+{% for l in linhas %}<tr>
+  <td>{{ l.p.descricao }}</td><td>{{ l.p.vencimento|date:"d/m/Y" }}</td><td class="text-end money">{{ l.p.valor_devido|brl }}</td><td class="text-end money">{{ l.p.valor_pago|brl }}</td>
+  <td>{% if l.p.status == "QUITADA" %}<span class="badge text-bg-success">Pago</span>{% elif l.atrasada %}<span class="badge text-bg-danger">Vencida</span>{% else %}<span class="badge text-bg-warning">Em aberto</span>{% endif %}</td>
+  <td class="text-end">{% if l.cobranca %}<a class="btn btn-sm btn-primary" href="{% url 'portal:boleto' aluno.pk l.p.pk %}"><i class="bi bi-upc-scan"></i> Pagar</a>{% endif %}</td>
+</tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhuma parcela em seu nome para este aluno.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<p class="small text-muted mt-2">Só aparecem as cobranças emitidas em seu nome. O pagamento é confirmado automaticamente pelo banco, o que pode levar até 1 dia útil. Valores vencidos podem ter multa e juros: confira o valor atualizado no boleto.</p>
+{% endblock %}

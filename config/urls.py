@@ -22,6 +22,8 @@ urlpatterns = [
     path("", include("apps.billing.urls")),
     path("", include("apps.assistente.urls")),
     path("", include("apps.diario.urls")),
+    path("", include("apps.portal.urls")),
+    path("", include("apps.comunicacao.urls")),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}WhatsApp (API){% endblock %}
+{% block content %}
+<h1 class="h4 page-title">WhatsApp (API oficial da Meta)</h1>
+<p class="page-sub">Dados da conta do WhatsApp Business desta escola, usados para enviar os comunicados da coordenação.</p>
+<div class="alert alert-info small">
+  <strong>Antes de configurar:</strong> na Meta (WhatsApp Cloud API) crie um modelo de mensagem de categoria <em>Utilidade</em> com
+  <u>uma única variável</u> no corpo, por exemplo: <code>Comunicado da escola: {% templatetag openvariable %}1{% templatetag closevariable %}</code>. Mensagens iniciadas pela escola
+  só podem ser enviadas por modelo aprovado. Use um token de acesso <em>permanente</em> (usuário do sistema).
+</div>
+<div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Configuração</span>
+  <span class="badge text-bg-{% if cfg.ativo %}success{% else %}secondary{% endif %}">{% if cfg.ativo %}Envio ativo{% else %}Envio desativado{% endif %}</span></div>
+<form method="post" class="card-body" data-once>{% csrf_token %}<input type="hidden" name="acao" value="salvar">
+  <div class="row g-3">
+    <div class="col-md-6">{{ form.phone_number_id.label_tag }}{{ form.phone_number_id }}<div class="form-text">{{ form.phone_number_id.help_text }}</div>{{ form.phone_number_id.errors }}</div>
+    <div class="col-md-6">{{ form.waba_id.label_tag }}{{ form.waba_id }}{{ form.waba_id.errors }}</div>
+    <div class="col-md-12">{{ form.token.label_tag }}{{ form.token }}<div class="form-text">{{ form.token.help_text }} Atual: <code>{{ token_mascarado|default:"nenhum" }}</code></div></div>
+    <div class="col-md-5">{{ form.template_nome.label_tag }}{{ form.template_nome }}<div class="form-text">{{ form.template_nome.help_text }}</div>{{ form.template_nome.errors }}</div>
+    <div class="col-md-3">{{ form.template_idioma.label_tag }}{{ form.template_idioma }}</div>
+    <div class="col-md-2">{{ form.versao_api.label_tag }}{{ form.versao_api }}{{ form.versao_api.errors }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Salvar</button>
+  <span class="small text-muted ms-2">Salvar desativa o envio até novo teste.</span>
+</form></div>
+<div class="card mb-3"><div class="card-header">Teste e ativação</div><div class="card-body">
+  <p class="small text-muted mb-2">Última conexão testada com sucesso: {{ cfg.testada_em|date:"d/m/Y H:i"|default:"nunca" }}</p>
+  <div class="d-flex flex-wrap gap-2 align-items-end">
+    <form method="post">{% csrf_token %}<button class="btn btn-outline-primary" name="acao" value="testar" {% if not cfg.completa %}disabled{% endif %}>Testar conexão</button></form>
+    <form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="acao" value="teste_envio"><input class="form-control" name="telefone" placeholder="Celular com DDD" aria-label="Celular para teste" style="max-width:200px"><button class="btn btn-outline-secondary" {% if not cfg.completa %}disabled{% endif %}>Enviar mensagem de teste</button></form>
+    <form method="post">{% csrf_token %}
+      {% if cfg.ativo %}<button class="btn btn-outline-danger" name="acao" value="desativar" data-confirm="Desativar o envio de comunicados?">Desativar envio</button>
+      {% else %}<button class="btn btn-success" name="acao" value="ativar" {% if not cfg.testada_em %}disabled{% endif %}>Ativar envio</button>{% endif %}</form>
+  </div></div></div>
+{% endblock %}

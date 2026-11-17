@@ -2,7 +2,7 @@
 from django.contrib.auth.models import Group, Permission
 from django.db.models import Q
 
-APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente", "diario"]
+APPS = ["core", "accounts", "students", "academic", "enrollments", "finance", "audit", "documents", "payables", "billing", "assistente", "diario", "portal", "comunicacao"]
 
 PERFIS = ["Administrador", "Secretaria", "Financeiro", "Consulta", "Professor", "Coordenador"]
 
@@ -43,6 +43,7 @@ def permissoes_por_perfil():
     secretaria = (
         _crud("students", "aluno") + _crud("students", "responsavel") + _crud("students", "alunoresponsavelfinanceiro")
         + [("students", "change_linkprematricula")]
+        + _codes("portal", "gerenciar_acesso_portal")
         + _crud("academic", "anoletivo") + _crud("academic", "serieofertada") + _crud("academic", "turma")
         + ver("academic", "seriereferencia")
         + _crud("enrollments", "matricula")
@@ -54,6 +55,7 @@ def permissoes_por_perfil():
         + ver("documents", "modelodocumento", "documentoemitido") + _codes("documents", "emitir_documento")
         + _codes("diario", "emitir_boletim", "emitir_historico", "gerenciar_historico_externo")
         + _codes("assistente", "usar_assistente")
+        + _codes("comunicacao", "enviar_comunicado")
     )
 
     financeiro = (
@@ -77,6 +79,7 @@ def permissoes_por_perfil():
     # Coordenador: acompanhamento pedagógico e alocação de professores; consulta turmas e alunos, sem CPF completo.
     coordenador = (
         _codes("diario", "coordenar_diario", "gerenciar_alocacoes", "emitir_boletim", "emitir_historico")
+        + _codes("comunicacao", "enviar_comunicado")
         + ver("students", "aluno") + ver("academic", "anoletivo", "serieofertada", "turma")
         + ver("enrollments", "matricula")
     )

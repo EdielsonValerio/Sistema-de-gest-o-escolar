@@ -10,7 +10,8 @@ from .variaveis import sanitizar_html, texto_puro, variaveis_desconhecidas
 class ModeloDocumentoForm(BaseModelForm):
     class Meta:
         model = ModeloDocumento
-        fields = ["nome", "tipo", "destinatario", "usar_cabecalho", "usar_na_matricula", "ativo", "conteudo"]
+        fields = ["nome", "tipo", "destinatario", "usar_cabecalho", "usar_na_matricula", "disponivel_portal", "ativo",
+                  "conteudo"]
         widgets = {"conteudo": forms.Textarea(attrs={"rows": 14})}
 
     def clean(self):
@@ -19,6 +20,8 @@ class ModeloDocumentoForm(BaseModelForm):
             self.add_error("destinatario", "Boletim e histórico escolar são sempre emitidos para o aluno.")
         if d.get("tipo") in TIPOS_SOMENTE_FICHA and d.get("usar_na_matricula"):
             self.add_error("usar_na_matricula", "Boletim e histórico são emitidos pelos botões da ficha do aluno.")
+        if d.get("tipo") in TIPOS_SOMENTE_FICHA and d.get("disponivel_portal"):
+            self.add_error("disponivel_portal", "O boletim tem tela própria no portal; o histórico só é emitido pela escola.")
         return d
 
     def clean_conteudo(self):

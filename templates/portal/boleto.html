@@ -1,0 +1,20 @@
+{% extends "portal/base.html" %}
+{% load ui %}
+{% block title %}Pagar parcela{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h4 mb-0">{{ parcela.descricao }}</h1><a class="btn btn-outline-secondary" href="{% url 'portal:financeiro' aluno.pk %}">Voltar</a></div>
+<div class="card mb-3"><div class="card-body">
+  <p class="mb-1">Aluno: <strong>{{ aluno.nome_exibicao }}</strong></p>
+  <p class="mb-1">Vencimento: <strong>{{ c.vencimento|date:"d/m/Y" }}</strong> · Valor do boleto: <strong class="money">{{ c.valor|brl }}</strong></p>
+  {% if c.linha_digitavel %}<label class="form-label mt-3" for="linha">Linha digitável</label>
+  <div class="input-group"><input id="linha" class="form-control" readonly value="{{ c.linha_digitavel }}"><button type="button" class="btn btn-outline-primary" data-copiar="linha"><i class="bi bi-clipboard"></i> Copiar</button></div>{% endif %}
+  {% if c.url_boleto %}<a class="btn btn-primary mt-3" href="{{ c.url_boleto }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-file-earmark-pdf"></i> Abrir boleto (PDF)</a>{% endif %}
+</div></div>
+{% if c.pix_copia_cola or c.qrcode_src %}<div class="card mb-3"><div class="card-body">
+  <h2 class="h6">Pagar com Pix</h2>
+  {% if c.qrcode_src %}<img src="{{ c.qrcode_src }}" alt="QR Code Pix" style="width:200px;height:200px">{% endif %}
+  {% if c.pix_copia_cola %}<label class="form-label mt-2" for="pix">Pix copia e cola</label>
+  <div class="input-group"><input id="pix" class="form-control" readonly value="{{ c.pix_copia_cola }}"><button type="button" class="btn btn-outline-primary" data-copiar="pix"><i class="bi bi-clipboard"></i> Copiar</button></div>{% endif %}
+</div></div>{% endif %}
+<p class="small text-muted">Depois de pagar, o banco avisa o sistema e a baixa é feita automaticamente. Não é preciso enviar comprovante.</p>
+{% endblock %}

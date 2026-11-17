@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap gap-2">
   <div><h1 class="h4 page-title">{{ responsavel.nome }}</h1><p class="page-sub">{{ responsavel.documento_mascarado|default:"sem documento" }} · {{ responsavel.email_cobranca|default:"sem e-mail" }} · {{ responsavel.telefone|default:"sem telefone" }}</p></div>
-  <div class="d-flex gap-2">{% if perms.students.change_responsavel %}<a class="btn btn-outline-primary" href="{% url 'students:responsavel_editar' responsavel.pk %}">Editar</a>{% endif %}{% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_responsavel' responsavel.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}<a class="btn btn-outline-secondary" href="{% url 'students:responsavel_lista' %}">Voltar</a></div>
+  <div class="d-flex gap-2">{% if perms.students.change_responsavel %}<a class="btn btn-outline-primary" href="{% url 'students:responsavel_editar' responsavel.pk %}">Editar</a>{% endif %}{% if perms.portal.gerenciar_acesso_portal %}<a class="btn btn-outline-secondary" href="{% url 'portal:acesso' responsavel.pk %}"><i class="bi bi-person-lock"></i> Acesso ao portal</a>{% endif %}{% if perms.documents.emitir_documento %}<a class="btn btn-outline-secondary" href="{% url 'documents:emitir_responsavel' responsavel.pk %}"><i class="bi bi-file-earmark-text"></i> Documentos</a>{% endif %}<a class="btn btn-outline-secondary" href="{% url 'students:responsavel_lista' %}">Voltar</a></div>
 </div>
 <div class="row g-3 mb-3">
   <div class="col-lg-5"><div class="card h-100"><div class="card-header">Alunos vinculados</div><ul class="list-group list-group-flush">

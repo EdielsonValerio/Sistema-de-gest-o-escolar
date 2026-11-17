@@ -1,0 +1,14 @@
+{% extends "portal/base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-6 col-lg-5"><div class="card"><div class="card-body p-4">
+  <h1 class="h5 mb-3">Acesso do responsável</h1>
+  {% if erro %}<div class="alert alert-danger py-2" role="alert">{{ erro }}</div>{% endif %}
+  <form method="post" autocomplete="off" novalidate data-once>{% csrf_token %}
+    <div class="mb-3"><label class="form-label" for="id_cpf">CPF</label><input class="form-control" id="id_cpf" name="cpf" inputmode="numeric" autocomplete="username" required></div>
+    <div class="mb-3"><label class="form-label" for="id_senha">Senha</label><input class="form-control" id="id_senha" name="senha" type="password" autocomplete="current-password" required></div>
+    <button class="btn btn-primary w-100">Entrar</button>
+  </form>
+  <p class="small text-muted mt-3 mb-0">Primeiro acesso? Use o link de convite que a escola enviou para criar sua senha. Esqueceu a senha? Peça uma nova à secretaria.</p>
+</div></div></div></div>
+{% endblock %}

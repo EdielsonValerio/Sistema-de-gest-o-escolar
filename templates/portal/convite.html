@@ -1,0 +1,12 @@
+{% extends "portal/base.html" %}
+{% block title %}Criar senha{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-7 col-lg-6"><div class="card"><div class="card-body p-4">
+  <h1 class="h5">Criar sua senha</h1>
+  <p class="text-muted">Olá, {{ a.responsavel.nome }}. Seu login será o seu CPF. Use no mínimo 12 caracteres, sem ser uma senha comum ou parecida com seus dados.</p>
+  <form method="post" novalidate data-once>{% csrf_token %}
+    {% for f in form %}<div class="mb-3"><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+    <button class="btn btn-primary">Salvar senha</button>
+  </form>
+</div></div></div></div>
+{% endblock %}

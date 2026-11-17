@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Novo comunicado{% endblock %}
+{% block content %}
+<h1 class="h4 page-title">Novo comunicado</h1>
+{% if not cfg.ativo %}<div class="alert alert-warning">O envio por WhatsApp não está ativo nesta escola.</div>{% endif %}
+<form method="post" class="card"><div class="card-body">{% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="mb-3"><div class="fw-semibold mb-1">{{ form.alvo.label }}</div>{{ form.alvo }}</div>
+  <div class="row g-3">
+    <div class="col-md-6">{{ form.responsavel.label_tag }}{{ form.responsavel }}{{ form.responsavel.errors }}<div class="form-text">Use quando o envio for para uma única pessoa.</div></div>
+    <div class="col-md-6">{{ form.turmas.label_tag }}{{ form.turmas }}{{ form.turmas.errors }}<div class="form-text">Segure Ctrl (ou Cmd) para marcar várias.</div></div>
+    <div class="col-12">{{ form.mensagem.label_tag }}{{ form.mensagem }}<div class="form-text">{{ form.mensagem.help_text }}</div>{{ form.mensagem.errors }}</div>
+  </div>
+  <button class="btn btn-primary mt-3">Ver destinatários</button>
+  <div class="form-text mt-2">Nada é enviado nesta etapa: você confere a lista antes.</div>
+</div></form>
+{% endblock %}

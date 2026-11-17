@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% block title %}Documentos{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Documentos</h1>
+<div class="card mb-3"><div class="card-header">Gerar um documento</div><div class="card-body">
+{% for m in modelos %}
+  <form method="post" class="row g-2 align-items-end border-bottom pb-3 mb-3" data-once>{% csrf_token %}<input type="hidden" name="modelo" value="{{ m.pk }}">
+    <div class="col-md-5"><div class="fw-semibold">{{ m.nome }}</div><div class="small text-muted">{{ m.get_tipo_display }}</div></div>
+    <div class="col-md-4">{% if m.destinatario == "ALUNO" %}<label class="form-label small mb-1" for="al{{ m.pk }}">Aluno</label><select class="form-select" id="al{{ m.pk }}" name="aluno" required>{% for a in alunos %}<option value="{{ a.pk }}">{{ a.nome_exibicao }}</option>{% endfor %}</select>{% else %}<span class="small text-muted">Em seu nome</span>{% endif %}</div>
+    <div class="col-md-3 text-md-end"><button class="btn btn-primary">Gerar</button></div>
+  </form>
+{% empty %}<p class="text-muted mb-0">A escola ainda não disponibilizou documentos no portal.</p>{% endfor %}
+</div></div>
+<div class="card"><div class="card-header">Documentos que você já gerou</div><ul class="list-group list-group-flush">
+{% for e in emitidos %}<li class="list-group-item d-flex justify-content-between align-items-center"><span>{{ e.documento.titulo }} <small class="text-muted">nº {{ e.documento.numero }} · {{ e.criado_em|date:"d/m/Y H:i" }}</small></span><a class="btn btn-sm btn-outline-primary" href="{% url 'portal:documento' e.documento_id %}">Abrir</a></li>
+{% empty %}<li class="list-group-item text-muted">Nenhum documento gerado ainda.</li>{% endfor %}
+</ul></div>
+{% endblock %}

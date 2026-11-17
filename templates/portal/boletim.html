@@ -1,0 +1,13 @@
+{% extends "portal/base.html" %}
+{% block title %}Boletim{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h4 mb-0">Boletim — {{ aluno.nome_exibicao }}</h1><a class="btn btn-outline-secondary" href="{% url 'portal:aluno' aluno.pk %}">Voltar</a></div>
+{% if not matricula %}<div class="alert alert-info">Ainda não há matrícula em turma oficial.</div>{% else %}
+{% if matriculas|length > 1 %}<form method="get" class="mb-3"><select class="form-select" name="matricula" aria-label="Ano letivo" data-auto-submit>{% for m in matriculas %}<option value="{{ m.pk|stringformat:'s' }}" {% if m.pk == matricula.pk %}selected{% endif %}>{{ m.ano_letivo }} — {{ m.turma.nome }}</option>{% endfor %}</select><noscript><button class="btn btn-sm btn-outline-secondary mt-2">Ver</button></noscript></form>{% endif %}
+<div class="card"><div class="card-body">
+  {% if d.linhas %}<div class="table-responsive">{{ tabela }}</div>
+  <p class="mt-3 mb-1"><strong>Resultado:</strong> {{ d.resultado|default:"Em andamento" }}{% if d.media_geral is not None %} — Média geral {{ d.media_geral }}{% endif %}</p>
+  <p class="small text-muted mb-0">As notas de cada fase aparecem depois que o professor conclui a fase ({{ d.liberadas }} de {{ d.fases|length }} liberada(s)).</p>
+  {% else %}<p class="text-muted mb-0">Nenhuma disciplina com nota liberada ainda.</p>{% endif %}
+</div></div>{% endif %}
+{% endblock %}
