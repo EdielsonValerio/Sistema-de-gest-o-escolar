@@ -21,6 +21,16 @@ class Instituicao(models.Model):
     ativa = models.BooleanField("ativa", default=True,
                                 help_text="Escolas inativas não aparecem no login e seus usuários perdem o acesso.")
     criada_em = models.DateTimeField("cadastrada em", default=timezone.now, editable=False)
+    # Contato e endereço: para controle interno da plataforma (cobrança/suporte); a escola não os edita.
+    email_contato = models.EmailField("e-mail da escola", blank=True)
+    telefone_contato = models.CharField("telefone da escola", max_length=20, blank=True)
+    cep = models.CharField("CEP", max_length=9, blank=True)
+    logradouro = models.CharField("logradouro", max_length=150, blank=True)
+    numero = models.CharField("número", max_length=10, blank=True)
+    complemento = models.CharField("complemento", max_length=60, blank=True)
+    bairro = models.CharField("bairro", max_length=80, blank=True)
+    municipio = models.CharField("município", max_length=80, blank=True)
+    uf = models.CharField("UF", max_length=2, blank=True)
     modulos = models.JSONField("módulos contratados", default=list, blank=True,
                                help_text="Além da Secretaria (base). Só o administrador do sistema altera.")
 

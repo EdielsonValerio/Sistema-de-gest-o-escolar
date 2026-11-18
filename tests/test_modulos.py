@@ -342,3 +342,63 @@ class ComandoTests(Base):
             self.assertEqual(e.modulos, list(modulos.TODOS))
         self.assertTrue(RegistroAuditoria.objects.filter(acao="MODULOS_ALTERADOS", instituicao=outra).exists())
         self.assertIn("Escola M", self.run_cmd("--listar"))
+
+
+class ContatoEEnderecoTests(Base):
+    def dados(self, **extra):
+        return {"nome": self.inst.nome, "cnpj": "", "ativa": "on", **extra}
+
+    def test_tela_mostra_os_campos_e_salva_normalizado(self):
+        c = self.cli(self.sis)
+        url = reverse("core:escola_editar", args=[self.inst.pk])
+        r = c.get(url)
+        for campo in ("email_contato", "telefone_contato", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf"):
+            self.assertContains(r, f'name="{campo}"')
+        r = c.post(url, self.dados(email_contato="contato@escola.com.br", telefone_contato="65999991234", cep="78000000",
+                                   logradouro="Rua A", numero="10", bairro="Centro", municipio="Cuiabá", uf="MT"))
+        self.assertEqual(r.status_code, 302)
+        self.inst.refresh_from_db()
+        self.assertEqual(self.inst.telefone_contato, "(65) 99999-1234")
+        self.assertEqual(self.inst.cep, "78000-000")
+        self.assertEqual(self.inst.email_contato, "contato@escola.com.br")
+        self.assertEqual((self.inst.municipio, self.inst.uf), ("Cuiabá", "MT"))
+
+    def test_fixo_com_dez_digitos(self):
+        self.cli(self.sis).post(reverse("core:escola_editar", args=[self.inst.pk]), self.dados(telefone_contato="6533221234"))
+        self.inst.refresh_from_db()
+        self.assertEqual(self.inst.telefone_contato, "(65) 3322-1234")
+
+    def test_validacoes(self):
+        c = self.cli(self.sis)
+        url = reverse("core:escola_editar", args=[self.inst.pk])
+        for campo, valor in (("telefone_contato", "123"), ("cep", "123"), ("email_contato", "sem-arroba"), ("uf", "ZZ")):
+            r = c.post(url, self.dados(**{campo: valor}))
+            self.assertEqual(r.status_code, 200, campo)
+            self.assertTrue(r.context["form"].errors.get(campo), campo)
+
+    def test_campos_sao_opcionais(self):
+        r = self.cli(self.sis).post(reverse("core:escola_editar", args=[self.inst.pk]), self.dados())
+        self.assertEqual(r.status_code, 302)
+
+    def test_administrador_da_escola_nao_edita_nem_ve_pela_tela_do_sistema(self):
+        url = reverse("core:escola_editar", args=[self.inst.pk])
+        self.assertEqual(self.cli(self.adm).post(url, self.dados(telefone_contato="65999991234")).status_code, 403)
+        self.inst.refresh_from_db()
+        self.assertEqual(self.inst.telefone_contato, "")
+
+    def test_lista_de_escolas_mostra_contato(self):
+        Instituicao.objects.filter(pk=self.inst.pk).update(email_contato="x@escola.com", telefone_contato="(65) 3322-1234",
+                                                           municipio="Cuiabá", uf="MT")
+        r = self.cli(self.sis).get(reverse("core:escola_lista"))
+        self.assertContains(r, "x@escola.com")
+        self.assertContains(r, "Cuiabá/MT")
+
+    def test_cadastro_de_nova_escola_aceita_contato(self):
+        c = self.cli(self.sis)
+        r = c.post(reverse("core:escola_nova"), {
+            "nome": "Colégio Contato", "ativa": "on", "email_contato": "dir@colegio.com", "cep": "78000-000", "uf": "MT",
+            "telefone_contato": "(65) 3322-1234", "admin-nome": "Ana", "admin-login": "ana.c",
+            "admin-senha1": "Senha-Provisoria-9x!", "admin-senha2": "Senha-Provisoria-9x!"})
+        self.assertEqual(r.status_code, 302)
+        e = Instituicao.objects.get(nome="Colégio Contato")
+        self.assertEqual((e.email_contato, e.uf, e.cep), ("dir@colegio.com", "MT", "78000-000"))

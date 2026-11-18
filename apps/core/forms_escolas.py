@@ -20,14 +20,21 @@ class EscolaForm(BootstrapFormMixin, SecoesMixin, forms.ModelForm):
 
     class Meta:
         model = Instituicao
-        fields = ["nome", "cnpj", "logotipo", "ativa"]
+        fields = ["nome", "cnpj", "logotipo", "ativa", "email_contato", "telefone_contato", "cep", "logradouro", "numero",
+                  "complemento", "bairro", "municipio", "uf"]
         help_texts = {"logotipo": "PNG, JPG ou WebP, até 2 MB. Aparece no menu do sistema e nos documentos."}
 
     SECOES = [("Dados da escola", ["nome", "cnpj", "logotipo", "ativa"]),
+              ("Contato e endereço (controle interno)", ["email_contato", "telefone_contato", "cep", "logradouro", "numero",
+                                                         "complemento", "bairro", "municipio", "uf"]),
               ("Módulos contratados", [f"mod_{c}" for c in modulos.TODOS] + ["ia_habilitada"])]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from apps.students.models import UF
+        self.fields["uf"] = forms.ChoiceField(label="UF", required=False, choices=[("", "—")] + list(UF.choices))
+        self.fields["cep"].widget.attrs["placeholder"] = "00000-000"
+        self.fields["telefone_contato"].widget.attrs["placeholder"] = "(00) 00000-0000"
         atuais = set(self.instance.modulos or []) if self.instance.pk else set()
         for cod, m in modulos.MODULOS.items():
             ajuda = m.descricao + (f" Exige: {', '.join(modulos.MODULOS[e].nome for e in m.exige)}." if m.exige else "")
@@ -61,6 +68,22 @@ class EscolaForm(BootstrapFormMixin, SecoesMixin, forms.ModelForm):
         if qs.exists():
             raise ValidationError("Já existe uma escola com este nome.")
         return nome
+
+    def clean_telefone_contato(self):
+        v = so_digitos(self.cleaned_data.get("telefone_contato", ""))
+        if not v:
+            return ""
+        if len(v) not in (10, 11):
+            raise ValidationError("Informe o telefone com DDD (10 ou 11 dígitos).")
+        return f"({v[:2]}) {v[2:7]}-{v[7:]}" if len(v) == 11 else f"({v[:2]}) {v[2:6]}-{v[6:]}"
+
+    def clean_cep(self):
+        v = so_digitos(self.cleaned_data.get("cep", ""))
+        if not v:
+            return ""
+        if len(v) != 8:
+            raise ValidationError("O CEP tem 8 dígitos.")
+        return f"{v[:5]}-{v[5:]}"
 
     def clean_cnpj(self):
         v = self.cleaned_data.get("cnpj", "")

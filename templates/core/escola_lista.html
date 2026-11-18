@@ -7,13 +7,14 @@
   <div class="col-md-3"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>{% if q %} <a class="btn btn-link" href="?">Limpar</a>{% endif %}</div>
 </div></form>
 {% endblock %}
-{% block thead %}<tr><th></th><th>Escola</th><th>CNPJ</th><th class="text-end">Usuários</th><th class="text-end">Alunos</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block thead %}<tr><th></th><th>Escola</th><th>CNPJ</th><th>Contato</th><th class="text-end">Usuários</th><th class="text-end">Alunos</th><th>Situação</th><th></th></tr>{% endblock %}
 {% block tbody %}
 {% for e in escolas %}
 <tr>
   <td style="width:3.2rem">{% if e.logotipo %}<img src="{{ e.logotipo.url }}" alt="" class="escola-mini">{% else %}<i class="bi bi-building fs-4 text-muted"></i>{% endif %}</td>
   <td><strong>{{ e.nome }}</strong><div class="small text-muted">cadastrada em {{ e.criada_em|date:"d/m/Y" }}</div></td>
   <td>{{ e.cnpj|default:"—" }}</td>
+  <td class="small">{{ e.email_contato|default:"—" }}<div class="text-muted">{{ e.telefone_contato }}{% if e.municipio %} · {{ e.municipio }}{% if e.uf %}/{{ e.uf }}{% endif %}{% endif %}</div></td>
   <td class="text-end">{{ e.qtd_usuarios }}</td><td class="text-end">{{ e.qtd_alunos }}</td>
   <td><span class="badge text-bg-{% if e.ativa %}success{% else %}secondary{% endif %}">{% if e.ativa %}Ativa{% else %}Inativa{% endif %}</span></td>
   <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{% url 'core:escola_editar' e.pk %}">Abrir</a>
