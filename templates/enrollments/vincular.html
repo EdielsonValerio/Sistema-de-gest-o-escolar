@@ -41,6 +41,7 @@
     <div class="row g-3">
       {% with field=form.data_ingresso %}{% include "components/field.html" %}{% endwith %}
       {% if plano_sel %}{% with field=form.responsavel %}{% include "components/field.html" %}{% endwith %}{% endif %}
+      {% if plano_sel and form.descontos.field.queryset.exists %}<div class="col-12">{% with field=form.descontos %}{% include "components/field.html" %}{% endwith %}</div>{% endif %}
     </div>
     {% if planos and not plano_sel %}
       <div class="alert alert-warning mt-3 mb-0">Nenhum plano selecionado: o vínculo será concluído <strong>sem gerar cobranças</strong>.{% if not pode_sem_cobranca %} Você não tem permissão para isso: escolha um plano.{% endif %}</div>

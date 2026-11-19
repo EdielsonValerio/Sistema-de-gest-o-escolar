@@ -68,6 +68,52 @@ class PlanoFinanceiro(models.Model):
             raise ValidationError({"turma": "Turma de outra instituição."})
 
 
+class Desconto(models.Model):
+    """Desconto do catálogo da escola. Pode ser aplicado automaticamente (todos os planos) ou escolhido na cobrança."""
+
+    class Tipo(models.TextChoices):
+        VALOR = "VALOR", "Valor (R$) por parcela"
+        PERCENTUAL = "PERCENTUAL", "Percentual (%) da parcela"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="descontos")
+    nome = models.CharField("nome do desconto", max_length=100)
+    tipo = models.CharField("tipo", max_length=10, choices=Tipo.choices, default=Tipo.PERCENTUAL)
+    valor = models.DecimalField("valor do desconto", max_digits=12, decimal_places=2,
+                                validators=[MinValueValidator(Decimal("0.01"))])
+    dia_limite = models.PositiveSmallIntegerField(
+        "dia limite", null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(31)],
+        help_text="Dia do mês do vencimento até o qual o desconto vale. Em branco: vale até o vencimento.")
+    todos_os_planos = models.BooleanField(
+        "aplicar a todos os planos", default=False,
+        help_text="Marcado: entra sozinho em toda nova cobrança. Desmarcado: é escolhido manualmente na cobrança do aluno.")
+    acumulativo = models.BooleanField(
+        "acumulativo", default=True,
+        help_text="Acumulativo soma com outros descontos. Não acumulativo só pode ser usado sozinho.")
+    ativo = models.BooleanField("ativo", default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "desconto"
+        verbose_name_plural = "descontos"
+        ordering = ["nome"]
+        constraints = [
+            models.CheckConstraint(condition=Q(valor__gt=0), name="chk_desconto_valor_positivo"),
+            models.CheckConstraint(condition=Q(tipo="VALOR") | Q(valor__lte=100), name="chk_desconto_percentual_max"),
+            models.UniqueConstraint(fields=["instituicao", "nome"], name="uniq_desconto_nome_escola"),
+        ]
+
+    def __str__(self):
+        return self.nome
+
+    @property
+    def resumo_valor(self):
+        return f"{self.valor}%" if self.tipo == self.Tipo.PERCENTUAL else f"R$ {self.valor}"
+
+    def clean(self):
+        if self.tipo == self.Tipo.PERCENTUAL and self.valor and self.valor > 100:
+            raise ValidationError({"valor": "O percentual não pode passar de 100%."})
+
+
 class ContratoFinanceiro(models.Model):
     """Plano contratado por uma matrícula. Guarda *snapshots*: alterar o plano não altera contratos."""
 
@@ -190,6 +236,7 @@ class AjusteParcela(models.Model):
         VENCIMENTO = "VENCIMENTO", "Alteração de vencimento"
         VALOR = "VALOR", "Correção de valor"
         ENCARGOS = "ENCARGOS", "Multa/juros por atraso"
+        DESC_EXPIRADO = "DESC_EXPIRADO", "Desconto vencido"
         CANCELAMENTO = "CANCELAMENTO", "Cancelamento"
 
     INSTITUICAO_DE = "parcela"
@@ -309,3 +356,50 @@ class Estorno(models.Model):
         verbose_name = "estorno"
         verbose_name_plural = "estornos"
         ordering = ["-criado_em"]
+
+
+class DescontoAplicado(models.Model):
+    """Desconto usado em um contrato (cópia dos dados no momento da contratação: mudar o cadastro não altera o contrato)."""
+
+    INSTITUICAO_DE = "contrato"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
+    contrato = models.ForeignKey(ContratoFinanceiro, on_delete=models.PROTECT, related_name="descontos")
+    desconto = models.ForeignKey(Desconto, null=True, blank=True, on_delete=models.SET_NULL, related_name="aplicacoes")
+    nome = models.CharField(max_length=100)
+    tipo = models.CharField(max_length=10, choices=Desconto.Tipo.choices)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    dia_limite = models.PositiveSmallIntegerField(null=True, blank=True)
+    acumulativo = models.BooleanField(default=True)
+    automatico = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "desconto aplicado"
+        verbose_name_plural = "descontos aplicados"
+        ordering = ["id"]
+
+
+class DescontoParcela(models.Model):
+    """Parte do desconto de uma parcela que perde a validade em `limite` (ou no vencimento, se não houver dia limite)."""
+
+    INSTITUICAO_DE = "parcela"
+
+    instituicao = models.ForeignKey("core.Instituicao", on_delete=models.PROTECT, related_name="+", editable=False,
+                                    blank=True)
+    parcela = models.ForeignKey(Parcela, on_delete=models.PROTECT, related_name="descontos_condicionais")
+    aplicado = models.ForeignKey(DescontoAplicado, on_delete=models.PROTECT, related_name="parcelas")
+    nome = models.CharField(max_length=100)
+    valor = _dinheiro()
+    limite = models.DateField(null=True, blank=True)
+    expirado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [models.CheckConstraint(condition=Q(valor__gte=0), name="chk_descparcela_valor")]
+
+    @property
+    def limite_efetivo(self):
+        """Último dia em que o desconto vale: o dia limite ou o vencimento, o que vier primeiro."""
+        venc = self.parcela.vencimento
+        return min(self.limite, venc) if self.limite else venc

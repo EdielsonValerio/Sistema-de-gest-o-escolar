@@ -1,0 +1,24 @@
+{% extends "generic/lista.html" %}
+{% load ui %}
+{% block title %}Descontos{% endblock %}
+{% block content %}
+{% with titulo="Descontos" subtitulo="Cadastro de descontos da escola. Os marcados para todos os planos entram sozinhos em toda nova cobrança; os demais são escolhidos na cobrança do aluno." %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block acoes %}{% if perms.finance.add_desconto %}<a class="btn btn-primary" href="{% url 'finance:desconto_novo' %}"><i class="bi bi-plus-lg"></i> Novo desconto</a>{% endif %}{% endblock %}
+{% block filtros %}
+<form class="card card-body mb-3" method="get"><div class="row g-2 align-items-end">
+  <div class="col-md-5"><label class="form-label small mb-1" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Nome do desconto"></div>
+  <div class="col-md-3"><label class="form-label small mb-1" for="f-s">Situação</label><select id="f-s" class="form-select" name="situacao"><option value="">Todos</option><option value="ativo" {% if request.GET.situacao == 'ativo' %}selected{% endif %}>Ativos</option><option value="inativo" {% if request.GET.situacao == 'inativo' %}selected{% endif %}>Inativos</option></select></div>
+  <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button></div>
+</div></form>
+{% endblock %}
+{% block thead %}<tr><th>Desconto</th><th>Valor</th><th>Dia limite</th><th>Aplicação</th><th>Acumulativo</th><th>Situação</th><th></th></tr>{% endblock %}
+{% block tbody %}
+{% for d in object_list %}
+<tr><td><strong>{{ d.nome }}</strong></td><td class="money">{{ d.resumo_valor }}</td><td>{% if d.dia_limite %}dia {{ d.dia_limite }}{% else %}<span class="text-muted">até o vencimento</span>{% endif %}</td>
+  <td>{% if d.todos_os_planos %}<span class="badge text-bg-info">Automático (todos os planos)</span>{% else %}Escolhido na cobrança{% endif %}</td>
+  <td>{% if d.acumulativo %}Sim{% else %}<span class="badge text-bg-warning">Não (só sozinho)</span>{% endif %}</td>
+  <td><span class="badge text-bg-{% if d.ativo %}success{% else %}secondary{% endif %}">{% if d.ativo %}Ativo{% else %}Inativo{% endif %}</span></td>
+  <td class="text-end">{% if perms.finance.change_desconto %}<a class="btn btn-sm btn-outline-primary" href="{% url 'finance:desconto_editar' d.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}{% url 'finance:desconto_novo' as novo %}{% include "components/vazio.html" with colspan=7 icone="percent" msg="Nenhum desconto cadastrado." acao_url=novo acao_rotulo="Cadastrar desconto" %}{% endfor %}
+{% endblock %}

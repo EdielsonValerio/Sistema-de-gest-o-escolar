@@ -4,9 +4,13 @@ from . import views as v
 
 app_name = "finance"
 urlpatterns = [
+    path("descontos/", v.DescontoListView.as_view(), name="desconto_lista"),
+    path("descontos/novo/", v.DescontoCreateView.as_view(), name="desconto_novo"),
+    path("descontos/<int:pk>/editar/", v.DescontoUpdateView.as_view(), name="desconto_editar"),
     path("planos/", v.PlanoListView.as_view(), name="plano_lista"),
     path("planos/novo/", v.PlanoCreateView.as_view(), name="plano_novo"),
     path("planos/<int:pk>/", v.PlanoDetailView.as_view(), name="plano_detalhe"),
+    path("planos/<int:pk>/copiar/", v.PlanoCopiarView.as_view(), name="plano_copiar"),
     path("planos/<int:pk>/editar/", v.PlanoUpdateView.as_view(), name="plano_editar"),
     path("contas-a-receber/", v.ParcelaListView.as_view(), name="parcela_lista"),
     path("contas-a-receber/<int:pk>/", v.ParcelaDetailView.as_view(), name="parcela_detalhe"),

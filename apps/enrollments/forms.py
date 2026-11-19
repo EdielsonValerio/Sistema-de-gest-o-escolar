@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.core.mixins import BaseForm
-from apps.finance.models import PlanoFinanceiro
+from apps.finance.models import Desconto, PlanoFinanceiro
 from apps.students.models import Responsavel
 
 
@@ -16,6 +16,10 @@ class VinculoForm(BaseForm):
     responsavel = forms.ModelChoiceField(label="Responsável financeiro", queryset=Responsavel.objects.none(),
                                          required=False)
     sem_cobranca = forms.BooleanField(label="Concluir sem gerar cobranças", required=False)
+    descontos = forms.ModelMultipleChoiceField(
+        label="Descontos para este aluno", queryset=Desconto.objects.none(), required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Além dos descontos automáticos. Desconto não acumulativo só pode ser usado sozinho.")
 
     def __init__(self, *args, turma=None, aluno=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,6 +27,8 @@ class VinculoForm(BaseForm):
         self.fields["plano"].queryset = PlanoFinanceiro.objects.filter(
             turma=turma, situacao=PlanoFinanceiro.Situacao.ATIVO) if turma else PlanoFinanceiro.objects.none()
         self.fields["responsavel"].queryset = Responsavel.objects.filter(instituicao=self.instituicao, ativo=True)
+        self.fields["descontos"].queryset = Desconto.objects.filter(instituicao=self.instituicao, ativo=True,
+                                                                    todos_os_planos=False).order_by("nome")
         if aluno is not None and not self.is_bound:
             atual = aluno.responsavel_financeiro_atual
             if atual:
@@ -32,6 +38,15 @@ class VinculoForm(BaseForm):
         d = super().clean()
         if d.get("plano") and not d.get("responsavel"):
             self.add_error("responsavel", "Informe o responsável financeiro para gerar as cobranças.")
+        escolhidos = list(d.get("descontos") or [])
+        if escolhidos and not d.get("plano"):
+            self.add_error("descontos", "Descontos só valem junto com um plano financeiro.")
+        elif escolhidos:
+            from apps.finance.services import descontos_da_cobranca
+            try:
+                descontos_da_cobranca(self.instituicao, escolhidos)
+            except ValidationError as exc:
+                self.add_error("descontos", exc.messages[0])
         return d
 
 

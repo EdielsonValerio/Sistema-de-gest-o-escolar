@@ -16,7 +16,8 @@
   <div class="card"><div class="card-body">
     {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
     {% if form.plano.errors %}<div class="text-danger small mb-2">{{ form.plano.errors.0 }}</div>{% endif %}
-    <div class="row g-3">{% with field=form.responsavel %}{% include "components/field.html" %}{% endwith %}</div>
+    <div class="row g-3">{% with field=form.responsavel %}{% include "components/field.html" %}{% endwith %}
+      {% if form.descontos.field.queryset.exists %}<div class="col-12">{% with field=form.descontos %}{% include "components/field.html" %}{% endwith %}</div>{% endif %}</div>
   </div>
   <div class="card-footer bg-white d-flex justify-content-end gap-2">
     <a class="btn btn-outline-secondary" href="{% url 'students:aluno_ficha' matricula.aluno_id %}?aba=financeiro">Cancelar</a>

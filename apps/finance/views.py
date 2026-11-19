@@ -20,8 +20,8 @@ from apps.students.models import Aluno, Responsavel
 from apps.students.selectors import filtrar_por_busca
 
 from . import services
-from .forms import AjusteParcelaForm, CaixaForm, PlanoForm
-from .models import AjusteParcela, Estorno, Parcela, PlanoFinanceiro, Recebimento
+from .forms import AjusteParcelaForm, CaixaForm, DescontoForm, PlanoForm
+from .models import AjusteParcela, Desconto, Estorno, Parcela, PlanoFinanceiro, Recebimento
 
 ZERO = Decimal("0.00")
 DEC = DecimalField(max_digits=14, decimal_places=2)
@@ -108,6 +108,89 @@ class PlanoDetailView(InstituicaoQuerysetMixin, DetailView):
         ctx["cronograma"] = services.cronograma_do_plano(self.object)
         ctx["qtd_contratos"] = self.object.contratos.count()
         return ctx
+
+
+class DescontoListView(PaginacaoMixin, InstituicaoQuerysetMixin, ListView):
+    model = Desconto
+    permission_required = "finance.view_desconto"
+    template_name = "finance/desconto_lista.html"
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        q = (self.request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(nome__icontains=q)
+        if self.request.GET.get("situacao") in ("ativo", "inativo"):
+            qs = qs.filter(ativo=self.request.GET["situacao"] == "ativo")
+        return qs.order_by("-ativo", "nome")
+
+
+class DescontoFormView(ObjetoFormView):
+    model = Desconto
+    form_class = DescontoForm
+    template_name = "generic/form.html"
+    sucesso_url_name = "finance:desconto_lista"
+    titulo_novo, titulo_editar = "Novo desconto", "Editar desconto"
+    subtitulo = ("Descontos já aplicados a alunos não mudam: cada cobrança guarda as condições do momento em que foi gerada.")
+    mensagem_sucesso = "Desconto salvo."
+
+    def apos_salvar(self, obj, form, novo):
+        registrar(instituicao=self.instituicao, usuario=self.request.user,
+                  acao="DESCONTO_CRIADO" if novo else "DESCONTO_ALTERADO", entidade="Desconto", entidade_id=obj.pk,
+                  descricao=obj.nome, dados={"tipo": obj.tipo, "valor": obj.valor, "dia_limite": obj.dia_limite,
+                                             "todos_os_planos": obj.todos_os_planos, "acumulativo": obj.acumulativo,
+                                             "ativo": obj.ativo,
+                                             "campos_alterados": [] if novo else form.changed_data})
+
+
+class DescontoCreateView(DescontoFormView):
+    permission_required = "finance.add_desconto"
+
+
+class DescontoUpdateView(DescontoFormView):
+    permission_required = "finance.change_desconto"
+    editando = True
+
+
+class PlanoCopiarView(AcessoMixin, TemplateView):
+    """Copia as condições de um plano para outras turmas (um novo plano em cada, sem tocar em contratos)."""
+
+    permission_required = "finance.add_planofinanceiro"
+    template_name = "finance/plano_copiar.html"
+
+    def _plano(self):
+        return get_object_or_404(PlanoFinanceiro.objects.select_related("turma"), pk=self.kwargs["pk"],
+                                 instituicao=self.instituicao)
+
+    def _turmas(self, plano):
+        return (Turma.objects.filter(instituicao=self.instituicao).exclude(pk=plano.turma_id).exclude(situacao="ENCERRADA")
+                .select_related("ano_letivo").order_by("-ano_letivo__ano", "nome"))
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        plano = self._plano()
+        com_plano = set(PlanoFinanceiro.objects.filter(instituicao=self.instituicao, nome=plano.nome)
+                        .values_list("turma_id", flat=True))
+        ctx.update(plano=plano, turmas=[(t, t.pk in com_plano) for t in self._turmas(plano)])
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        plano = self._plano()
+        ids = [i for i in request.POST.getlist("turmas") if i.isdigit()]
+        turmas = list(self._turmas(plano).filter(pk__in=ids))
+        if not turmas:
+            messages.error(request, "Escolha ao menos uma turma.")
+            return redirect("finance:plano_copiar", pk=plano.pk)
+        try:
+            criados, ignorados = services.copiar_plano(plano, turmas, request.user)
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0])
+            return redirect("finance:plano_copiar", pk=plano.pk)
+        if criados:
+            messages.success(request, f"Plano copiado para {len(criados)} turma(s).")
+        if ignorados:
+            messages.warning(request, "Não copiado: " + "; ".join(f"{t.nome} ({m})" for t, m in ignorados) + ".")
+        return redirect("finance:plano_lista")
 
 
 # ============================================================================ contas a receber
@@ -256,10 +339,12 @@ class CaixaAlunoView(AcessoMixin, TemplateView):
 
     def parcelas_pendentes(self, aluno):
         lista = list(Parcela.objects.filter(aluno=aluno, instituicao=self.instituicao).pendentes()
-                     .select_related("responsavel", "matricula__turma").order_by("vencimento", "numero"))
+                     .select_related("responsavel", "matricula__turma").prefetch_related("descontos_condicionais__parcela")
+                     .order_by("vencimento", "numero"))
         for p in lista:
             p.acrescimo_hoje = services.acrescimo_atual(p)
-            p.devido_hoje = p.valor_original - p.desconto + p.acrescimo_hoje
+            p.desconto_hoje = services.desconto_vigente(p)
+            p.devido_hoje = p.valor_original - p.desconto_hoje + p.acrescimo_hoje
             p.saldo_hoje = p.devido_hoje - p.valor_pago
         return lista
 

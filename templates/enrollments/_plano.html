@@ -6,7 +6,7 @@
   <div class="list-group list-group-flush">
     {% for p in planos %}
     <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center flex-wrap gap-2 {% if plano_sel.pk == p.pk %}active{% endif %}" href="?{{ qs_base }}plano={{ p.pk|unlocalize }}">
-      <span><strong>{{ p.nome }}</strong><br><small>{{ p.quantidade_parcelas }} parcela{{ p.quantidade_parcelas|pluralize }} de {{ p.valor_parcela|brl }}{% if p.desconto_padrao_percentual %} · desconto {{ p.desconto_padrao_percentual }}%{% endif %} · 1º vencimento {{ p.data_primeira_parcela|date:"d/m/Y" }}</small></span>
+      <span><strong>{{ p.nome }}</strong><br><small>{{ p.quantidade_parcelas }} parcela{{ p.quantidade_parcelas|pluralize }} de {{ p.valor_parcela|brl }} · 1º vencimento {{ p.data_primeira_parcela|date:"d/m/Y" }}</small></span>
       <span class="money fw-semibold">{{ p.valor_total|brl }}</span>
     </a>
     {% endfor %}

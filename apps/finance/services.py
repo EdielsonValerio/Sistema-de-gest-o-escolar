@@ -17,7 +17,7 @@ from apps.core.numbering import gerar_numero_recebimento
 from apps.core.tenancy import login_do_usuario
 from apps.core.tenant import verificar_escola
 
-from .models import (ZERO, AjusteParcela, AlocacaoRecebimento, ContratoFinanceiro, Estorno, Parcela,
+from .models import (ZERO, AjusteParcela, Desconto, DescontoAplicado, DescontoParcela, AlocacaoRecebimento, ContratoFinanceiro, Estorno, Parcela,
                      PlanoFinanceiro, Recebimento)
 
 CENTAVO = Decimal("0.01")
@@ -72,11 +72,110 @@ def calcular_cronograma(*, valor_total, quantidade, data_primeira, dia_venciment
 
 
 
-def cronograma_do_plano(plano):
-    return calcular_cronograma(
+def cronograma_do_plano(plano, descontos=()):
+    """Parcelas do plano. `descontos` (catálogo) entram em cada parcela; cada item traz o detalhe em `descontos`."""
+    itens = calcular_cronograma(
         valor_total=plano.valor_total, quantidade=plano.quantidade_parcelas,
         data_primeira=plano.data_primeira_parcela, dia_vencimento=plano.dia_vencimento,
-        desconto_percentual=plano.desconto_padrao_percentual)
+        desconto_percentual=plano.desconto_padrao_percentual)  # legado: planos antigos podem ter %, o formulário não oferece mais
+    for it in itens:
+        it["descontos"] = []
+        restante = it["valor_original"] - it["desconto"]
+        for d in descontos:
+            v = min(valor_do_desconto(d, it["valor_original"]), restante)
+            restante -= v
+            it["descontos"].append({"desconto": d, "valor": v, "limite": limite_do_desconto(d.dia_limite, it["vencimento"])})
+            it["desconto"] += v
+        it["valor_devido"] = it["valor_original"] - it["desconto"]
+    return itens
+
+
+# --------------------------------------------------------------------------- catálogo de descontos
+def valor_do_desconto(d, original):
+    """Desconto sobre UMA parcela: percentual da parcela ou valor nominal fixo."""
+    v = q2(original * d.valor / Decimal(100)) if d.tipo == Desconto.Tipo.PERCENTUAL else q2(d.valor)
+    return min(v, original)
+
+
+def limite_do_desconto(dia, vencimento):
+    """Data limite no mês do vencimento (dia 31 em mês curto vira o último dia). Sem dia: None (vale até o vencimento)."""
+    if not dia:
+        return None
+    return date(vencimento.year, vencimento.month, min(dia, calendar.monthrange(vencimento.year, vencimento.month)[1]))
+
+
+def descontos_automaticos(instituicao):
+    return list(Desconto.objects.filter(instituicao=instituicao, ativo=True, todos_os_planos=True).order_by("nome"))
+
+
+def validar_combinacao(descontos):
+    """Desconto não acumulativo só vale sozinho: com qualquer outro, a combinação é recusada."""
+    lista = list(descontos)
+    if len(lista) > 1:
+        for d in lista:
+            if not d.acumulativo:
+                raise ValidationError(f"O desconto «{d.nome}» não é acumulativo e não pode ser usado junto com outro desconto.")
+
+
+def descontos_da_cobranca(instituicao, escolhidos=()):
+    """Automáticos (todos os planos) + escolhidos na cobrança, sem repetir, já validados."""
+    auto = descontos_automaticos(instituicao)
+    ids = {d.pk for d in auto}
+    extras = []
+    for d in escolhidos or ():
+        if d.instituicao_id != instituicao.pk:
+            raise ValidationError("Desconto de outra instituição.")
+        if not d.ativo:
+            raise ValidationError(f"O desconto «{d.nome}» está inativo.")
+        if d.pk not in ids:
+            ids.add(d.pk)
+            extras.append(d)
+    todos = auto + extras
+    validar_combinacao(todos)
+    return todos
+
+
+def _soma_perdida(p, hoje, via_boleto=False):
+    """Soma dos descontos condicionais que já não valem (data limite vencida ou, no boleto, não incluídos nele)."""
+    total = ZERO
+    for i in p.descontos_condicionais.all():
+        if i.expirado:
+            continue
+        if i.limite_efetivo < hoje or (via_boleto and i.limite and i.limite < p.vencimento):
+            total += i.valor
+    return total
+
+
+def desconto_vigente(p, hoje=None):
+    """Desconto que vale na data (sem gravar nada)."""
+    return p.desconto - _soma_perdida(p, hoje or timezone.localdate())
+
+
+def desconto_do_boleto(p, hoje=None):
+    """Desconto que o boleto leva. Boleto não aceita desconto com data anterior ao vencimento: esses ficam de fora."""
+    hoje = hoje or timezone.localdate()
+    if p.vencimento >= hoje:
+        fora = sum((i.valor for i in p.descontos_condicionais.all() if not i.expirado and i.limite and i.limite < p.vencimento), ZERO)
+        return p.desconto - fora
+    return desconto_vigente(p, hoje)
+
+
+def expirar_descontos(p, usuario, hoje, via_boleto=False):
+    """Grava a perda dos descontos que já não valem (o valor devido sobe). Chamar com a parcela travada."""
+    itens = [i for i in p.descontos_condicionais.all() if not i.expirado and (
+        i.limite_efetivo < hoje or (via_boleto and i.limite and i.limite < p.vencimento))]
+    if not itens:
+        return False
+    anterior, devido_antes = p.desconto, p.valor_devido
+    for i in itens:
+        i.expirado = True
+        i.save(update_fields=["expirado"])
+        p.desconto -= i.valor
+    p.recalcular_valor_devido()
+    p.save(update_fields=["desconto", "valor_devido"])
+    nomes = ", ".join(sorted({i.nome for i in itens}))
+    _registrar_ajuste(p, usuario, "DESC_EXPIRADO", anterior, p.desconto, devido_antes, f"Desconto fora do prazo: {nomes}")
+    return True
 
 
 # --------------------------------------------------------------------------- status
@@ -99,7 +198,7 @@ def recalcular_status(parcela):
 # --------------------------------------------------------------------------- contratação
 
 @transaction.atomic
-def contratar_plano(*, matricula, plano, responsavel, usuario):
+def contratar_plano(*, matricula, plano, responsavel, usuario, descontos=()):
     """Gera as parcelas da matrícula a partir do plano. Idempotente: uma matrícula tem um único contrato."""
     from apps.enrollments.models import Matricula
 
@@ -117,6 +216,8 @@ def contratar_plano(*, matricula, plano, responsavel, usuario):
         raise ValidationError("O responsável financeiro está inativo.")
     if ContratoFinanceiro.objects.filter(matricula=mat).exists():
         raise ValidationError("Esta matrícula já possui cobranças geradas.")
+    aplicar_descontos = descontos_da_cobranca(inst, descontos)
+    auto_ids = {d.pk for d in descontos_automaticos(inst)}
 
     try:
         with transaction.atomic():
@@ -131,7 +232,8 @@ def contratar_plano(*, matricula, plano, responsavel, usuario):
 
     hoje = timezone.localdate()
     parcelas = []
-    for it in cronograma_do_plano(plano):
+    cronograma = cronograma_do_plano(plano, aplicar_descontos)
+    for it in cronograma:
         parcelas.append(Parcela(
             instituicao=inst, aluno=mat.aluno, matricula=mat, contrato=contrato, responsavel=responsavel,
             numero=it["numero"], descricao=f"{plano.nome} — parcela {it['numero']}/{plano.quantidade_parcelas}",
@@ -140,10 +242,22 @@ def contratar_plano(*, matricula, plano, responsavel, usuario):
     for p in parcelas:  # bulk_create não dispara o gatilho de isolamento por escola
         verificar_escola(p)
     Parcela.objects.bulk_create(parcelas)
+    if aplicar_descontos:
+        salvas = {p.numero: p for p in Parcela.objects.filter(contrato=contrato)}
+        for d in aplicar_descontos:
+            ap = DescontoAplicado.objects.create(
+                contrato=contrato, desconto=d, nome=d.nome, tipo=d.tipo, valor=d.valor, dia_limite=d.dia_limite,
+                acumulativo=d.acumulativo, automatico=d.pk in auto_ids)
+            for it in cronograma:
+                det = next(x for x in it["descontos"] if x["desconto"].pk == d.pk)
+                if det["valor"] > 0:
+                    DescontoParcela.objects.create(parcela=salvas[it["numero"]], aplicado=ap, nome=d.nome,
+                                                   valor=det["valor"], limite=det["limite"])
     registrar(instituicao=inst, usuario=usuario, acao="PARCELAS_GERADAS", entidade="ContratoFinanceiro",
               entidade_id=contrato.pk, aluno_id=mat.aluno_id, descricao=f"{len(parcelas)} parcelas geradas",
               dados={"plano_id": plano.pk, "matricula_id": mat.pk, "responsavel_id": responsavel.pk,
-                     "quantidade": len(parcelas), "valor_total": plano.valor_total})
+                     "quantidade": len(parcelas), "valor_total": plano.valor_total,
+                     "descontos": [d.nome for d in aplicar_descontos]})
     from apps.billing import hooks  # registra os boletos no banco (somente se a cobrança bancária estiver ativa)
     hooks.parcelas_geradas(contrato, usuario)
     return contrato
@@ -151,7 +265,7 @@ def contratar_plano(*, matricula, plano, responsavel, usuario):
 
 @transaction.atomic
 def matricular_com_cobranca(*, aluno, turma, usuario, plano=None, responsavel=None, data_ingresso=None,
-                            sem_cobranca=False):
+                            sem_cobranca=False, descontos=()):
     """Fluxo completo: cria a matrícula e (se houver plano) as parcelas, em uma única transação."""
     from apps.enrollments.services import criar_matricula
 
@@ -173,7 +287,8 @@ def matricular_com_cobranca(*, aluno, turma, usuario, plano=None, responsavel=No
     matricula = criar_matricula(aluno=aluno, turma=turma, usuario=usuario, data_ingresso=data_ingresso)
     contrato = None
     if plano is not None:
-        contrato = contratar_plano(matricula=matricula, plano=plano, responsavel=responsavel, usuario=usuario)
+        contrato = contratar_plano(matricula=matricula, plano=plano, responsavel=responsavel, usuario=usuario,
+                                   descontos=descontos)
     return matricula, contrato
 
 
@@ -199,7 +314,7 @@ def _registrar_ajuste(p, usuario, tipo, anterior, posterior, devido_antes, justi
               entidade_id=p.pk, aluno_id=p.aluno_id, descricao=justificativa,
               dados={"anterior": str(anterior), "posterior": str(posterior),
                      "valor_devido": p.valor_devido, "parcela": p.numero})
-    if tipo != "ENCARGOS":  # mantém o boleto bancário (se houver) igual à parcela
+    if tipo not in ("ENCARGOS", "DESC_EXPIRADO"):  # mantém o boleto bancário (se houver) igual à parcela
         from apps.billing import hooks
         hooks.parcela_alterada(p, usuario)
 
@@ -229,6 +344,7 @@ def aplicar_desconto(parcela, novo_desconto, usuario, justificativa):
     anterior, devido_antes = p.desconto, p.valor_devido
     p.desconto = novo
     _persistir_valores(p)
+    p.descontos_condicionais.all().delete()  # o valor definido à mão passa a valer sem prazo
     _registrar_ajuste(p, usuario, "DESCONTO", anterior, novo, devido_antes, justificativa)
     return p
 
@@ -297,7 +413,7 @@ def calcular_encargos(parcela, hoje=None):
         return ZERO
     if parcela.vencimento >= hoje:
         return ZERO
-    principal = parcela.valor_original - parcela.desconto
+    principal = parcela.valor_original - desconto_vigente(parcela, hoje)
     dias = (hoje - parcela.vencimento).days
     multa = principal * c.multa_percentual / Decimal(100)
     juros = principal * c.juros_mensal_percentual / Decimal(100) * Decimal(dias) / Decimal(30)
@@ -358,6 +474,7 @@ def registrar_recebimento(*, aluno, itens, forma, valor_recebido, usuario, token
     for p in parcelas:
         if p.status not in (Parcela.Status.ABERTA, Parcela.Status.PARCIAL):
             raise ValidationError(f"A parcela {p.numero} ({p.descricao}) não está em aberto.")
+        expirar_descontos(p, usuario, hoje)
         _atualizar_encargos(p, usuario, hoje)
         v = valores[p.pk]
         if v <= 0:
@@ -438,3 +555,36 @@ def estornar_recebimento(recebimento, usuario, justificativa):
               entidade_id=rec.pk, aluno_id=rec.aluno_id, descricao=justificativa,
               dados={"numero": rec.numero, "valor_total": rec.valor_total, "parcelas": list(parcelas)})
     return rec
+
+
+# --------------------------------------------------------------------------- copiar plano para outras turmas
+CAMPOS_COPIADOS_PLANO = ("nome", "valor_total", "quantidade_parcelas", "data_primeira_parcela", "dia_vencimento",
+                         "desconto_padrao_percentual", "aplicar_encargos", "multa_percentual",
+                         "juros_mensal_percentual", "situacao", "observacoes")
+
+
+def copiar_plano(plano, turmas, usuario=None):
+    """Cria uma cópia do plano em cada turma informada (da mesma escola). Não mexe em contratos nem parcelas.
+
+    Turmas encerradas ou que já têm plano com o mesmo nome são ignoradas. Devolve (criados, ignorados[(turma, motivo)]).
+    """
+    criados, ignorados = [], []
+    with transaction.atomic():
+        for turma in turmas:
+            if turma.instituicao_id != plano.instituicao_id:
+                raise ValidationError("Turma de outra escola.")
+            if turma.pk == plano.turma_id:
+                continue
+            if turma.situacao == "ENCERRADA":
+                ignorados.append((turma, "turma encerrada"))
+                continue
+            if PlanoFinanceiro.objects.filter(instituicao=plano.instituicao, turma=turma, nome=plano.nome).exists():
+                ignorados.append((turma, "já tem plano com este nome"))
+                continue
+            novo = PlanoFinanceiro.objects.create(
+                instituicao=plano.instituicao, turma=turma, **{c: getattr(plano, c) for c in CAMPOS_COPIADOS_PLANO})
+            criados.append(novo)
+            registrar(instituicao=plano.instituicao, usuario=usuario, acao="PLANO_COPIADO", entidade="PlanoFinanceiro",
+                      entidade_id=novo.pk, descricao=f"{novo.nome} copiado de {plano.turma.nome} para {turma.nome}",
+                      dados={"origem_id": plano.pk, "turma_id": turma.pk})
+    return criados, ignorados

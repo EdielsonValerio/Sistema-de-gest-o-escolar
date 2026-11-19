@@ -380,6 +380,59 @@ class SincronizacaoTests(Base):
                                       usuario=self.fin_user, token=uuid.uuid4())
         self.assertEqual(self.cob().status, "CANCELADA")
 
+    def test_receber_no_caixa_cancela_o_titulo_no_banco(self):
+        import uuid
+        id_ext = self.cob().id_externo
+        with self.captureOnCommitCallbacks(execute=True):
+            fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "400.00")], forma="DINHEIRO",
+                                      valor_recebido="400.00", usuario=self.fin_user, token=uuid.uuid4())
+        self.assertTrue(TituloSimulado.objects.get(id_externo=id_ext).cancelado)
+        self.assertEqual(self.cob().divergencia, "")
+
+    def test_recebimento_parcial_no_caixa_reduz_o_boleto_ao_saldo(self):
+        import uuid
+        with self.captureOnCommitCallbacks(execute=True):
+            fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "150.00")], forma="PIX", valor_recebido=None,
+                                      usuario=self.fin_user, token=uuid.uuid4())
+        self.assertEqual((self.cob().status, self.cob().valor), ("PENDENTE", D("250.00")))
+
+    def test_falha_ao_cancelar_no_banco_avisa_e_mantem_o_boleto_pendente(self):
+        import uuid
+        with mock.patch.object(Simulado, "cancelar", side_effect=ErroProvedor("fora do ar")):
+            with self.captureOnCommitCallbacks(execute=True):
+                fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "400.00")], forma="PIX",
+                                          valor_recebido=None, usuario=self.fin_user, token=uuid.uuid4())
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.status, "QUITADA")  # o recebimento no caixa não é desfeito
+        self.assertEqual(self.cob().status, "PENDENTE")
+        self.assertIn("não cancelou o boleto", self.cob().divergencia)
+
+    def test_conciliacao_tenta_cancelar_de_novo(self):
+        import uuid
+        id_ext = self.cob().id_externo
+        with mock.patch.object(Simulado, "cancelar", side_effect=ErroProvedor("fora do ar")):
+            with self.captureOnCommitCallbacks(execute=True):
+                fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "400.00")], forma="PIX",
+                                          valor_recebido=None, usuario=self.fin_user, token=uuid.uuid4())
+        services.conciliar(self.inst, self.adm)
+        self.assertEqual(self.cob().status, "CANCELADA")
+        self.assertEqual(self.cob().divergencia, "")
+        self.assertTrue(TituloSimulado.objects.get(id_externo=id_ext).cancelado)
+
+    def test_boleto_pago_no_banco_depois_do_caixa_vira_divergencia_para_devolucao(self):
+        import uuid
+        id_ext = self.cob().id_externo
+        with mock.patch.object(Simulado, "cancelar", side_effect=ErroProvedor("fora do ar")):
+            with self.captureOnCommitCallbacks(execute=True):
+                fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "400.00")], forma="PIX",
+                                          valor_recebido=None, usuario=self.fin_user, token=uuid.uuid4())
+        Simulado.simular_pagamento(id_ext)
+        services.conciliar(self.inst, self.adm)
+        self.p.refresh_from_db()
+        self.assertEqual(self.cob().status, "PAGA")
+        self.assertIn("Conferir devolução", self.cob().divergencia)
+        self.assertEqual(self.p.valor_pago, D("400.00"))  # não conta o dinheiro duas vezes
+
     def test_falha_do_banco_ao_alterar_nao_impede_o_ajuste_e_marca_divergencia(self):
         nova = timezone.localdate() + timedelta(days=45)
         with mock.patch.object(Simulado, "alterar", side_effect=ErroProvedor("fora do ar")):

@@ -407,6 +407,33 @@ class ParcelaTests(CoraBase):
         self.assertEqual(cob.id_externo, "inv_10")
 
 
+class CaixaCoraTests(ParcelaTests):
+    def test_receber_no_caixa_cancela_o_boleto_no_cora(self):
+        import uuid
+        f = FalsoCora({("POST", "/v2/invoices/"): fatura(id_="inv_9"), "DELETE": {}})
+        with self.usar(f):
+            cob = services.registrar_cobranca(self.p, self.adm)
+            with self.captureOnCommitCallbacks(execute=True):
+                fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "250.00")], forma="DINHEIRO",
+                                          valor_recebido="250.00", usuario=self.adm, token=uuid.uuid4())
+        cob.refresh_from_db()
+        self.assertEqual(cob.status, "CANCELADA")
+        self.assertEqual(f.de("DELETE")[0]["caminho"], "/v2/invoices/inv_9")
+
+    def test_cora_recusa_cancelar_e_a_escola_e_avisada(self):
+        import uuid
+        f = FalsoCora({("POST", "/v2/invoices/"): fatura(id_="inv_9"),
+                       "DELETE": ErroProvedor("Cora recusou a operação (422 REC-0006): já pago")})
+        with self.usar(f):
+            cob = services.registrar_cobranca(self.p, self.adm)
+            with self.captureOnCommitCallbacks(execute=True):
+                fin.registrar_recebimento(aluno=self.aluno, itens=[(self.p.pk, "250.00")], forma="DINHEIRO",
+                                          valor_recebido="250.00", usuario=self.adm, token=uuid.uuid4())
+        cob.refresh_from_db()
+        self.assertEqual(cob.status, "PENDENTE")
+        self.assertIn("não cancelou o boleto", cob.divergencia)
+
+
 class WebhookCoraTests(CoraBase):
     def setUp(self):
         super().setUp()

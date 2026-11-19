@@ -31,9 +31,10 @@
 {% if perms.comunicacao.enviar_comunicado %}<a class="nav-link {% if rm.app_name == 'comunicacao' and rm.url_name != 'config' %}active{% endif %}" href="{% url 'comunicacao:lista' %}"><i class="bi bi-whatsapp"></i> Comunicados</a>{% endif %}
 {% endif %}
 
-{% if perms.billing.view_cobranca or perms.payables.view_contapagar or perms.finance.view_planofinanceiro or perms.finance.view_parcela or perms.finance.registrar_recebimento or perms.finance.ver_relatorios %}
+{% if perms.billing.view_cobranca or perms.payables.view_contapagar or perms.finance.view_planofinanceiro or perms.finance.view_desconto or perms.finance.view_parcela or perms.finance.registrar_recebimento or perms.finance.ver_relatorios %}
 <div class="nav-section">Financeiro</div>
 {% if perms.finance.view_planofinanceiro %}<a class="nav-link {% if rm.app_name == 'finance' and 'plano' in rm.url_name %}active{% endif %}" href="{% url 'finance:plano_lista' %}"><i class="bi bi-card-checklist"></i> Planos financeiros</a>{% endif %}
+{% if perms.finance.view_desconto %}<a class="nav-link {% if rm.app_name == 'finance' and 'desconto' in rm.url_name %}active{% endif %}" href="{% url 'finance:desconto_lista' %}"><i class="bi bi-percent"></i> Descontos</a>{% endif %}
 {% if perms.finance.view_parcela %}<a class="nav-link {% if rm.app_name == 'finance' and 'parcela' in rm.url_name %}active{% endif %}" href="{% url 'finance:parcela_lista' %}"><i class="bi bi-receipt"></i> Contas a receber</a>{% endif %}
 {% if perms.finance.registrar_recebimento %}<a class="nav-link {% if rm.app_name == 'finance' and 'caixa' in rm.url_name or rm.url_name == 'recebimento_detalhe' %}active{% endif %}" href="{% url 'finance:caixa' %}"><i class="bi bi-cash-coin"></i> Caixa e recebimentos</a>{% endif %}
 {% if perms.payables.view_contapagar %}<a class="nav-link {% if rm.app_name == 'payables' %}active{% endif %}" href="{% url 'payables:conta_lista' %}"><i class="bi bi-wallet2"></i> Contas a pagar{% if notif_contas.total %} <span class="badge rounded-pill {% if notif_contas.vencidas %}text-bg-danger{% else %}text-bg-warning{% endif %} ms-1">{{ notif_contas.total }}</span>{% endif %}</a>{% endif %}

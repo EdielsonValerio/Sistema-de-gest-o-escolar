@@ -43,6 +43,11 @@
       if (alvo && navigator.clipboard) navigator.clipboard.writeText(alvo.value).then(function () { btn.textContent = "Copiado!"; });
     });
   });
+  document.querySelectorAll("[data-marcar-todas]").forEach(function (box) {  // marca/desmarca as caixas do grupo
+    box.addEventListener("change", function () {
+      document.querySelectorAll(box.dataset.marcarTodas + ":not(:disabled)").forEach(function (c) { c.checked = box.checked; });
+    });
+  });
   if (document.querySelector("[data-autoprint]")) {  // impressão automática do documento recém-emitido
     window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });
   }

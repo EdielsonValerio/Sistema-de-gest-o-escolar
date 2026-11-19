@@ -12,6 +12,7 @@
   <div class="col-lg-5"><div class="card h-100"><div class="card-header">Valores</div><div class="card-body"><dl class="row mb-0">
     <dt class="col-6">Valor original</dt><dd class="col-6 money">{{ parcela.valor_original|brl }}</dd>
     <dt class="col-6">Desconto</dt><dd class="col-6 money">− {{ parcela.desconto|brl }}</dd>
+    {% for d in parcela.descontos_condicionais.all %}<dt class="col-6 fw-normal small text-muted ps-3">{{ d.nome }}</dt><dd class="col-6 small text-muted">{{ d.valor|brl }} · {% if d.expirado %}<span class="badge text-bg-secondary">perdido</span>{% else %}vale até {{ d.limite_efetivo|date:"d/m/Y" }}{% endif %}</dd>{% endfor %}
     <dt class="col-6">Acréscimos</dt><dd class="col-6 money">+ {{ parcela.acrescimo|brl }}</dd>
     <dt class="col-6">Valor devido</dt><dd class="col-6 money fw-semibold">{{ parcela.valor_devido|brl }}</dd>
     <dt class="col-6">Já pago</dt><dd class="col-6 money text-success">{{ parcela.valor_pago|brl }}</dd>

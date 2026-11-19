@@ -7,14 +7,13 @@ from django.utils import timezone
 from apps.academic.models import Turma
 from apps.core.mixins import BaseForm, BaseModelForm
 
-from .models import PlanoFinanceiro, Recebimento, validar_referencia
+from .models import Desconto, PlanoFinanceiro, Recebimento, validar_referencia
 
 
 class PlanoForm(BaseModelForm):
     SECOES = [
         ("Plano", ["nome", "turma", "situacao"]),
-        ("Valores e parcelas", ["valor_total", "quantidade_parcelas", "data_primeira_parcela", "dia_vencimento",
-                                "desconto_padrao_percentual"]),
+        ("Valores e parcelas", ["valor_total", "quantidade_parcelas", "data_primeira_parcela", "dia_vencimento"]),
         ("Multa e juros por atraso", ["aplicar_encargos", "multa_percentual", "juros_mensal_percentual"]),
         ("Observações", ["observacoes"]),
     ]
@@ -22,7 +21,7 @@ class PlanoForm(BaseModelForm):
     class Meta:
         model = PlanoFinanceiro
         fields = ["nome", "turma", "valor_total", "quantidade_parcelas", "data_primeira_parcela", "dia_vencimento",
-                  "desconto_padrao_percentual", "aplicar_encargos", "multa_percentual", "juros_mensal_percentual",
+                  "aplicar_encargos", "multa_percentual", "juros_mensal_percentual",
                   "situacao", "observacoes"]
         widgets = {"observacoes": forms.Textarea(attrs={"rows": 2})}
         help_texts = {
@@ -88,4 +87,43 @@ class FiltroPeriodoForm(BaseForm):
         d = super().clean()
         if d.get("data_de") and d.get("data_ate") and d["data_ate"] < d["data_de"]:
             raise ValidationError("A data final não pode ser anterior à inicial.")
+        return d
+
+
+class DescontoForm(BaseModelForm):
+    SECOES = [
+        ("Desconto", ["nome", "tipo", "valor", "dia_limite"]),
+        ("Regras", ["todos_os_planos", "acumulativo", "ativo"]),
+    ]
+
+    class Meta:
+        model = Desconto
+        fields = ["nome", "tipo", "valor", "dia_limite", "todos_os_planos", "acumulativo", "ativo"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["valor"].widget.attrs.update({"step": "0.01", "min": "0.01"})
+        self.fields["dia_limite"].widget.attrs.update({"min": "1", "max": "31"})
+
+    def clean_nome(self):
+        nome = self.cleaned_data["nome"].strip()
+        outros = Desconto.objects.filter(instituicao=self.instituicao, nome__iexact=nome).exclude(pk=self.instance.pk)
+        if outros.exists():
+            raise forms.ValidationError("Já existe um desconto com este nome.")
+        return nome
+
+    def clean(self):
+        d = super().clean()
+        if d.get("tipo") == Desconto.Tipo.PERCENTUAL and d.get("valor") and d["valor"] > 100:
+            self.add_error("valor", "O percentual não pode passar de 100%.")
+        if d.get("todos_os_planos") and d.get("ativo"):
+            # os automáticos entram juntos em toda cobrança: um não acumulativo não pode conviver com outro
+            outros = Desconto.objects.filter(instituicao=self.instituicao, ativo=True, todos_os_planos=True) \
+                .exclude(pk=self.instance.pk)
+            if outros.exists() and not d.get("acumulativo"):
+                self.add_error("acumulativo", "Um desconto automático não acumulativo não pode existir junto com outros "
+                                              "descontos automáticos. Desmarque “todos os planos” ou torne-o acumulativo.")
+            elif outros.filter(acumulativo=False).exists():
+                self.add_error("todos_os_planos", "Já existe um desconto automático não acumulativo (“%s”); ele só pode "
+                               "valer sozinho." % outros.filter(acumulativo=False).first().nome)
         return d

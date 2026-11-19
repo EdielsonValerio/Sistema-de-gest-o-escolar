@@ -50,8 +50,12 @@ class MatriculaListView(PaginacaoMixin, InstituicaoQuerysetMixin, ListView):
         return ctx
 
 
-def _preview(plano):
-    return cronograma_do_plano(plano) if plano else []
+def _preview(plano, instituicao=None):
+    """Prévia com os descontos automáticos (os escolhidos na tela são aplicados ao confirmar)."""
+    if not plano:
+        return []
+    from apps.finance.services import descontos_automaticos
+    return cronograma_do_plano(plano, descontos_automaticos(instituicao or plano.instituicao))
 
 
 def _totais(parcelas):
@@ -131,7 +135,8 @@ class VincularTurmaView(AcessoMixin, TemplateView):
         try:
             matricula, contrato = matricular_com_cobranca(
                 aluno=aluno, turma=turma, usuario=request.user, plano=plano, responsavel=resp,
-                data_ingresso=d["data_ingresso"], sem_cobranca=bool(tem_planos and not plano))
+                data_ingresso=d["data_ingresso"], sem_cobranca=bool(tem_planos and not plano),
+                descontos=list(d["descontos"]))
         except ValidationError as exc:
             ja = aluno.matriculas.filter(turma=turma, status__in=VIGENTES).first()
             if ja and "já possui vínculo" in " ".join(exc.messages):
@@ -226,7 +231,8 @@ class GerarCobrancasView(AcessoMixin, TemplateView):
             return self.render_to_response(self.get_context_data(form=form, plano_id=request.POST.get("plano")))
         try:
             contrato = contratar_plano(matricula=m, plano=form.cleaned_data["plano"],
-                                       responsavel=form.cleaned_data["responsavel"], usuario=request.user)
+                                       responsavel=form.cleaned_data["responsavel"], usuario=request.user,
+                                       descontos=list(form.cleaned_data["descontos"]))
         except ValidationError as exc:
             for msg in exc.messages:
                 messages.error(request, msg)

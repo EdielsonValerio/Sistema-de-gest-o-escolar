@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
 
 from apps.audit.models import RegistroAuditoria
 from apps.enrollments.services import criar_matricula
@@ -435,3 +436,74 @@ class VencimentoEEncargosTests(FinanceBase):
         self.assertEqual((p.acrescimo, p.valor_devido, p.status), (D("3.00"), D("103.00"), "QUITADA"))
         self.assertTrue(p.ajustes.filter(tipo="ENCARGOS").exists())
         self.assertEqual(p.valor_original, D("100.00"))  # original preservado
+
+
+class CopiarPlanoTests(TestCase):
+    def setUp(self):
+        from django.test import Client
+        self.inst = criar_instituicao()
+        self.adm = criar_usuario(self.inst, "Administrador")
+        self.cons = criar_usuario(self.inst, "Consulta")
+        self.t1, self.t2, self.t3 = (criar_turma_oficial(self.inst, numero=n) for n in (1, 2, 3))
+        self.plano = criar_plano(self.inst, self.t1, total="3000.00", parcelas=10, desconto="5",
+                                 aplicar_encargos=True, multa_percentual=Decimal("2"), juros_mensal_percentual=Decimal("1"))
+        self.c = Client()
+        self.c.force_login(self.adm)
+        s = self.c.session
+        s["escola_id"] = self.inst.pk
+        s.save()
+        self.url = reverse("finance:plano_copiar", args=[self.plano.pk])
+
+    def test_copia_todas_as_condicoes(self):
+        r = self.c.post(self.url, {"turmas": [self.t2.pk, self.t3.pk]})
+        self.assertEqual(r.status_code, 302)
+        for t in (self.t2, self.t3):
+            n = PlanoFinanceiro.objects.get(turma=t)
+            for campo in ("nome", "valor_total", "quantidade_parcelas", "data_primeira_parcela", "dia_vencimento",
+                          "desconto_padrao_percentual", "aplicar_encargos", "multa_percentual", "juros_mensal_percentual"):
+                self.assertEqual(getattr(n, campo), getattr(self.plano, campo), campo)
+            self.assertEqual(n.instituicao, self.inst)
+        self.assertEqual(PlanoFinanceiro.objects.count(), 3)
+
+    def test_nao_duplica_e_nao_toca_na_origem(self):
+        self.c.post(self.url, {"turmas": [self.t2.pk]})
+        self.c.post(self.url, {"turmas": [self.t2.pk]})
+        self.assertEqual(PlanoFinanceiro.objects.filter(turma=self.t2).count(), 1)
+        self.assertEqual(PlanoFinanceiro.objects.filter(turma=self.t1).count(), 1)
+
+    def test_turma_encerrada_e_ignorada(self):
+        self.t3.situacao = "ENCERRADA"
+        self.t3.save()
+        self.c.post(self.url, {"turmas": [self.t3.pk]})
+        self.assertFalse(PlanoFinanceiro.objects.filter(turma=self.t3).exists())
+
+    def test_turma_de_outra_escola_e_recusada(self):
+        outra = criar_instituicao(nome="Outra")
+        t = criar_turma_oficial(outra, numero=1)
+        self.c.post(self.url, {"turmas": [t.pk]})
+        self.assertFalse(PlanoFinanceiro.objects.filter(turma=t).exists())
+
+    def test_plano_de_outra_escola_da_404(self):
+        outra = criar_instituicao(nome="Outra")
+        p = criar_plano(outra, criar_turma_oficial(outra, numero=1))
+        self.assertEqual(self.c.get(reverse("finance:plano_copiar", args=[p.pk])).status_code, 404)
+
+    def test_sem_permissao_nao_copia(self):
+        from django.test import Client
+        c = Client()
+        c.force_login(self.cons)
+        s = c.session
+        s["escola_id"] = self.inst.pk
+        s.save()
+        self.assertIn(c.post(self.url, {"turmas": [self.t2.pk]}).status_code, (302, 403, 404))
+        self.assertEqual(PlanoFinanceiro.objects.count(), 1)
+
+    def test_tela_lista_turmas_e_marca_as_que_ja_tem(self):
+        self.c.post(self.url, {"turmas": [self.t2.pk]})
+        html = self.c.get(self.url).content.decode()
+        self.assertIn("já tem este plano", html)
+        self.assertIn(self.t3.nome, html)
+
+    def test_sem_escolher_turma(self):
+        self.c.post(self.url, {})
+        self.assertEqual(PlanoFinanceiro.objects.count(), 1)

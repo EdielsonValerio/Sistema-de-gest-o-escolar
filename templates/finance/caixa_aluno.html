@@ -35,7 +35,7 @@
       <td><input class="form-check-input sel-parcela" type="checkbox" name="parcelas" value="{{ p.pk|unlocalize }}" id="p{{ p.pk|unlocalize }}" data-saldo="{{ p.saldo_hoje|unlocalize }}" aria-label="Selecionar parcela {{ p.numero }}"></td>
       <td><label for="p{{ p.pk|unlocalize }}" class="mb-0">{{ p.descricao }}</label>{% if p.status == 'PARCIAL' %} <span class="badge text-bg-warning">Parcial</span>{% endif %}{% if p.vencida %} <span class="badge text-bg-danger">Vencida</span>{% endif %}</td>
       <td class="text-nowrap">{{ p.vencimento|date:"d/m/Y" }}</td>
-      <td class="text-end money">{{ p.valor_original|brl }}</td><td class="text-end money">{{ p.desconto|brl }}</td><td class="text-end money">{{ p.acrescimo_hoje|brl }}</td>
+      <td class="text-end money">{{ p.valor_original|brl }}</td><td class="text-end money">{{ p.desconto_hoje|brl }}</td><td class="text-end money">{{ p.acrescimo_hoje|brl }}</td>
       <td class="text-end money">{{ p.devido_hoje|brl }}</td><td class="text-end money">{{ p.valor_pago|brl }}</td><td class="text-end money fw-semibold">{{ p.saldo_hoje|brl }}</td>
       <td><input class="form-control form-control-sm valor-parcela" type="number" step="0.01" min="0.01" max="{{ p.saldo_hoje|unlocalize }}" name="valor_{{ p.pk|unlocalize }}" value="{{ p.saldo_hoje|unlocalize }}" disabled aria-label="Valor a receber da parcela {{ p.numero }}"></td>
     </tr>

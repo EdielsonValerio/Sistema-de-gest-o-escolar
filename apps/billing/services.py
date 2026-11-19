@@ -199,7 +199,7 @@ def _valores(p, hoje):
     Parcela já vencida: o banco não aceita vencimento no passado; emite para hoje com os encargos já somados.
     """
     c = p.contrato
-    principal = p.valor_original - p.desconto - p.valor_pago
+    principal = p.valor_original - fin.desconto_do_boleto(p, hoje) - p.valor_pago  # sem desconto com data anterior ao vencimento
     if p.vencimento >= hoje:
         multa = c.multa_percentual if c.aplicar_encargos else ZERO
         juros = c.juros_mensal_percentual if c.aplicar_encargos else ZERO
@@ -341,9 +341,18 @@ def sincronizar_parcela(parcela, usuario=None, hoje=None):
         cfg = configuracao(c.instituicao)
         if p.status in (Parcela.Status.CANCELADA, Parcela.Status.QUITADA):
             motivo = "parcela cancelada" if p.status == Parcela.Status.CANCELADA else "parcela quitada por outro meio"
-            _cancelar_no_banco(cfg, c)
-            c.status = Cobranca.Status.CANCELADA
-            c.save(update_fields=["status", "atualizado_em"])
+            try:
+                _cancelar_no_banco(cfg, c)
+            except ValidationError as exc:
+                # O boleto continua valendo no banco: avisa a escola e deixa para a conciliação tentar de novo.
+                c.divergencia = (f"A parcela foi {'cancelada' if p.status == Parcela.Status.CANCELADA else 'quitada no caixa'}, "
+                                 f"mas o banco não cancelou o boleto ({exc.messages[0]}). Cancele-o no banco ou use "
+                                 "“Conciliar” para tentar de novo; se for pago, o valor precisará ser devolvido.")
+                c.save(update_fields=["divergencia", "atualizado_em"])
+                _audit(c.instituicao, usuario, "COBRANCA_DIVERGENCIA", c.divergencia, entidade_id=c.pk, aluno_id=p.aluno_id)
+                return c
+            c.status, c.divergencia = Cobranca.Status.CANCELADA, ""
+            c.save(update_fields=["status", "divergencia", "atualizado_em"])
             _audit(c.instituicao, usuario, "COBRANCA_CANCELADA", f"Boleto cancelado: {motivo}", entidade_id=c.pk,
                    aluno_id=p.aluno_id)
             return c
@@ -410,6 +419,7 @@ def baixar_cobranca(cob, *, valor_pago=None, data=None, usuario=None):
             c.save(update_fields=["divergencia", "atualizado_em"])
             _audit(c.instituicao, usuario, "COBRANCA_DIVERGENCIA", c.divergencia, entidade_id=c.pk, aluno_id=p.aluno_id)
             return c
+        fin.expirar_descontos(p, None, hoje, via_boleto=True)  # o boleto já saiu sem os descontos com prazo anterior
         devido = p.valor_original - p.desconto + fin.acrescimo_atual(p, hoje) - p.valor_pago
         aplicar = min(devido, pago)
         try:
@@ -513,10 +523,14 @@ def processar_webhook_cora(cfg, evento_id, tipo, id_boleto):
 def conciliar(instituicao, usuario=None):
     """Consulta no banco todos os boletos pendentes da escola (rede de segurança para avisos perdidos)."""
     pagos = 0
-    for c in Cobranca.objects.filter(instituicao=instituicao, status=Cobranca.Status.PENDENTE):
+    for c in Cobranca.objects.filter(instituicao=instituicao, status=Cobranca.Status.PENDENTE).select_related("parcela"):
         try:
-            if consultar_e_baixar(c, usuario).status == Cobranca.Status.PAGA:
+            atual = consultar_e_baixar(c, usuario)
+            if atual.status == Cobranca.Status.PAGA:
                 pagos += 1
+            elif (atual.status == Cobranca.Status.PENDENTE and c.parcela_id
+                  and c.parcela.status in (Parcela.Status.QUITADA, Parcela.Status.CANCELADA)):
+                sincronizar_parcela(c.parcela, usuario)  # parcela já resolvida, mas o boleto segue vivo: cancela de novo
         except ValidationError as exc:
             log.warning("Conciliação: boleto %s não consultado: %s", c.pk, exc.messages[0])
     return pagos

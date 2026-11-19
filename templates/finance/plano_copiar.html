@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% load ui %}
+{% block title %}Copiar plano{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2">
+  <div><h1 class="h4 page-title">Copiar plano para outras turmas</h1><p class="page-sub">{{ plano.nome }} · {{ plano.turma.nome }} · {{ plano.valor_total|brl }} em {{ plano.quantidade_parcelas }}x</p></div>
+  <a class="btn btn-outline-secondary" href="{% url 'finance:plano_detalhe' plano.pk %}">Voltar</a>
+</div>
+<div class="alert alert-info small">Cada turma escolhida recebe um <strong>novo plano com as mesmas condições</strong> (valor, parcelas, datas, desconto, multa e juros). Contratos e parcelas já existentes não são alterados. Depois da cópia, cada plano pode ser editado separadamente.</div>
+<form method="post" data-once>{% csrf_token %}
+<div class="card"><div class="card-header d-flex justify-content-between"><span>Turmas de destino</span>
+  <label class="small mb-0"><input type="checkbox" class="form-check-input" data-marcar-todas=".cb-turma"> Marcar todas</label></div>
+<ul class="list-group list-group-flush">
+{% for t, ja in turmas %}<li class="list-group-item"><label class="d-flex gap-2 mb-0"><input type="checkbox" class="form-check-input cb-turma" name="turmas" value="{{ t.pk|unlocalize }}"{% if ja %} disabled{% endif %}> <span>{{ t.nome }} <span class="text-muted small">({{ t.ano_exibicao }})</span>{% if ja %} <span class="badge text-bg-secondary">já tem este plano</span>{% endif %}</span></label></li>
+{% empty %}<li class="list-group-item text-muted">Não há outras turmas ativas.</li>{% endfor %}
+</ul></div>
+<div class="mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-copy"></i> Copiar plano</button></div>
+</form>
+{% endblock %}
