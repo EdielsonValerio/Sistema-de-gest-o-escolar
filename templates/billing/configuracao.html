@@ -20,12 +20,20 @@
   <div class="card mb-3" id="etapa1"><div class="card-header d-flex justify-content-between"><span><span class="badge rounded-pill text-bg-primary me-1">1</span> Dados do banco</span>
     {% if etapas.configurada %}<span class="badge text-bg-success">Preenchida</span>{% else %}<span class="badge text-bg-secondary">Pendente</span>{% endif %}</div>
   <div class="card-body">
-    <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="salvar">
+    <form method="post" enctype="multipart/form-data" data-once>{% csrf_token %}<input type="hidden" name="acao" value="salvar">
       <div class="row g-3">
         <div class="col-md-6">{% include "billing/_campo.html" with field=form.provedor %}</div>
         <div class="col-md-6">{% include "billing/_campo.html" with field=form.ambiente %}</div>
         <div class="col-12">{% include "billing/_campo.html" with field=form.api_key %}
+          <div class="form-text">Usada pelo Asaas. Para o Cora, preencha os campos abaixo.</div>
           {% if chave_mascarada %}<div class="form-text">Chave gravada: <code>{{ chave_mascarada }}</code></div>{% endif %}</div>
+        <div class="col-12"><hr class="my-1"><div class="small fw-semibold">Cora — Integração Direta (plano Pro)</div></div>
+        <div class="col-12">{% include "billing/_campo.html" with field=form.client_id %}</div>
+        <div class="col-md-6">{% include "billing/_campo.html" with field=form.certificado_arquivo %}</div>
+        <div class="col-md-6">{% include "billing/_campo.html" with field=form.chave_arquivo %}</div>
+        <div class="col-12"><div class="form-text">O certificado e a chave são do ambiente escolhido (teste e produção têm arquivos diferentes). Ficam criptografados e nunca são exibidos.
+          {% if cfg.tem_certificado %}<br>Certificado gravado{% if cfg.certificado_validade %}, válido até <strong>{{ cfg.certificado_validade|date:"d/m/Y" }}</strong>{% endif %}. Envie novos arquivos só para trocar.{% endif %}</div></div>
+        <div class="col-12"><hr class="my-1"></div>
         <div class="col-md-6">{% include "billing/_campo.html" with field=form.banco_nome %}</div>
         <div class="col-md-3">{% include "billing/_campo.html" with field=form.agencia %}</div>
         <div class="col-md-3">{% include "billing/_campo.html" with field=form.conta %}</div>
@@ -70,10 +78,11 @@
         <a class="btn btn-sm btn-outline-primary" href="{% url 'billing:boleto' t.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer"></i> Ver boleto</a>
         {% if t.status == 'PENDENTE' %}
         <form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="consultar"><input type="hidden" name="cobranca" value="{{ t.pk|unlocalize }}"><button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Já paguei — consultar no banco</button></form>
-        {% if simulado %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="simular"><input type="hidden" name="cobranca" value="{{ t.pk|unlocalize }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-magic"></i> Simular pagamento</button></form>{% endif %}
+        {% if simulado or cora_teste %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="simular"><input type="hidden" name="cobranca" value="{{ t.pk|unlocalize }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-magic"></i> Simular pagamento</button></form>{% endif %}
         {% endif %}
       </div>
     </div>{% endfor %}
+    {% if cora_teste %}<div class="alert alert-light border small mb-0"><strong>No teste do Cora</strong> use o botão “Simular pagamento” (o Cora paga o boleto inteiro no ambiente de teste) e depois “consultar no banco”.</div>{% endif %}
     {% if cfg.provedor == 'ASAAS' and cfg.ambiente == 'SANDBOX' %}<div class="alert alert-light border small mb-0"><strong>No sandbox do Asaas</strong> o pagamento não acontece de verdade: abra a cobrança no painel sandbox do Asaas e use <em>“Confirmar recebimento em dinheiro”</em>; depois clique em “consultar no banco”. O aviso automático (webhook) também confirma, se estiver configurado.</div>{% endif %}
   </div></div>
 
@@ -102,6 +111,19 @@
 </div>
 
 <div class="col-xl-5">
+  {% if cora %}
+  <div class="card mb-3"><div class="card-header">Aviso automático de pagamento (Cora)</div><div class="card-body small">
+    <p>O Cora avisa quando um boleto é pago ou cancelado. O botão abaixo cadastra o endereço no Cora (todos os eventos de boleto). O aviso não traz assinatura: o sistema só o usa como sinal e <strong>confirma sempre consultando o boleto no Cora</strong>.</p>
+    <label class="form-label fw-semibold mb-0" for="wh-url">Endereço cadastrado</label>
+    <input id="wh-url" class="form-control form-control-sm mb-2" readonly value="{{ webhook_url }}?t=…">
+    {% if not webhook_url|slice:":5" == "https" %}<div class="alert alert-warning py-2">A URL precisa ser pública e HTTPS (defina <code>DJANGO_SITE_URL</code> no .env).</div>{% endif %}
+    <div class="d-flex gap-2 flex-wrap">
+      {% if etapas.configurada %}<form method="post" data-once>{% csrf_token %}<input type="hidden" name="acao" value="webhook_cora"><button class="btn btn-outline-primary btn-sm" type="submit">Cadastrar aviso no Cora</button></form>{% endif %}
+      <form method="post" data-confirmar="Gerar novo token? Será preciso cadastrar o aviso no Cora de novo.">{% csrf_token %}<input type="hidden" name="acao" value="novo_token"><button class="btn btn-outline-secondary btn-sm" type="submit">Gerar novo token</button></form>
+    </div>
+    <p class="mt-2 mb-0">Sem o aviso, o botão “Conciliar com o banco agora” (e o comando <code>conciliar_cobrancas</code>) baixa os pagamentos do mesmo jeito.</p>
+  </div></div>
+  {% endif %}
   {% if cfg.provedor == 'ASAAS' %}
   <div class="card mb-3"><div class="card-header">Aviso automático de pagamento (webhook)</div><div class="card-body small">
     <p>No painel do Asaas, cadastre um webhook com estes dados para que os pagamentos sejam baixados sozinhos:</p>

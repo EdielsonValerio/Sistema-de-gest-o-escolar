@@ -27,6 +27,7 @@ class Titulo:
     pagador: Pagador
     multa_percentual: Decimal = Decimal("0")
     juros_mensal_percentual: Decimal = Decimal("0")
+    idempotencia: str = ""  # identifica a tentativa (evita boleto duplicado ao repetir após falha de rede)
 
 
 @dataclass
@@ -39,6 +40,7 @@ class Emitido:
     pix_qrcode: str = ""  # PNG em base64
     url_boleto: str = ""
     url_fatura: str = ""
+    aviso: str = ""  # algo que a escola precisa saber (ex.: boleto antigo não cancelado)
 
 
 @dataclass
@@ -69,6 +71,7 @@ class Provedor:
     def cancelar(self, id_externo: str) -> None:
         raise NotImplementedError
 
-    def alterar(self, id_externo: str, *, valor: Decimal, vencimento: date) -> Emitido:
+    def alterar(self, id_externo: str, *, valor: Decimal, vencimento: date, multa_percentual=None,
+                juros_mensal_percentual=None) -> Emitido:
         """Muda valor/vencimento de um boleto ainda não pago e devolve os dados atualizados."""
         raise NotImplementedError

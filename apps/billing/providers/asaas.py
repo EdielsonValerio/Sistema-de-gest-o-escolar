@@ -128,7 +128,7 @@ class Asaas(Provedor):
     def cancelar(self, id_externo):
         self._req("DELETE", f"/payments/{id_externo}")
 
-    def alterar(self, id_externo, *, valor, vencimento):
+    def alterar(self, id_externo, *, valor, vencimento, multa_percentual=None, juros_mensal_percentual=None):
         pg = self._req("PUT", f"/payments/{id_externo}", {"value": float(valor), "dueDate": vencimento.isoformat()})
         linha, barras, nosso, pix, qr = self._complementos(id_externo)
         return Emitido(id_externo=id_externo, nosso_numero=nosso, linha_digitavel=linha, codigo_barras=barras,

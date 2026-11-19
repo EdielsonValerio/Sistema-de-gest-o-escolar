@@ -2,9 +2,10 @@
 from ..models import Provedor as P
 from .asaas import Asaas
 from .base import ErroProvedor  # noqa: F401
+from .cora import Cora
 from .simulado import Simulado
 
-CONECTORES = {P.SIMULADO: Simulado, P.ASAAS: Asaas}
+CONECTORES = {P.SIMULADO: Simulado, P.ASAAS: Asaas, P.CORA: Cora}
 
 
 def provedor_da(config):

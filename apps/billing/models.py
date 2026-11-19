@@ -25,6 +25,7 @@ def _dinheiro(**kw):
 class Provedor(models.TextChoices):
     SIMULADO = "SIMULADO", "Banco simulado (treinamento)"
     ASAAS = "ASAAS", "Asaas"
+    CORA = "CORA", "Cora (Integração Direta)"
 
 
 class Ambiente(models.TextChoices):
@@ -45,6 +46,12 @@ class ConfiguracaoBancaria(models.Model):
     ambiente = models.CharField("ambiente", max_length=10, choices=Ambiente.choices, default=Ambiente.SANDBOX)
     api_key_cifrada = models.TextField(blank=True, editable=False)
     webhook_token_cifrado = models.TextField(blank=True, editable=False)
+    # Cora (Integração Direta): Client ID não é segredo; certificado e chave privada ficam cifrados.
+    client_id = models.CharField("Client ID (Cora)", max_length=120, blank=True)
+    certificado_cifrado = models.TextField(blank=True, editable=False)
+    chave_privada_cifrada = models.TextField(blank=True, editable=False)
+    certificado_validade = models.DateField("validade do certificado", null=True, blank=True, editable=False)
+    certificado_digital = models.CharField(max_length=64, blank=True, editable=False)
     webhook_slug = models.UUIDField("identificador do webhook", default=uuid.uuid4, unique=True, editable=False)
 
     # Dados de conferência (impressos no boleto e exibidos na tela); a conta de cobrança em si é a do provedor.
@@ -89,17 +96,35 @@ class ConfiguracaoBancaria(models.Model):
     def tem_api_key(self):
         return bool(self.api_key_cifrada)
 
+    @property
+    def tem_certificado(self):
+        return bool(self.certificado_cifrado and self.chave_privada_cifrada)
+
+    @property
+    def tem_credencial(self):
+        """Credencial do provedor completa (Cora: Client ID + certificado + chave; Asaas: chave de API)."""
+        if self.provedor == Provedor.CORA:
+            return bool(self.client_id and self.tem_certificado)
+        return self.tem_api_key
+
+    def definir_certificado(self, cert_pem, key_pem, validade, digital):
+        self.certificado_cifrado = crypto.cifrar(cert_pem.strip() + "\n")
+        self.chave_privada_cifrada = crypto.cifrar(key_pem.strip() + "\n")
+        self.certificado_validade, self.certificado_digital = validade, digital
+
     def assinatura(self):
         """Impressão digital de provedor + ambiente + chave. Se mudar, o teste anterior deixa de valer."""
         try:
             chave = self.api_key
         except crypto.SegredoIlegivel:
             chave = "?"
+        if self.provedor == Provedor.CORA:
+            chave = f"{self.client_id}|{self.certificado_digital}"
         return hashlib.sha256(f"{self.provedor}|{self.ambiente}|{chave}".encode()).hexdigest()
 
     @property
     def completa(self):
-        return self.provedor == Provedor.SIMULADO or self.tem_api_key
+        return self.provedor == Provedor.SIMULADO or self.tem_credencial
 
 
 class Cobranca(models.Model):

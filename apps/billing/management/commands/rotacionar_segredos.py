@@ -19,7 +19,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *a, **o):
         total = 0
-        for model, campos in ((ConfiguracaoBancaria, ("api_key_cifrada", "webhook_token_cifrado")),
+        for model, campos in ((ConfiguracaoBancaria, ("api_key_cifrada", "webhook_token_cifrado", "certificado_cifrado", "chave_privada_cifrada")),
                               (ConfiguracaoIA, ("api_key_cifrada",)), (MfaDispositivo, ("segredo_cifrado",))):
             for obj in model.objects.all():
                 for campo in campos:

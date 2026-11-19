@@ -55,7 +55,7 @@ class Simulado(Provedor):
         t.cancelado = True
         t.save(update_fields=["cancelado"])
 
-    def alterar(self, id_externo, *, valor, vencimento):
+    def alterar(self, id_externo, *, valor, vencimento, multa_percentual=None, juros_mensal_percentual=None):
         t = self._titulo(id_externo)
         if t.pago or t.cancelado:
             raise ErroProvedor("Boleto pago ou cancelado não pode ser alterado.")

@@ -1,5 +1,6 @@
 import hmac
 import json
+import re
 
 from django.conf import settings
 from django.contrib import messages
@@ -22,11 +23,13 @@ from apps.finance.models import Parcela
 from . import crypto, services
 from .forms import BoletoTesteForm, ConfiguracaoBancariaForm
 from .models import Cobranca, ConfiguracaoBancaria, Provedor
-from .providers import ErroProvedor
+from .providers import ErroProvedor, provedor_da
 from .providers.simulado import Simulado
 
 
 Tipo = TentativaLogin.Tipo
+_EVT = re.compile(r"^evt_[A-Za-z0-9_-]{1,80}$")
+_INV = re.compile(r"^inv_[A-Za-z0-9_-]{1,80}$")
 MAX_FALHAS_WEBHOOK = 10  # tokens errados por IP (janela de 15 min, bloqueio progressivo)
 
 
@@ -58,7 +61,8 @@ class ConfiguracaoCobrancaView(AcessoMixin, TemplateView):
         ctx = super().get_context_data(**kw)
         cfg = self._cfg()
         try:
-            token, chave_mascarada = cfg.webhook_token, crypto.mascarar(cfg.api_key)
+            token = cfg.webhook_token
+            chave_mascarada = crypto.mascarar(cfg.api_key) if cfg.tem_api_key else ""
             segredo_ok = True
         except crypto.SegredoIlegivel:
             token, chave_mascarada, segredo_ok = "", "", False
@@ -66,9 +70,10 @@ class ConfiguracaoCobrancaView(AcessoMixin, TemplateView):
         ctx.update(
             cfg=cfg, segredo_ok=segredo_ok, chave_mascarada=chave_mascarada, webhook_token=token,
             webhook_url=self._webhook_url(cfg), etapas=services.etapas(cfg), ativa=ativa,
-            simulado=cfg.provedor == Provedor.SIMULADO,
+            simulado=cfg.provedor == Provedor.SIMULADO, cora=cfg.provedor == Provedor.CORA,
+            cora_teste=cfg.provedor == Provedor.CORA and cfg.ambiente == "SANDBOX",
             form=kw.get("form") or ConfiguracaoBancariaForm(initial={
-                "provedor": cfg.provedor, "ambiente": cfg.ambiente, "banco_nome": cfg.banco_nome,
+                "provedor": cfg.provedor, "ambiente": cfg.ambiente, "client_id": cfg.client_id, "banco_nome": cfg.banco_nome,
                 "agencia": cfg.agencia, "conta": cfg.conta, "beneficiario_nome": cfg.beneficiario_nome or self.instituicao.nome,
                 "beneficiario_documento": cfg.beneficiario_documento or "".join(c for c in self.instituicao.cnpj if c.isdigit()),
                 "instrucoes": cfg.instrucoes}, cfg=cfg, instituicao=self.instituicao),
@@ -93,7 +98,7 @@ class ConfiguracaoCobrancaView(AcessoMixin, TemplateView):
 
     # ---- ações (cada botão da tela)
     def _acao_salvar(self, request, cfg):
-        form = ConfiguracaoBancariaForm(request.POST, cfg=cfg, instituicao=self.instituicao)
+        form = ConfiguracaoBancariaForm(request.POST, request.FILES, cfg=cfg, instituicao=self.instituicao)
         if not form.is_valid():
             return self.render_to_response(self.get_context_data(form=form))
         _, reaberta = services.salvar_configuracao(self.instituicao, form.cleaned_data, request.user)
@@ -123,10 +128,15 @@ class ConfiguracaoCobrancaView(AcessoMixin, TemplateView):
             messages.info(request, "O banco ainda não informou o pagamento deste boleto de teste.")
 
     def _acao_simular(self, request, cfg):
-        if cfg.provedor != Provedor.SIMULADO:
+        sandbox_cora = cfg.provedor == Provedor.CORA and cfg.ambiente == "SANDBOX"
+        if cfg.provedor != Provedor.SIMULADO and not sandbox_cora:
             raise Http404
-        cob = get_object_or_404(Cobranca, pk=request.POST.get("cobranca"), instituicao=self.instituicao)
-        Simulado.simular_pagamento(cob.id_externo)
+        cob = get_object_or_404(Cobranca, pk=request.POST.get("cobranca"), instituicao=self.instituicao,
+                                provedor=cfg.provedor, ambiente=cfg.ambiente)
+        if sandbox_cora:
+            provedor_da(cfg).simular_pagamento(cob.id_externo)
+        else:
+            Simulado.simular_pagamento(cob.id_externo)
         services.consultar_e_baixar(cob, request.user)
         messages.success(request, "Pagamento simulado e confirmado.")
 
@@ -151,6 +161,12 @@ class ConfiguracaoCobrancaView(AcessoMixin, TemplateView):
         r = services.gerar_em_lote(self.instituicao, request.user, incluir_erros=bool(request.POST.get("incluir_erros")))
         messages.success(request, f"{r['ok']} boleto(s) registrado(s), {r['erro']} com erro."
                                   + (f" Ainda restam {r['restantes']} parcela(s): clique de novo para continuar." if r["restantes"] else ""))
+
+    def _acao_webhook_cora(self, request, cfg):
+        if cfg.provedor != Provedor.CORA:
+            raise Http404
+        provedor_da(cfg).registrar_webhook(self._webhook_url(cfg) + "?t=" + cfg.webhook_token)
+        messages.success(request, "Avisos de pagamento cadastrados no Cora.")
 
     def _acao_conciliar(self, request, cfg):
         n = services.conciliar(self.instituicao, request.user)
@@ -258,7 +274,7 @@ class WebhookView(View):
 
     def post(self, request, slug):
         cfg = ConfiguracaoBancaria.objects.select_related("instituicao").filter(webhook_slug=slug).first()
-        if cfg is None or cfg.provedor != Provedor.ASAAS:
+        if cfg is None or cfg.provedor not in (Provedor.ASAAS, Provedor.CORA):
             return HttpResponse(status=404)
         try:
             token = cfg.webhook_token
@@ -267,11 +283,14 @@ class WebhookView(View):
         chave = seguranca.chave_ip(seguranca.ip_do_pedido(request))
         if seguranca.bloqueado(Tipo.WEBHOOK_IP, chave, Tipo.WEBHOOK_IP, None, limite_conta=MAX_FALHAS_WEBHOOK):
             return HttpResponse(status=429)
-        if not token or not hmac.compare_digest(request.headers.get("asaas-access-token", "").encode(), token.encode()):
+        enviado = request.GET.get("t", "") if cfg.provedor == Provedor.CORA else request.headers.get("asaas-access-token", "")
+        if not token or not hmac.compare_digest(enviado.encode(), token.encode()):
             seguranca.registrar_falha(Tipo.WEBHOOK_IP, chave)
             seguranca.evento("WEBHOOK_FALHA", request, escola=cfg.instituicao, detalhe="Token do webhook incorreto")
             return HttpResponse(status=401)
         seguranca.limpar_falhas(Tipo.WEBHOOK_IP, chave)
+        if cfg.provedor == Provedor.CORA:
+            return self._cora(request, cfg)
         if len(request.body) > self.LIMITE_BYTES:
             return HttpResponse(status=413)
         try:
@@ -286,4 +305,17 @@ class WebhookView(View):
             return HttpResponse(status=400)
         except ErroProvedor:
             return HttpResponse(status=500)  # o banco tenta de novo mais tarde
+        return JsonResponse({"ok": True, "resultado": resultado})
+
+    def _cora(self, request, cfg):
+        """Aviso do Cora: sem corpo; o que vale são os cabeçalhos, e só como sinal (a situação vem da API)."""
+        evento = request.headers.get("webhook-event-id", "")
+        tipo = request.headers.get("webhook-event-type", "")
+        boleto = request.headers.get("webhook-resource-id", "")
+        if not (_EVT.match(evento) and _INV.match(boleto) and re.match(r"^invoice\.[A-Za-z_]{1,40}$", tipo)):
+            return HttpResponse(status=400)
+        try:
+            resultado = services.processar_webhook_cora(cfg, evento, tipo, boleto)
+        except ErroProvedor:
+            return HttpResponse(status=500)  # o Cora tenta de novo
         return JsonResponse({"ok": True, "resultado": resultado})

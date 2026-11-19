@@ -61,6 +61,12 @@ def salvar_configuracao(instituicao, dados, usuario):
     chave_nova = bool((dados.get("api_key") or "").strip())
     if chave_nova:
         cfg.definir_api_key(dados["api_key"])
+    if "client_id" in dados and (dados["client_id"] or "").strip():
+        cfg.client_id = dados["client_id"].strip()
+    if dados.get("certificado_pem") and dados.get("chave_privada_pem"):
+        cfg.definir_certificado(dados["certificado_pem"], dados["chave_privada_pem"], dados.get("certificado_validade"),
+                                dados.get("certificado_digital", ""))
+        chave_nova = True
     reaberta = False
     if cfg.status == ConfiguracaoBancaria.Status.ATIVA and cfg.assinatura() != antes:
         cfg.status = ConfiguracaoBancaria.Status.CONFIGURANDO  # trocou banco/ambiente/chave: precisa testar de novo
@@ -84,7 +90,7 @@ def novo_token_webhook(instituicao, usuario):
 def testar_conexao(cfg):
     """Confere credenciais/ambiente no provedor. Levanta ValidationError com a mensagem do banco."""
     if not cfg.completa:
-        raise ValidationError("Informe a chave de API do provedor antes de testar a conexão.")
+        raise ValidationError("Informe as credenciais do provedor antes de testar a conexão.")
     try:
         provedor_da(cfg).verificar()
     except ErroProvedor as exc:
@@ -214,8 +220,9 @@ def _titulo_da_parcela(p, hoje):
     descricao = p.descricao + (f" (venc. original {p.vencimento:%d/%m/%Y})" if atrasada else "")
     pagador = Pagador(nome=r.nome, documento=documento, email=r.email_cobranca, telefone=r.telefone, cep=r.cep,
                       numero_endereco=r.numero)
+    tentativa = Cobranca.objects.filter(parcela=p).exclude(status=Cobranca.Status.ERRO).count()
     return Titulo(referencia=f"parcela-{p.pk}", valor=valor, vencimento=venc, descricao=descricao, pagador=pagador,
-                  multa_percentual=multa, juros_mensal_percentual=juros)
+                  multa_percentual=multa, juros_mensal_percentual=juros, idempotencia=f"{p.pk}:{tentativa}")
 
 
 def registrar_cobranca(parcela, usuario=None, hoje=None):
@@ -340,17 +347,20 @@ def sincronizar_parcela(parcela, usuario=None, hoje=None):
             _audit(c.instituicao, usuario, "COBRANCA_CANCELADA", f"Boleto cancelado: {motivo}", entidade_id=c.pk,
                    aluno_id=p.aluno_id)
             return c
-        valor, venc, _m, _j = _valores(p, hoje)
+        valor, venc, multa, juros = _valores(p, hoje)
         if valor == c.valor and venc == c.vencimento:
             return c
         try:
-            novo = provedor_da(cfg).alterar(c.id_externo, valor=valor, vencimento=venc)
+            novo = provedor_da(cfg).alterar(c.id_externo, valor=valor, vencimento=venc, multa_percentual=multa,
+                                            juros_mensal_percentual=juros)
         except ErroProvedor as exc:
             c.divergencia = f"Parcela alterada, mas o banco não atualizou o boleto: {exc}"
             c.save(update_fields=["divergencia", "atualizado_em"])
             log.warning("Boleto %s não atualizado no banco: %s", c.pk, exc)
             return c
-        c.valor, c.vencimento, c.divergencia = valor, venc, ""
+        c.valor, c.vencimento, c.divergencia = valor, venc, (novo.aviso or "")
+        if novo.id_externo:  # alguns bancos (Cora) trocam o boleto: o id muda
+            c.id_externo = novo.id_externo
         for campo in ("nosso_numero", "linha_digitavel", "codigo_barras", "pix_copia_cola", "pix_qrcode", "url_boleto",
                       "url_fatura"):
             novo_valor = getattr(novo, campo)
@@ -469,6 +479,32 @@ def processar_webhook(cfg, payload):
         resultado = "divergência registrada"
     else:
         resultado = "evento ignorado"
+    ev.processado, ev.resultado = True, resultado[:200]
+    ev.save(update_fields=["processado", "resultado"])
+    return resultado
+
+
+def processar_webhook_cora(cfg, evento_id, tipo, id_boleto):
+    """Aviso do Cora (sem corpo/assinatura): serve só de sinal. A situação vem SEMPRE da consulta à API.
+
+    Idempotente pelo id do evento. Falha ao consultar levanta ErroProvedor (o Cora tenta de novo).
+    """
+    ev, criado = EventoBanco.objects.get_or_create(
+        provedor=cfg.provedor, evento_id=evento_id,
+        defaults=dict(instituicao=cfg.instituicao, tipo=tipo[:60], id_externo=id_boleto))
+    if ev.instituicao_id != cfg.instituicao_id:
+        return "ignorado"
+    if ev.processado:
+        return "duplicado"
+    cob = Cobranca.objects.filter(instituicao=cfg.instituicao, provedor=cfg.provedor, id_externo=id_boleto).first()
+    if cob is None:
+        resultado = "cobrança desconhecida"
+    else:
+        try:
+            cob = consultar_e_baixar(cob)
+        except ValidationError as exc:
+            raise ErroProvedor(exc.messages[0]) from None
+        resultado = f"cobrança {cob.get_status_display().lower()}"
     ev.processado, ev.resultado = True, resultado[:200]
     ev.save(update_fields=["processado", "resultado"])
     return resultado
