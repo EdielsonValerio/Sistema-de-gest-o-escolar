@@ -1,0 +1,84 @@
+/* Comprovante de recebimento (finance/recibo.html). Arquivo estático: a política de segurança (CSP) bloqueia <style> embutido. */
+.recibo-pagina { max-width: 860px; margin: 0 auto; }
+.recibo {
+  --rc-cor: var(--bs-primary, #1f4e8c);
+  --rc-cor-escura: color-mix(in srgb, var(--rc-cor) 72%, #000);
+  --rc-clara: color-mix(in srgb, var(--rc-cor) 7%, #fff);
+  --rc-linha: #e3e8ef; --rc-texto: #1d2733; --rc-suave: #667085;
+  position: relative; overflow: hidden; background: #fff; color: var(--rc-texto);
+  border: 1px solid var(--rc-linha); border-radius: 14px; box-shadow: 0 6px 24px rgba(16, 24, 40, .08);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+/* marca d'água: logotipo da escola, grande e bem clara, atrás do conteúdo */
+.recibo__marca {
+  position: absolute; left: 50%; top: 56%; width: 52%; max-height: 56%; object-fit: contain;
+  transform: translate(-50%, -50%); opacity: .045; filter: grayscale(.35); pointer-events: none; user-select: none; z-index: 0;
+}
+.recibo__marca-icone { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); font-size: 20rem; line-height: 1;
+  color: var(--rc-cor); opacity: .05; pointer-events: none; z-index: 0; }
+.recibo > *:not(.recibo__marca):not(.recibo__marca-icone) { position: relative; z-index: 1; }
+
+.recibo__topo { display: flex; gap: 1.1rem; align-items: center; padding: 1.4rem 1.7rem; color: #fff;
+  background: linear-gradient(115deg, var(--rc-cor-escura), var(--rc-cor)); }
+.recibo__logo { flex: none; width: 76px; height: 76px; border-radius: 14px; background: #fff; display: grid; place-items: center;
+  padding: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.recibo__logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.recibo__logo i { font-size: 2.2rem; color: var(--rc-cor); }
+.recibo__escola { min-width: 0; flex: 1; }
+.recibo__escola h2 { margin: 0 0 .15rem; font-size: 1.28rem; font-weight: 700; letter-spacing: .01em; }
+.recibo__escola p { margin: 0; font-size: .8rem; line-height: 1.45; opacity: .9; }
+.recibo__numero { flex: none; text-align: right; padding-left: 1rem; border-left: 1px solid rgba(255, 255, 255, .35); }
+.recibo__numero small { display: block; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.recibo__numero strong { display: block; font-size: 1.55rem; line-height: 1.15; }
+.recibo__numero span { font-size: .8rem; opacity: .9; }
+
+.recibo__faixa { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap;
+  padding: .8rem 1.7rem; background: var(--rc-clara); border-bottom: 1px solid var(--rc-linha); }
+.recibo__titulo { margin: 0; font-size: .82rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--rc-cor-escura); }
+.recibo__selo { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .28rem .75rem;
+  border-radius: 999px; background: #e7f6ec; color: #17653a; border: 1px solid #b9e3c8; }
+.recibo__selo--estornado { background: #fdeceb; color: #a4281f; border-color: #f4c3bf; }
+
+.recibo__corpo { padding: 1.4rem 1.7rem 1.2rem; }
+.recibo__dados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1.5rem; margin-bottom: 1.3rem; }
+.recibo__dado small { display: block; font-size: .66rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--rc-suave); margin-bottom: .1rem; }
+.recibo__dado div { font-size: .98rem; font-weight: 600; }
+.recibo__dado em { font-style: normal; font-weight: 400; color: var(--rc-suave); }
+
+.recibo__tabela { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .9rem; }
+.recibo__tabela th { padding: .55rem .7rem; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--rc-suave);
+  border-bottom: 2px solid var(--rc-cor); text-align: left; font-weight: 600; }
+.recibo__tabela td { padding: .6rem .7rem; border-bottom: 1px solid var(--rc-linha); }
+.recibo__tabela tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--rc-cor) 3%, #fff); }
+.recibo__tabela .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.recibo__totais { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.recibo__totais table { min-width: 18rem; font-size: .9rem; }
+.recibo__totais td { padding: .25rem .2rem; color: var(--rc-suave); }
+.recibo__totais td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--rc-texto); }
+.recibo__total { margin-top: .4rem; display: flex; justify-content: space-between; align-items: baseline; gap: 2rem;
+  padding: .8rem 1.1rem; border-radius: 10px; color: #fff; background: linear-gradient(115deg, var(--rc-cor-escura), var(--rc-cor)); }
+.recibo__total span { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+.recibo__total strong { font-size: 1.55rem; font-variant-numeric: tabular-nums; }
+
+.recibo__rodape { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-end;
+  padding: 0 1.7rem 1.3rem; font-size: .74rem; color: var(--rc-suave); }
+.recibo__rodape p { margin: 0; max-width: 34rem; }
+.recibo__assinatura { min-width: 15rem; text-align: center; border-top: 1px solid #98a2b3; padding-top: .3rem; color: var(--rc-suave); }
+.recibo__fita { height: 6px; background: linear-gradient(90deg, var(--rc-cor-escura), var(--rc-cor), color-mix(in srgb, var(--rc-cor) 40%, #fff)); }
+
+/* recebimento estornado: carimbo diagonal e valores riscados */
+.recibo--estornado::after { content: "ESTORNADO"; position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%) rotate(-18deg);
+  z-index: 2; font-size: 5.2rem; font-weight: 800; letter-spacing: .12em; color: rgba(190, 40, 30, .16);
+  border: .45rem solid rgba(190, 40, 30, .16); border-radius: 1rem; padding: 0 1.6rem; pointer-events: none; }
+.recibo__aviso { margin: 0 1.7rem 1rem; padding: .7rem .9rem; border-radius: 10px; background: #fdeceb; color: #8f2118; border: 1px solid #f4c3bf; font-size: .86rem; }
+
+@media (max-width: 640px) {
+  .recibo__topo { flex-wrap: wrap; } .recibo__numero { border-left: 0; padding-left: 0; text-align: left; width: 100%; }
+  .recibo__dados { grid-template-columns: 1fr; } .recibo--estornado::after { font-size: 3rem; }
+}
+@media print {
+  .recibo { border: 0; border-radius: 0; box-shadow: none; }
+  .recibo-pagina { max-width: none; }
+  @page { size: A4; margin: 10mm; }
+}
